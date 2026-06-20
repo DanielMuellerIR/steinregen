@@ -1,0 +1,36 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon files
+Icon\r
+
+# Xcode
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+*.xcuserstate
+*.xcworkspace/
+xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Backups and temporary files
+*~
+*.swp
+*.swo
+
+# Test-Screenshots (lokal, nicht versionieren)
+Screenshots/
+screenshots/
+
+# Distributions-Artefakte
+dist/
+
+# Analyse-Material (Videos/Frames vom Original – lokal, NIE ins Repo, urheberrechtlich)
+analyse/
