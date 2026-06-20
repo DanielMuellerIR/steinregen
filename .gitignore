@@ -32,5 +32,8 @@ screenshots/
 # Distributions-Artefakte
 dist/
 
+# Generiertes App-Icon (reproduzierbar via tools/make-icon.sh aus den Stein-PNGs)
+tools/AppIcon.icns
+
 # Analyse-Material (Videos/Frames vom Original – lokal, NIE ins Repo, urheberrechtlich)
 analyse/

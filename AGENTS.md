@@ -55,6 +55,10 @@ steinregen/                   (SwiftPM-Workspace)
   `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test`
 - **Version**: Datei `VERSION` + Konstante `steinregenVersion` (Core) synchron halten; pro
   abgeschlossener Aufgabe committen + bumpen.
+- **Doppelklickbare App**: `bash tools/make-app.sh` baut `dist/Steinregen.app` (mit Dock-Icon,
+  ad-hoc-signiert) + `dist/Steinregen-<version>.zip`. Das Icon (`tools/AppIcon.icns`) wird bei
+  Bedarf von `tools/make-icon.sh` aus den Stein-PNGs erzeugt (Composer: `tools/icon-compose.swift`,
+  Motiv: fallende Dreier-Säule). `dist/` und `tools/AppIcon.icns` sind git-ignoriert (reproduzierbar).
 
 ### Automations-/Headless-Naht
 
@@ -97,12 +101,13 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
 
 ---
 
-## 5. Status (Stand 2026-06-21, v0.1.0)
+## 5. Status (Stand 2026-06-21, v0.1.1)
 
 Erste spielbare Version: Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige
 im Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
-seed-getriebene Säulenfolge. Core vollständig unit-getestet.
+seed-getriebene Säulenfolge. Core vollständig unit-getestet. Doppelklickbares App-Bundle mit
+Dock-Icon (`tools/make-app.sh`).
 
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,
-App-Bundle + Notarisierung, optionaler iOS-Port.
+Developer-ID-Signatur + Notarisierung (für Weitergabe ohne Gatekeeper-Warnung), optionaler iOS-Port.

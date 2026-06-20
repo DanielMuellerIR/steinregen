@@ -38,6 +38,16 @@ swift build
 swift run Steinregen
 ```
 
+### Double-clickable app (with Dock icon)
+
+```bash
+bash tools/make-app.sh
+```
+
+Builds `dist/Steinregen.app` (ad-hoc signed, with a Dock icon generated from the gem artwork)
+plus a distributable `dist/Steinregen-<version>.zip`. Double-click the `.app` in Finder, or drag
+it into `/Applications`.
+
 ### Tests
 
 `swift test` alone fails on systems with only the Command Line Tools (no XCTest). Use the

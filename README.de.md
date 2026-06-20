@@ -38,6 +38,16 @@ swift build
 swift run Steinregen
 ```
 
+### Doppelklickbare App (mit Dock-Icon)
+
+```bash
+bash tools/make-app.sh
+```
+
+Baut `dist/Steinregen.app` (ad-hoc-signiert, mit einem aus den Stein-Grafiken erzeugten
+Dock-Icon) plus ein weitergebbares `dist/Steinregen-<version>.zip`. Die `.app` im Finder
+doppelklicken oder nach `/Programme` ziehen.
+
 ### Tests
 
 `swift test` allein scheitert auf Systemen mit nur den Command Line Tools (kein XCTest).
