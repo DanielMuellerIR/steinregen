@@ -42,7 +42,6 @@ public final class GameScene: SKScene {
     private var boardOriginX: CGFloat = 0
     private var boardOriginY: CGFloat = 0
     private var gemSize: CGSize = .init(width: 36, height: 36)
-    private let topBarHeight: CGFloat = 56
     private let outerPad: CGFloat = 8
 
     // MARK: Timing / Ablaufsteuerung
@@ -65,6 +64,18 @@ public final class GameScene: SKScene {
     private var lockDelayAccumulator: TimeInterval = 0
     /// true, solange die aktuelle Saeule per Leertaste heruntergelassen wurde → kuerzeres Fenster.
     private var hardDropped = false
+
+    /// Horizontaler Auto-Repeat: gehaltene Links/Rechts-Taste verschiebt die Saeule in fester,
+    /// snappy Rate — bewusst UNABHAENGIG von der OS-Tastenwiederholung (sonst haengt das Tempo an
+    /// den Systemeinstellungen). `moveDir` ist -1 (links), +1 (rechts) oder 0 (keine Taste).
+    private var moveDir = 0
+    private var moveRepeatAccumulator: TimeInterval = 0
+    /// false bis der erste Auto-Repeat nach der Anfangsverzoegerung (DAS) ausgeloest hat.
+    private var moveDASStarted = false
+    /// DAS = Wartezeit zwischen dem ersten Schritt und dem Einsetzen des Auto-Repeats.
+    private let moveDAS: TimeInterval = 0.17
+    /// ARR = Intervall des Auto-Repeats danach (ca. 17 % schneller als der uebliche OS-Default).
+    private let moveARR: TimeInterval = 0.05
 
     // MARK: - Lebenszyklus
 
@@ -112,6 +123,9 @@ public final class GameScene: SKScene {
         hardDropped = false
         lastUpdateTime = 0
         softDropActive = false
+        moveDir = 0
+        moveRepeatAccumulator = 0
+        moveDASStarted = false
         model?.reset()
         if backgroundLayer.parent != nil {
             layout()
@@ -123,15 +137,23 @@ public final class GameScene: SKScene {
 
     // MARK: - Layout
 
+    /// So viele Kacheln Breite werden fuer die beiden Seiten-Panels reserviert (links Punkte/Level,
+    /// rechts die senkrechte Vorschau) — der Rest ist das Brett. Haelt die Panels auch auf kleinen
+    /// Fenstern lesbar breit.
+    private let sideTilesTotal: CGFloat = 3.6
+
     private func layout() {
         let availW = size.width - outerPad * 2
-        let availH = size.height - outerPad * 2 - topBarHeight
+        let availH = size.height - outerPad * 2
         guard availW > 0, availH > 0 else { return }
-        tile = floor(min(availW / CGFloat(Board.width), availH / CGFloat(Board.height)))
+        // Brett fuellt die Hoehe; die Kachelgroesse wird zusaetzlich so gedeckelt, dass links und
+        // rechts je ein Seiten-Panel frei bleibt (Punkte/Level bzw. Vorschau).
+        tile = floor(min(availH / CGFloat(Board.height),
+                         availW / (CGFloat(Board.width) + sideTilesTotal)))
         let boardW = tile * CGFloat(Board.width)
         let boardH = tile * CGFloat(Board.height)
-        boardOriginX = (size.width - boardW) / 2
-        boardOriginY = outerPad
+        boardOriginX = (size.width - boardW) / 2          // mittig → gleicher Rand links/rechts
+        boardOriginY = (size.height - boardH) / 2          // senkrecht zentriert
         gemSize = CGSize(width: tile * 0.94, height: tile * 0.94)
         buildFog()
         buildBackground(boardW: boardW, boardH: boardH)
@@ -212,48 +234,58 @@ public final class GameScene: SKScene {
     private func buildHUD(boardW: CGFloat, boardH: CGFloat) {
         hudLayer.removeAllChildren()
         previewNodes.removeAll()
-        let barY = boardOriginY + boardH + topBarHeight / 2 + 4
 
-        scoreLabel = makeLabel(size: 22, bold: true)
-        scoreLabel.horizontalAlignmentMode = .left
+        let topY = boardOriginY + boardH                      // Oberkante des Bretts
+        let leftCenterX  = (outerPad + boardOriginX) / 2      // Mitte des linken Seiten-Panels
+        let rightCenterX = (boardOriginX + boardW + size.width - outerPad) / 2  // Mitte des rechten Panels
+
+        // --- Linkes Panel: Punkte (groß) + Level ---
+        let punkteCap = makeLabel(size: 18, bold: false)
+        punkteCap.text = "Punkte"
+        punkteCap.fontColor = Theme.boneDim.sk
+        punkteCap.horizontalAlignmentMode = .center
+        punkteCap.verticalAlignmentMode = .center
+        punkteCap.position = CGPoint(x: leftCenterX, y: topY - 24)
+        hudLayer.addChild(punkteCap)
+
+        scoreLabel = makeLabel(size: 28, bold: true)
+        scoreLabel.horizontalAlignmentMode = .center
         scoreLabel.verticalAlignmentMode = .center
-        scoreLabel.position = CGPoint(x: boardOriginX - 6, y: barY)
+        scoreLabel.position = CGPoint(x: leftCenterX, y: topY - 56)
         hudLayer.addChild(scoreLabel)
 
-        levelLabel = makeLabel(size: 16, bold: false)
-        levelLabel.horizontalAlignmentMode = .left
+        levelLabel = makeLabel(size: 20, bold: false)
+        levelLabel.horizontalAlignmentMode = .center
         levelLabel.verticalAlignmentMode = .center
         levelLabel.fontColor = Theme.boneDim.sk
-        levelLabel.position = CGPoint(x: boardOriginX - 6, y: barY - 24)
+        levelLabel.position = CGPoint(x: leftCenterX, y: topY - 92)
         hudLayer.addChild(levelLabel)
 
-        nextLabel = makeLabel(size: 13, bold: true)
-        nextLabel.text = "als nächstes"
+        // --- Rechtes Panel: „als Nächstes" + SENKRECHTE Vorschau (wie die fallende Säule) ---
+        nextLabel = makeLabel(size: 18, bold: true)
+        nextLabel.text = "als Nächstes"
         nextLabel.fontColor = Theme.boneDim.sk
-        nextLabel.horizontalAlignmentMode = .right
+        nextLabel.horizontalAlignmentMode = .center
         nextLabel.verticalAlignmentMode = .center
-        let rightX = boardOriginX + boardW + 6
-        nextLabel.position = CGPoint(x: rightX, y: barY + 18)
+        nextLabel.position = CGPoint(x: rightCenterX, y: topY - 24)
         hudLayer.addChild(nextLabel)
 
-        // Drei kleine Vorschau-Knoten unter dem Label.
-        let pSize = min(topBarHeight * 0.42, tile * 0.7)
+        // Drei Steine senkrecht gestapelt: Index 0 = unterster Stein der Säule → unten, Index 2 → oben.
+        let pSize = min(tile * 0.86, (size.width - (boardOriginX + boardW) - outerPad) * 0.78)
+        let gap: CGFloat = 6
+        let firstY = topY - 56 - pSize / 2          // Mitte des obersten Vorschau-Steins
         for i in 0..<3 {
             let n = SKSpriteNode(color: .clear, size: CGSize(width: pSize, height: pSize))
-            n.position = CGPoint(x: rightX - pSize * 0.5, y: barY - 8 - CGFloat(i) * 0 )
+            n.position = CGPoint(x: rightCenterX, y: firstY - CGFloat(2 - i) * (pSize + gap))
             previewNodes.append(n)
             hudLayer.addChild(n)
         }
-        // Vorschau horizontal nebeneinander statt gestapelt.
-        for (i, n) in previewNodes.enumerated() {
-            n.position = CGPoint(x: rightX - CGFloat(2 - i) * (pSize + 4) - pSize * 0.5, y: barY - 12)
-        }
     }
 
-    /// Alle HUD-Texte in der mitgelieferten Blackletter-Schrift. `bold` bleibt aus Kompatibilitaet
-    /// erhalten, hat aber keine Wirkung (Pirata One hat nur einen Schnitt).
+    /// Alle HUD-Texte in der gotischen Schrift (Grenze Gotisch). `bold` waehlt jetzt den fetten
+    /// Schnitt — fuer kraeftigere, besser lesbare Titel/Score; sonst der Regular-Schnitt.
     private func makeLabel(size: CGFloat, bold: Bool) -> SKLabelNode {
-        let label = SKLabelNode(fontNamed: Theme.blackletterPostScript)
+        let label = SKLabelNode(fontNamed: bold ? Theme.blackletterBoldPostScript : Theme.blackletterPostScript)
         label.fontSize = size
         label.fontColor = Theme.bone.sk
         return label
@@ -289,11 +321,15 @@ public final class GameScene: SKScene {
         while pieceNodes.count < 3 {
             let n = SKSpriteNode(); pieceLayer.addChild(n); pieceNodes.append(n)
         }
-        let visible = (engine.phase == .falling)
+        let falling = (engine.phase == .falling)
         for i in 0..<3 {
             let node = pieceNodes[i]
-            node.isHidden = !visible
             node.size = gemSize
+            // Die Saeule schwebt von oben ein: Segmente oberhalb der obersten Brettreihe sind noch
+            // nicht im Spielfeld und bleiben unsichtbar, bis sie eine Reihe tiefer rutschen.
+            let row = engine.current.row + i
+            let onBoard = row < Board.height
+            node.isHidden = !falling || !onBoard
             let gem = engine.current.gems[i]
             if gem.isMagic {
                 node.texture = GemTextures.magicTextures.first
@@ -303,8 +339,10 @@ public final class GameScene: SKScene {
                 node.setScale(1)
                 node.texture = GemTextures.texture(for: gem)
             }
-            let target = cellCenter(col: engine.current.col, row: engine.current.row + i)
-            if animated {
+            let target = cellCenter(col: engine.current.col, row: row)
+            // Nur im Brett animieren; ein noch unsichtbares Segment wird direkt an seine Position
+            // ueber dem Brett geparkt — taucht es eine Reihe tiefer auf, gleitet es von dort herein.
+            if animated && onBoard {
                 node.run(SKAction.move(to: target, duration: 0.06))
             } else {
                 node.position = target
@@ -334,6 +372,18 @@ public final class GameScene: SKScene {
         if lastUpdateTime == 0 { lastUpdateTime = currentTime; return }
         let dt = currentTime - lastUpdateTime
         lastUpdateTime = currentTime
+
+        // Horizontaler Auto-Repeat: erster Schritt kam schon beim Tastendruck (startMove); hier
+        // folgt nach der Anfangsverzoegerung (DAS) die schnelle Wiederholung (ARR), solange gehalten.
+        if moveDir != 0 {
+            moveRepeatAccumulator += dt
+            let threshold = moveDASStarted ? moveARR : moveDAS
+            if moveRepeatAccumulator >= threshold {
+                moveRepeatAccumulator = 0
+                moveDASStarted = true
+                if moveDir < 0 { inputLeft() } else { inputRight() }
+            }
+        }
 
         if engine.canFall() {
             // Normales Fallen. (Hat die Saeule durch Schieben wieder Luft, läuft das Lock-Delay nicht.)
@@ -383,6 +433,21 @@ public final class GameScene: SKScene {
     public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true); lockDelayAccumulator = 0 } }
     public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate(); lockDelayAccumulator = 0 } }
 
+    /// Beginnt das horizontale Halten in `dir` (-1 links, +1 rechts): ein sofortiger erster Schritt,
+    /// danach uebernimmt der Auto-Repeat im `update(_:)` (siehe moveDAS/moveARR).
+    public func startMove(_ dir: Int) {
+        moveDir = dir
+        moveRepeatAccumulator = 0
+        moveDASStarted = false
+        if dir < 0 { inputLeft() } else if dir > 0 { inputRight() }
+    }
+
+    /// Beendet das Halten in `dir` (nur wenn genau diese Richtung aktiv war — so stoppt das
+    /// Loslassen der einen Taste nicht versehentlich eine noch gehaltene Gegenrichtung).
+    public func stopMove(_ dir: Int) {
+        if moveDir == dir { moveDir = 0 }
+    }
+
     /// Harter Fall: zieht die Saeule sofort bis zum Aufsetzen herunter — fixiert dann aber NICHT
     /// sofort, sondern oeffnet das halbe Korrektur-Fenster (`hardDropLockDelay`), in dem noch
     /// geschoben/gedreht werden kann. Wer gar nichts mehr tut, rastet nach 0,21 s ein.
@@ -427,6 +492,7 @@ public final class GameScene: SKScene {
                 return
             }
             let step = result.steps[index]
+            showCombo(chain: step.chain, count: step.cells.count)
             flashAndRemove(step.cells) { [weak self] in
                 self?.compactColumnsAnimated {
                     self?.updateHUD()
@@ -504,6 +570,25 @@ public final class GameScene: SKScene {
             SKAction.removeFromParent()
         ])
         for node in nodes { node.run(poof) }
+
+        // Dezenter Erklärungstext (bewusst leiser als das Combo-Feedback): erklärt, was gerade
+        // passiert, ohne aufdringlich zu sein.
+        let info = makeLabel(size: 17, bold: false)
+        info.text = "Magischer Stein — räumt eine ganze Sorte"
+        info.fontColor = Theme.boneDim.sk
+        info.horizontalAlignmentMode = .center
+        info.verticalAlignmentMode = .center
+        info.position = CGPoint(x: size.width / 2, y: size.height * 0.66)
+        info.zPosition = 60
+        info.alpha = 0
+        hudLayer.addChild(info)
+        info.run(SKAction.sequence([
+            SKAction.fadeIn(withDuration: 0.15),
+            SKAction.wait(forDuration: 0.9),
+            SKAction.fadeOut(withDuration: 0.4),
+            SKAction.removeFromParent()
+        ]))
+
         run(SKAction.wait(forDuration: 0.42)) { completion() }
     }
 
@@ -528,12 +613,51 @@ public final class GameScene: SKScene {
     private func showGameOverBanner() {
         let label = makeLabel(size: 46, bold: true)
         label.text = "Verreckt"
-        label.fontColor = Theme.oxblood.sk
+        label.fontColor = Theme.blood.sk
         label.position = CGPoint(x: size.width / 2, y: size.height / 2)
         label.alpha = 0
         label.zPosition = 20
         hudLayer.addChild(label)
         label.run(SKAction.fadeIn(withDuration: 0.4))
+    }
+
+    /// Positives Erfolgs-Feedback: blendet bei Kettenreaktionen eine groß werdende „N×"-Anzeige ein
+    /// (ab Kette 3 in kräftigem Rot). Auch eine große Einzel-Räumung (viele Steine auf einmal)
+    /// bekommt einen dezenten Hinweis. Eine ruhige erste Welle mit wenigen Steinen bleibt still.
+    private func showCombo(chain: Int, count: Int) {
+        let text: String
+        let color: Theme.RGB
+        if chain >= 2 {
+            text = "\(chain)×"
+            color = chain >= 3 ? Theme.blood : Theme.bone
+        } else if count >= 6 {
+            text = "\(count)!"
+            color = Theme.bone
+        } else {
+            return
+        }
+        let label = makeLabel(size: 40, bold: true)
+        label.text = text
+        label.fontColor = color.sk
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: size.width / 2, y: size.height * 0.56)
+        label.zPosition = 60
+        label.alpha = 0
+        label.setScale(0.4)
+        hudLayer.addChild(label)
+        // Höhere Ketten erscheinen größer und ploppen kräftiger.
+        let peak = min(2.8, 1.3 + CGFloat(max(chain, 2)) * 0.32)
+        let appear = SKAction.group([SKAction.fadeIn(withDuration: 0.10),
+                                     SKAction.scale(to: peak, duration: 0.22)])
+        appear.timingMode = .easeOut
+        label.run(SKAction.sequence([
+            appear,
+            SKAction.wait(forDuration: 0.32),
+            SKAction.group([SKAction.fadeOut(withDuration: 0.30),
+                            SKAction.scale(to: peak * 1.25, duration: 0.30)]),
+            SKAction.removeFromParent()
+        ]))
     }
 
     /// Kurzer, einblendender Hinweis (z.B. „mundtot" / „Ton an" beim Umschalten mit T).

@@ -1,6 +1,6 @@
 // Theme.swift
 // Zentrale Stelle fuer den Black-Metal-Look: Farbpalette, Font-Namen und das einmalige
-// Registrieren der mitgelieferten Blackletter-Schrift (Pirata One, SIL OFL).
+// Registrieren der mitgelieferten gotischen Schrift (Grenze Gotisch, SIL OFL).
 //
 // Sowohl die SpriteKit-Schicht (GameScene) als auch die SwiftUI-Shell (SteinregenApp)
 // greifen hierauf zu, damit beide exakt dieselben Farben/Schriften verwenden. Die Farben
@@ -36,8 +36,9 @@ public enum Theme {
     public static let ink     = RGB(0.039, 0.039, 0.047)   // dunkle Aussparungen in Sigillen
     public static let bone    = RGB(0.804, 0.780, 0.729)   // raeudiges Off-White: Text + Sigille
     public static let boneDim = RGB(0.420, 0.400, 0.360)   // gedaempftes Knochenweiss (Sekundaertext)
-    public static let oxblood = RGB(0.480, 0.102, 0.102)   // Akzent: Game-Over, Magic-Rahmen
+    public static let oxblood = RGB(0.480, 0.102, 0.102)   // Akzent: Rahmen/Striche/Tints
     public static let oxbloodDark = RGB(0.165, 0.075, 0.075) // dunkler Rahmen ums Brett
+    public static let blood   = RGB(0.820, 0.200, 0.170)   // helleres Blutrot fuer LESBAREN roten Text auf Dunkel
 
     /// Gedeckte, entsaettigte Toenung je Stein — dunkel genug fuer den schwarzen Look, aber jetzt
     /// klar als Farbe erkennbar. Die Hauptunterscheidung bleibt das weisse Sigil (Form).
@@ -55,9 +56,13 @@ public enum Theme {
 
     // MARK: - Schrift
 
-    /// Family-Name (fuer SwiftUI `Font.custom`) und PostScript-Name (fuer `SKLabelNode(fontNamed:)`).
-    public static let blackletterFamily = "Pirata One"
-    public static let blackletterPostScript = "PirataOne-Regular"
+    /// Gotische UI-Schrift (Grenze Gotisch) — modernes, deutlich besser lesbares Blackletter als das
+    /// fruehere Pirata One. `blackletterFamily` = Family-Name (SwiftUI `Font.custom`),
+    /// `blackletterPostScript` = PostScript-Name des Regular-Schnitts (`SKLabelNode(fontNamed:)`),
+    /// `blackletterBoldPostScript` = fetter Schnitt fuer Titel/Betonungen/Score.
+    public static let blackletterFamily = "Grenze Gotisch"
+    public static let blackletterPostScript = "GrenzeGotisch-Regular"
+    public static let blackletterBoldPostScript = "GrenzeGotisch-Bold"
 
     // MARK: - Logo
 
@@ -79,13 +84,16 @@ public enum Theme {
 
     private static var fontsRegistered = false
 
-    /// Registriert die mitgelieferte Blackletter-Schrift einmalig fuer diesen Prozess.
+    /// Registriert die mitgelieferte gotische Schrift (Regular + Bold) einmalig fuer diesen Prozess.
     /// Mehrfachaufruf ist gefahrlos (Flag). App-Shell UND Szene rufen das beim Start auf.
     public static func registerFonts() {
         guard !fontsRegistered else { return }
         fontsRegistered = true
-        guard let url = resourceBundle.url(forResource: blackletterPostScript, withExtension: "ttf") else { return }
-        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        for postScript in [blackletterPostScript, blackletterBoldPostScript] {
+            if let url = resourceBundle.url(forResource: postScript, withExtension: "ttf") {
+                CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            }
+        }
     }
 
     // MARK: - Ressourcen-Bundle (robuster Finder, siehe Datei-Kopf)

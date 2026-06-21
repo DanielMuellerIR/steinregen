@@ -18,8 +18,11 @@ public struct Engine: Sendable {
 
     /// Mittlere Spalte, in der jede neue Saeule erscheint.
     public static let spawnColumn = Board.width / 2
-    /// Reihe des untersten Steins beim Einwurf (Saeule belegt die obersten drei Reihen).
-    public static let spawnRow = Board.height - 3
+    /// Reihe des untersten Steins beim Einwurf. Die Saeule schwebt von oben ein: nur der unterste
+    /// Stein steht anfangs in der obersten Brettreihe, die beiden oberen Segmente liegen noch
+    /// UEBER dem Brett (Reihen >= Board.height, dort als frei behandelt) und werden von der
+    /// Render-Schicht ausgeblendet, bis sie beim Fallen Reihe fuer Reihe ins Feld rutschen.
+    public static let spawnRow = Board.height - 1
     /// So viele geraeumte Steine heben das Level um eins.
     public static let gemsPerLevel = 30
     /// Magic-Jewel-Haeufigkeit: im Schnitt 1 von `magicOdds` gezogenen Saeulen.

@@ -35,8 +35,8 @@ steinregen/                   (SwiftPM-Workspace)
 │   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones
 │   │                          + ZaubersteineStones (svg/procedural/png), GemTextures =
 │   │                          set-bewusste Textur-Fabrik, SoundFX = Soundeffekte, Magic-Animation)
-│   └── SteinregenApp/        (SwiftUI-Shell: Startbildschirm, Einstellungen, Friedhof =
-│                              Bestenliste/Persistenz, Steuerung, Game-Over)
+│   └── SteinregenApp/        (SwiftUI-Shell: Startbildschirm, Einstellungen, Spielregeln,
+│                              Friedhof = Bestenliste/Persistenz, Steuerung, Game-Over)
 └── Tests/
     └── SteinregenCoreTests/  (Determinismus, Treffer h/v/diagonal, Kaskade, Magic, Game-Over)
 ```
@@ -69,17 +69,22 @@ steinregen/                   (SwiftPM-Workspace)
   (`tools/make-icon.sh`) UND dem „Juwelen"-Set (umgefärbte Foto-Kristalle). Dazu sechs
   `svg_*.png` (512×512) für das „Zaubersteine"-Set. Beide stammen aus dem Schwester-Projekt.
   `logo.png` = Start-Logo (weiß auf transparent, aus einem KI-generierten Schriftzug auf die
-  Buchstaben getrimmt + Schwarz transparent gemacht); ersetzt im Startbildschirm den Pirata-One-
-  Schriftzug (`Theme.logoImage()`, Fallback auf Text). Pirata One bleibt für Untertitel/HUD/Game-Over.
+  Buchstaben getrimmt + Schwarz transparent gemacht); zeigt im Startbildschirm das Black-Metal-Logo
+  als **Bild** (`Theme.logoImage()`, Fallback auf Text in der UI-Schrift). Das Logo-Bild bleibt
+  bewusst unangetastet — alle übrigen Texte laufen in der gotischen UI-Schrift (siehe unten).
 - **Soundeffekte**: 9 FreeDoom-WAVs (`ds*.wav`, BSD-3-Clause) + `FREEDOOM-LICENSE.txt` im Bundle,
   abgespielt über `SoundFX`. Zuordnung: Drehen `dstink`, Aufsetzen zyklisch
   `dsgetpow→dsoof→dsswtchn`, Auflösen `dspstop`, Game-Over zufällig `dspdiehi/dspldeth/dsdorcls`,
   Level `dswpnup`. Ton-Aus = „mundtot" (UserDefaults `steinregen.mundtot`, Taste **T**, Einstellungen).
   Kandidaten zum Probehören: `tools/get-sound-candidates.sh` + `tools/audition-sounds.sh`
   (laden nach `assets/sound-candidates/`, git-ignoriert).
-  Zusätzlich im Bundle: **Pirata One** (Blackletter-Titel/HUD-Schrift) als `PirataOne-Regular.ttf`
-  + `PirataOne-OFL.txt` (SIL Open Font License — muss mitgeliefert werden), zur Laufzeit über
-  `Theme.registerFonts()` registriert. Die wiederverwendeten Bausteine (deterministischer PRNG,
+  Zusätzlich im Bundle: **Grenze Gotisch** (gotische Titel-/UI-/HUD-Schrift, modernes gut lesbares
+  Blackletter — ab v0.8.0 statt Pirata One) als `GrenzeGotisch-Regular.ttf` + `GrenzeGotisch-Bold.ttf`
+  + `GrenzeGotisch-OFL.txt` (SIL Open Font License — muss mitgeliefert werden), zur Laufzeit über
+  `Theme.registerFonts()` registriert (`Theme.blackletterFamily`/`blackletterPostScript`/`blackletterBoldPostScript`;
+  der Name „blackletter" bleibt, passt aber weiter — Grenze Gotisch IST ein Blackletter). Einzige
+  Ausnahme: die Tasten-/Pfeil-Spalte der Steuerungs-Legende bleibt System-Mono (Grenze hat keine
+  Pfeil-Glyphen ←↑→↓). Die wiederverwendeten Bausteine (deterministischer PRNG,
   robuster Bundle-Loader ohne `Bundle.module`, das 3-Modul-Layout) stammen aus *Zaubersteine*.
 
 ### Build & Test
@@ -115,7 +120,10 @@ Fenster-gezielter Screenshot ohne Fokus-Klau: Window-ID per CoreGraphics holen, 
 
 Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
 
-- **Spielfeld 6 Spalten × 13 Reihen.** Es fällt eine vertikale Säule aus 3 Steinen.
+- **Spielfeld 6 Spalten × 13 Reihen.** Es fällt eine vertikale Säule aus 3 Steinen. Die Säule
+  **schwebt von oben ein** (ab v0.8.0, abweichend vom Original): Einwurf-Reihe `spawnRow = height-1`,
+  d. h. anfangs steht nur der unterste Stein in der obersten Brettreihe, die zwei oberen Segmente
+  liegen noch über dem Brett (unsichtbar) und tauchen beim Fallen Reihe für Reihe auf.
 - **6 Steine**, unterschieden über ihr weißes **Sigil** (Form), nicht über Farbe — nahezu
   monochrom: `ruby` (umgekehrtes Pentagramm), `sapphire` (inverses Kreuz), `emerald` (Tiwaz-Rune),
   `topaz` (Triquetra), `diamond` (Schädel), `amethyst` (Mondsichel). Jeder Stein hat zusätzlich
@@ -153,7 +161,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-21, v0.7.1)
+## 5. Status (Stand 2026-06-22, v0.8.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -199,6 +207,62 @@ Fenster auf, statt dass es ab dem ersten Aufsetzen unaufhaltsam abläuft. **Hard
 fixiert nicht mehr sofort, sondern öffnet ein **halbes Fenster** (0,21 s, `hardDropLockDelay`).
 Außerdem: „verreckt" → **„Verreckt"** (großes V) in Game-Over-Banner/-Overlay + Grabstein-Zeile.
 
+**v0.8.0 — Säule schwebt von oben ein:** statt alle drei Segmente sofort oben am Schacht zu zeigen,
+wird die Säule eine Reihe tiefer eingeworfen (`spawnRow = height-1`). Anfangs ist nur der unterste
+Stein sichtbar (oberste Brettreihe); die zwei oberen Segmente liegen über dem Brett (im Core als
+freie Zellen behandelt, vom Renderer ausgeblendet) und gleiten beim Fallen Reihe für Reihe herein.
+Bewusste Abweichung vom Original (dort erscheint die Säule komplett). Game-Over-Abfrage greift
+dadurch erst, wenn die oberste Brettreihe der Einwurf-Spalte belegt ist; Core-Tests unverändert grün.
+Außerdem Sprach-/Text-Politur: das Bethlehem-Zitat „Tod macht Fliegen aus uns allen" wandert vom
+Startbildschirm in den Game-Over-Screen (Grabspruch unter dem Punktestand, Overlay etwas breiter);
+HUD-Label „als nächstes" → „als Nächstes" (Duden-korrekte Nominalisierung).
+**Schrift komplett auf `Grenze Gotisch`** (modernes, gut lesbares Blackletter; Pirata One war als
+Großbuchstabe schwer zu entziffern — F sah aus wie f). Ersetzt sowohl das alte Pirata One ALS AUCH
+den schmucklosen System-Font (San Francisco) in der gesamten UI — HUD, Menü, Einstellungen, Friedhof,
+Game-Over, Buttons; Regular + fetter Schnitt (`blackletterBoldPostScript`) für Titel/Score. Pirata-
+One-Assets entfernt. Logo-**Bild** bleibt unangetastet. Einzige Ausnahme: die Tasten-/Pfeil-Spalte
+der Steuerungs-Legende bleibt System-Mono (Grenze hat keine Pfeil-Glyphen).
+**Layout-Umbau (ebenfalls v0.8.0):** Fenster breiter (670×900), Spielbrett **mittig** mit zwei
+Seiten-Panels — links Punkte/Level, rechts „als Nächstes" mit **senkrechter** Vorschau (vorher
+waagerecht). Neue hellere Blutrot-Farbe `Theme.blood` (RGB 0.82/0.20/0.17) für **lesbaren** roten
+Text auf Dunkel (Game-Over, Grabstein); das dunklere `oxblood` bleibt für Rahmen/Striche/Tints.
+Durchgehend etwas größere Schriften.
+
+**v0.8.0 — Feinschliff (Review-Runde):**
+- **Erfolgs-Feedback** im Spiel: bei Kettenreaktionen blendet groß werdend „2× / 3× / 4× …" ein
+  (Rot ab Kette 3), große Einzel-Räumungen zeigen „N!"; der Magic-Stein blendet beim Aufsetzen
+  einen dezenten Erklärtext ein (`showCombo` + Magic-Info in `GameScene`).
+- **Neuer Menüpunkt „Spielregeln"** (`RulesSheet`) — erklärt Ziel/Treffer/Ketten/Steuerung/
+  Magic-Stein/Tempo (es gibt genau EINEN Spezialstein).
+- **Eigener Auto-Repeat** fürs horizontale Bewegen (in der Szene: `startMove`/`stopMove` + `moveDir`
+  im `update`, DAS 0,17 s / ARR 0,05 s) — unabhängig von der OS-Tastenwiederholung, deterministisch.
+- **Tastaturbedienung der Menüs**: im Startbildschirm wählen ← → das Start-Tempo (eigene
+  ◀ Level N ▶-Steuerung statt System-Stepper, kein Fokusrahmen); im Game-Over steuern ↑↓/←→ die
+  drei Knöpfe, Return löst aus, die Auswahl zeigt ein Ochsenblut-Hintergrund (kein Fokusrahmen).
+  Beides über fokus-unabhängige `NSEvent`-Monitore (wie im Spiel).
+- **Schrift-Untergrenze 18 pt** programmweit (alle vorher ≤16 pt angehoben); Logo (feste Höhe, damit
+  es nicht mehr von Nachbar-Elementen gequetscht wird) und Menü-Buttons größer.
+- **Highscore-Liste vereinfacht**: einzeilig (`Rang. Name … Punktzahl`), ohne Karte/Rahmen/grauen
+  Hintergrund direkt auf Schwarz, „Verreckt in Level …" + Sterbedatum aus der Anzeige entfernt
+  (bleiben persistiert). Das Game-Over-Overlay zeigt bis zu 8 Einträge OHNE Scrollbar
+  (`FriedhofView.scroll`-Schalter; das eigene Friedhof-Fenster bleibt scrollbar). Name weiterhin
+  bis 16 Zeichen, in der Zeile bei Bedarf mit „…" gekürzt.
+
+**Beauftragte TODOs (Stand 2026-06-21):**
+- **iOS-App (iPhone):** zweite App mit möglichst identischem Funktionsumfang. `SteinregenCore` ist
+  plattformneutral und wird wiederverwendet; Render-/App-Schicht für iOS neu. **Steuerung
+  (Touch/Gesten) noch zu planen.**
+- **Weitere Steine-Sets generieren** — erster Versuch: aus den FreeDoom-Grafiken ein Steine-Set
+  bauen (Lizenz dürfte unkritisch sein). **Vorher Lizenz verifizieren und dokumentieren**, falls
+  noch nicht geschehen.
+- **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
+  eigenes Soundeffekt-Set erzeugen — Werkzeug wird ca. ab 2026-06-22 verfügbar sein.
+- **Veröffentlichbarkeit prüfen** — Rechtelage für **non-kommerzielle UND kommerzielle** Verbreitung
+  klären (eigener Code MIT; Drittmaterial: FreeDoom-WAVs BSD-3, Grenze Gotisch OFL, ggf. generierte
+  Assets).
+- **Git-History bereinigen vor Erstveröffentlichung** — History auf persönliche/private Daten
+  durchsuchen, dann gezielt entfernen (history-rewrite) oder vor dem ersten Public-Push squashen.
+
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,
-Developer-ID-Signatur + Notarisierung (für Weitergabe ohne Gatekeeper-Warnung), optionaler iOS-Port.
+Developer-ID-Signatur + Notarisierung (für Weitergabe ohne Gatekeeper-Warnung).
