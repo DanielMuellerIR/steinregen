@@ -54,9 +54,17 @@ public final class GameScene: SKScene {
     private var lastLevel = 0
     /// Lock-Delay (Sega-Style): kurzes Korrektur-Fenster, in dem eine aufgesetzte Saeule noch
     /// geschoben/gedreht werden kann, bevor sie fixiert. Verschiebt man sie so, dass sie wieder
-    /// fallen kann, geht es normal weiter. Wert in Sekunden — zum Ausprobieren gedacht.
-    private let lockDelay: TimeInterval = 0.3
+    /// fallen kann, geht es normal weiter. Wert in Sekunden — bewusst etwas laenger als die reine
+    /// Reaktionszeit, damit das Fenster auch dann komfortabel zu treffen ist, wenn das Aufsetzen
+    /// kaum sichtbar ist. Zusaetzlich frischt jede gelungene Korrektur das Fenster wieder auf
+    /// (siehe `inputLeft`/`inputRight`/`inputRotate`).
+    private let lockDelay: TimeInterval = 0.42
+    /// Nach einem Hard-Drop (Leertaste) gilt bewusst nur das halbe Fenster: der Slam soll knackig
+    /// bleiben, aber eine kurze Last-Minute-Korrektur ist noch moeglich (gewuenschter Kompromiss).
+    private let hardDropLockDelay: TimeInterval = 0.21
     private var lockDelayAccumulator: TimeInterval = 0
+    /// true, solange die aktuelle Saeule per Leertaste heruntergelassen wurde → kuerzeres Fenster.
+    private var hardDropped = false
 
     // MARK: - Lebenszyklus
 
@@ -101,6 +109,7 @@ public final class GameScene: SKScene {
         isResolving = false
         fallAccumulator = 0
         lockDelayAccumulator = 0
+        hardDropped = false
         lastUpdateTime = 0
         softDropActive = false
         model?.reset()
@@ -339,7 +348,9 @@ public final class GameScene: SKScene {
             // Aufgesetzt → kurzes Korrektur-Fenster (Lock-Delay); erst danach wird fixiert.
             fallAccumulator = 0
             lockDelayAccumulator += dt
-            if lockDelayAccumulator >= lockDelay {
+            // Per Leertaste aufgesetzt → halbes Fenster; normales Aufsetzen → volles Fenster.
+            let limit = hardDropped ? hardDropLockDelay : lockDelay
+            if lockDelayAccumulator >= limit {
                 lockDelayAccumulator = 0
                 stepGravity()          // canFall() ist false → gravityTick() setzt jetzt auf
             }
@@ -364,21 +375,25 @@ public final class GameScene: SKScene {
 
     // MARK: - Eingaben (von SwiftUI weitergereicht)
 
-    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true) } }
-    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true) } }
-    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate() } }
+    // Jede gelungene Korrektur (Schieben/Drehen) setzt den Lock-Delay-Akku auf 0 zurueck und frischt
+    // so das Korrektur-Fenster auf: liegt die Saeule schon auf, bekommt der Spieler nach jedem Zug
+    // erneut die volle Zeit, statt dass das Fenster ab dem ersten Aufsetzen unaufhaltsam ablaeuft.
+    // Im freien Fall ist der Akku ohnehin 0 — dort ist das Zuruecksetzen wirkungslos (harmlos).
+    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true); lockDelayAccumulator = 0 } }
+    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true); lockDelayAccumulator = 0 } }
+    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate(); lockDelayAccumulator = 0 } }
 
-    /// Harter Fall: sofort bis zum Aufsetzen.
+    /// Harter Fall: zieht die Saeule sofort bis zum Aufsetzen herunter — fixiert dann aber NICHT
+    /// sofort, sondern oeffnet das halbe Korrektur-Fenster (`hardDropLockDelay`), in dem noch
+    /// geschoben/gedreht werden kann. Wer gar nichts mehr tut, rastet nach 0,21 s ein.
     public func inputHardDrop() {
         guard canInput() else { return }
-        var locked: LockResult?
-        loop: while true {
-            switch engine!.gravityTick() {
-            case .moved: continue
-            case .locked(let r): locked = r; break loop
-            }
-        }
-        if let locked { beginResolution(locked) }
+        // Nur fallen lassen, solange Luft ist (jeder Tick liefert .moved). Den lock-ausloesenden
+        // Tick (canFall == false) bewusst NICHT ausfuehren — das uebernimmt erst das Lock-Delay.
+        while engine!.canFall() { _ = engine!.gravityTick() }
+        hardDropped = true
+        lockDelayAccumulator = 0
+        renderPiece()          // sofort an die Aufsetz-Position (knackiger Slam)
     }
 
     public func setSoftDrop(_ active: Bool) { softDropActive = active }
@@ -507,11 +522,12 @@ public final class GameScene: SKScene {
         updateHUD()
         isResolving = false
         fallAccumulator = 0
+        hardDropped = false        // frische Saeule → wieder volles Korrektur-Fenster
     }
 
     private func showGameOverBanner() {
         let label = makeLabel(size: 46, bold: true)
-        label.text = "verreckt"
+        label.text = "Verreckt"
         label.fontColor = Theme.oxblood.sk
         label.position = CGPoint(x: size.width / 2, y: size.height / 2)
         label.alpha = 0

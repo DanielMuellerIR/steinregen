@@ -12,7 +12,7 @@ public final class GameModel {
     public var isGameOver: Bool = false
     /// Punktestand bei Spielende (fuer das Game-Over-Overlay / den Friedhof-Eintrag).
     public var finalScore: Int = 0
-    /// Level bei Spielende („verreckt in Level …").
+    /// Level bei Spielende („Verreckt in Level …").
     public var finalLevel: Int = 0
     /// Live-Punktestand (optional fuer SwiftUI; die Szene zeigt ihn ohnehin selbst).
     public var score: Int = 0

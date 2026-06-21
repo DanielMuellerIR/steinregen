@@ -11,7 +11,7 @@ struct GraveEntry: Codable, Identifiable {
     let id: UUID
     var name: String
     var score: Int
-    var level: Int          // Level, in dem der Lauf endete („verreckt in Level …")
+    var level: Int          // Level, in dem der Lauf endete („Verreckt in Level …")
     var date: Date
 }
 

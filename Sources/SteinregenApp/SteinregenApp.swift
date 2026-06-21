@@ -469,7 +469,7 @@ struct GameOverOverlay: View {
             Color.black.opacity(0.66).ignoresSafeArea()
             VStack(spacing: 16) {
                 VStack(spacing: 2) {
-                    Text("verreckt")
+                    Text("Verreckt")
                         .font(.custom(Theme.blackletterFamily, size: 46))
                         .foregroundStyle(Theme.oxblood.color)
                     Text("Level \(level) · \(score) Punkte")
@@ -554,7 +554,7 @@ struct GameOverOverlay: View {
 
 // MARK: - Friedhof (Bestenliste)
 
-/// Zweizeilige Grabstein-Liste: Zeile 1 Name + Score, Zeile 2 in Rot „verreckt in Level …"
+/// Zweizeilige Grabstein-Liste: Zeile 1 Name + Score, Zeile 2 in Rot „Verreckt in Level …"
 /// (plus ein dezentes Sterbedatum rechts). Wird im Game-Over-Overlay (gekürzt) und im
 /// Friedhof-Fenster (vollständig) verwendet.
 struct FriedhofView: View {
@@ -602,7 +602,7 @@ struct FriedhofView: View {
                         .foregroundStyle(Theme.bone.color)
                 }
                 HStack(alignment: .firstTextBaseline) {
-                    Text("verreckt in Level \(e.level)")
+                    Text("Verreckt in Level \(e.level)")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Theme.oxblood.color)
                     Spacer(minLength: 8)

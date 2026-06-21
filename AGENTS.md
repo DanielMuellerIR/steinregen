@@ -132,8 +132,11 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
   (je 30 Steine +1); die Fallgeschwindigkeit nimmt mit dem Level zu (Mapping in `GameScene`).
 - **Game Over**: Einwurf-Spalte (Mitte) oben blockiert.
 - **Lock-Delay** (Sega-Style): nach dem Aufsetzen ein kurzes Korrektur-Fenster (`lockDelay`, aktuell
-  0,3 s in `GameScene`), in dem die Säule noch geschoben/gedreht werden kann; bekommt sie dabei
-  wieder Luft, fällt sie normal weiter. Hard-Drop fixiert sofort. Core-Abfrage: `Engine.canFall()`.
+  0,42 s in `GameScene`), in dem die Säule noch geschoben/gedreht werden kann; bekommt sie dabei
+  wieder Luft, fällt sie normal weiter. **Jede gelungene Korrektur frischt das Fenster auf**
+  (Move-Reset: `lockDelayAccumulator = 0` in `inputLeft/Right/Rotate`). **Hard-Drop** (Leertaste)
+  fixiert nicht sofort, sondern öffnet das **halbe Fenster** (`hardDropLockDelay`, 0,21 s) für eine
+  Last-Minute-Korrektur. Core-Abfrage: `Engine.canFall()`.
 
 ### Steuerung
 
@@ -150,7 +153,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-21, v0.7.0)
+## 5. Status (Stand 2026-06-21, v0.7.1)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -189,6 +192,12 @@ rechnet mit `level-1`).
 **v0.7.0 — Lock-Delay + Game-Over-Optik:** kurzes Korrektur-Fenster (0,3 s) nach dem Aufsetzen
 (`Engine.canFall()` + `lockDelay`). Game-Over-Overlay deutlich lesbarer: größere/kontrastreichere
 Schrift, echte Tafel mit Ochsenblut-Rahmen statt mattem Material.
+
+**v0.7.1 — Lock-Delay-Feel + „Verreckt":** Korrektur-Fenster auf **0,42 s** verlängert (0,3 s war
+real kaum zu treffen) und **Move-Reset** ergänzt — jede Korrektur (Schieben/Drehen) frischt das
+Fenster auf, statt dass es ab dem ersten Aufsetzen unaufhaltsam abläuft. **Hard-Drop** (Leertaste)
+fixiert nicht mehr sofort, sondern öffnet ein **halbes Fenster** (0,21 s, `hardDropLockDelay`).
+Außerdem: „verreckt" → **„Verreckt"** (großes V) in Game-Over-Banner/-Overlay + Grabstein-Zeile.
 
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,
