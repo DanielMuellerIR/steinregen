@@ -11,6 +11,7 @@
 // einen harten fatalError aus) und sucht das Ressourcen-Bundle robust an den ueblichen Orten.
 
 import CoreText
+import ImageIO
 import SpriteKit
 import SteinregenCore
 
@@ -57,6 +58,24 @@ public enum Theme {
     /// Family-Name (fuer SwiftUI `Font.custom`) und PostScript-Name (fuer `SKLabelNode(fontNamed:)`).
     public static let blackletterFamily = "Pirata One"
     public static let blackletterPostScript = "PirataOne-Regular"
+
+    // MARK: - Logo
+
+    private static var triedLogo = false
+    private static var logoCached: CGImage?
+
+    /// Lädt das Start-Logo (`logo.png`, weiß auf transparent) aus dem Bundle — oder nil,
+    /// falls nicht vorhanden (dann fällt der Startbildschirm auf den Schriftzug zurück).
+    public static func logoImage() -> CGImage? {
+        if triedLogo { return logoCached }
+        triedLogo = true
+        if let url = resourceBundle.url(forResource: "logo", withExtension: "png"),
+           let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+           let img = CGImageSourceCreateImageAtIndex(src, 0, nil) {
+            logoCached = img
+        }
+        return logoCached
+    }
 
     private static var fontsRegistered = false
 

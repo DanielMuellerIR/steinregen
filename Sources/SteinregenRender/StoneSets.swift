@@ -32,15 +32,27 @@ public enum StoneSets {
                                       subtitle: "Räudig, blutig, kräftige Farben",
                                       draw: DoomStones.draw)
 
-    /// Reihenfolge im Auswahl-Dialog. Neue Sets hier anhaengen.
-    public static let all: [StoneSet] = [sigil, doom]
+    // Drei „optisch angenehme" Sets, komplett aus dem Schwester-Projekt *Zaubersteine* uebernommen
+    // (Namen wie dort). Die freundliche Alternative zur Black-Metal-Optik. Siehe ZaubersteineStones.
+    public static let zaubersteine = StoneSet(id: "zaubersteine", name: "Zaubersteine",
+                                              subtitle: "Glänzende Steine (eigenes SVG-Set)",
+                                              draw: { gem, _ in ZaubersteineStones.draw(gem, style: .svg) })
+    public static let g20 = StoneSet(id: "g20", name: "G20",
+                                     subtitle: "Klare, kräftig gefärbte Tasten-Steine",
+                                     draw: { gem, _ in ZaubersteineStones.draw(gem, style: .procedural) })
+    public static let juwelen = StoneSet(id: "juwelen", name: "Juwelen",
+                                         subtitle: "Detailreiche Foto-Kristalle",
+                                         draw: { gem, _ in ZaubersteineStones.draw(gem, style: .png) })
 
-    /// Set zu einer id (faellt auf das Sigil-Set zurueck, falls unbekannt).
-    public static func set(for id: String) -> StoneSet { all.first { $0.id == id } ?? sigil }
+    /// Reihenfolge im Auswahl-Dialog (Doom als Standard ganz oben). Neue Sets hier einsortieren.
+    public static let all: [StoneSet] = [doom, sigil, zaubersteine, g20, juwelen]
 
-    /// Aktuell gewaehlte Set-id (persistiert). Default: Sigil-Set.
+    /// Set zu einer id (faellt auf das Standard-Set zurueck, falls unbekannt).
+    public static func set(for id: String) -> StoneSet { all.first { $0.id == id } ?? doom }
+
+    /// Aktuell gewaehlte Set-id (persistiert). Default: Doom-Set.
     public static var selectedID: String {
-        get { UserDefaults.standard.string(forKey: defaultsKey) ?? sigil.id }
+        get { UserDefaults.standard.string(forKey: defaultsKey) ?? doom.id }
         set { UserDefaults.standard.set(newValue, forKey: defaultsKey) }
     }
 }

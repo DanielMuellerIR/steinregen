@@ -32,8 +32,9 @@ steinregen/                   (SwiftPM-Workspace)
 ├── Sources/
 │   ├── SteinregenCore/       (reine, deterministische Spiellogik + PRNG + Modelle)
 │   ├── SteinregenRender/     (SpriteKit-Szene, Spielloop, Theme = Palette/Fonts/Korn/Nebel,
-│   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones,
-│   │                          GemTextures = set-bewusste Textur-Fabrik, Magic-Animation)
+│   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones
+│   │                          + ZaubersteineStones (svg/procedural/png), GemTextures =
+│   │                          set-bewusste Textur-Fabrik, Magic-Animation)
 │   └── SteinregenApp/        (SwiftUI-Shell: Startbildschirm, Einstellungen, Steuerung, Game-Over)
 └── Tests/
     └── SteinregenCoreTests/  (Determinismus, Treffer h/v/diagonal, Kaskade, Magic, Game-Over)
@@ -51,14 +52,24 @@ steinregen/                   (SwiftPM-Workspace)
   `GemTextures.fog()`). Die Steine werden **prozedural** gezeichnet, alle alten Edelstein-PNGs
   werden NICHT mehr ins Spiel geladen.
 - **Steine-Sets (wählbar, erweiterbar)**: Jedes Set ist ein `StoneSet` (id + Name + Zeichen-Funktion)
-  in der `StoneSets`-Registry. Aktuell: **„Sigille"** (`SigilStones`, fein geritzte Zeichen, gedeckte
-  Tönung) und **„Doom"** (`DoomStones`, vollflächig gefüllt, kräftige Farben, Grunge/Blut/Kratzer).
-  Auswahl im Einstellungsdialog (mit Live-Vorschau), persistiert via UserDefaults
-  (`StoneSets.selectedID`), beim Spielstart in `GemTextures.activeSetID` übernommen.
-  **Neues Set hinzufügen**: einen Renderer schreiben (Datei wie `DoomStones.swift` kopieren) und
-  EINEN Eintrag in `StoneSets.all` ergänzen — Spiel, Dialog und Vorschau ziehen automatisch nach.
-- **Assets**: Die 6 Edelstein-PNGs (256×256, aus dem Schwester-Projekt *Zaubersteine*) liegen
-  weiterhin in `Resources/`, dienen aber nur noch dem App-Icon-Build (`tools/make-icon.sh`).
+  in der `StoneSets`-Registry. Aktuell fünf:
+  - **„Sigille"** (`SigilStones`) — fein geritzte Zeichen, gedeckte Tönung (Black Metal).
+  - **„Doom"** (`DoomStones`) — vollflächig gefüllt, kräftige Farben, Grunge/Blut/Kratzer.
+  - **„Zaubersteine" / „G20" / „Juwelen"** (`ZaubersteineStones`) — komplett aus dem Schwester-Projekt
+    *Zaubersteine* übernommen (svg = glänzende SVG-Steine, procedural = flache Tasten-Steine,
+    png = Foto-Kristalle). Die freundliche Alternative zur Finsternis. 6 von dort 11 Farben gemappt
+    (ruby/topaz/emerald/sapphire/amethyst + turquoise→`diamond`-Slot).
+  - Auswahl im Einstellungsdialog (mit Live-Vorschau), persistiert via UserDefaults
+    (`StoneSets.selectedID`), beim Spielstart in `GemTextures.activeSetID` übernommen.
+    **Standard-Set: Doom** (steht im Dialog ganz oben).
+  - **Neues Set hinzufügen**: einen Renderer schreiben (Datei wie `DoomStones.swift` kopieren) und
+    EINEN Eintrag in `StoneSets.all` ergänzen — Spiel, Dialog und Vorschau ziehen automatisch nach.
+- **Assets**: Die 6 Edelstein-PNGs (256×256, aus *Zaubersteine*) dienen dem App-Icon-Build
+  (`tools/make-icon.sh`) UND dem „Juwelen"-Set (umgefärbte Foto-Kristalle). Dazu sechs
+  `svg_*.png` (512×512) für das „Zaubersteine"-Set. Beide stammen aus dem Schwester-Projekt.
+  `logo.png` = Start-Logo (weiß auf transparent, aus einem KI-generierten Schriftzug auf die
+  Buchstaben getrimmt + Schwarz transparent gemacht); ersetzt im Startbildschirm den Pirata-One-
+  Schriftzug (`Theme.logoImage()`, Fallback auf Text). Pirata One bleibt für Untertitel/HUD/Game-Over.
   Zusätzlich im Bundle: **Pirata One** (Blackletter-Titel/HUD-Schrift) als `PirataOne-Regular.ttf`
   + `PirataOne-OFL.txt` (SIL Open Font License — muss mitgeliefert werden), zur Laufzeit über
   `Theme.registerFonts()` registriert. Die wiederverwendeten Bausteine (deterministischer PRNG,
@@ -84,7 +95,7 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_AUTOSTART=1` — startet sofort ein Spiel (überspringt das Menü)
 - `STEINREGEN_LEVEL=<0..9>` — Start-Tempostufe
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
-- `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/…)
+- `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
 
 Fenster-gezielter Screenshot ohne Fokus-Klau: Window-ID per CoreGraphics holen, dann
@@ -123,7 +134,7 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
 
 ---
 
-## 5. Status (Stand 2026-06-21, v0.2.0)
+## 5. Status (Stand 2026-06-21, v0.3.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -133,11 +144,12 @@ Dock-Icon (`tools/make-app.sh`).
 **v0.2.0 — Black-Metal-Redesign:** kompletter Look-Overhaul (schwarz/knochenweiß/Ochsenblut,
 prozedurale Steine statt Edelstein-PNGs, animierter Nebel-Hintergrund, Blackletter-Schrift Pirata
 One, räudiges Korn, grim-Texte „verreckt"/„Tod macht Fliegen aus uns allen"). Satanisches App-Icon
-(umgekehrtes Pentagramm). **Wählbare, erweiterbare Steine-Sets** (Sigille / Doom) mit
-Einstellungsdialog + Live-Vorschau. Erzwingt Dark-Mode. Spiellogik unverändert.
+(umgekehrtes Pentagramm). **Wählbare, erweiterbare Steine-Sets** mit Einstellungsdialog +
+Live-Vorschau. Erzwingt Dark-Mode. Spiellogik unverändert.
 
-**Offen / wartet auf Asset:** neues Logo soll den `Steinregen`-Schriftzug im Startbildschirm
-ersetzen (noch nicht geliefert).
+**v0.3.0 — drei weitere Steine-Sets** aus dem Schwester-Projekt *Zaubersteine* übernommen
+(„Zaubersteine"/„G20"/„Juwelen", `ZaubersteineStones`) — die optisch angenehme Alternative
+zur Black-Metal-Optik. Außerdem: **neues Start-Logo** (`logo.png`) ersetzt den Schriftzug.
 
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,

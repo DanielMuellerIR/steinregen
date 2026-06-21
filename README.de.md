@@ -10,15 +10,16 @@ waagerecht, senkrecht oder diagonal — werden geräumt. Geräumte Steine lassen
 liegenden nachrutschen, was Kettenreaktionen mit Bonuspunkten auslösen kann.
 
 Eine rohe **Black-Metal-Ästhetik**: pechschwarz, knochenweiß, ein einziger Ochsenblut-Akzent,
-ziehender Nebel, Korn-Textur und ein Blackletter-Titel. Die sechs Steine unterscheiden sich über
-ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-Tönung.
+ziehender Nebel, Korn-Textur und ein zackiges Black-Metal-Logo. Die sechs Steine unterscheiden
+sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-Tönung.
 
 ## Funktionen
 
 - **6 Steine mit Sigillen** — umgekehrtes Pentagramm, inverses Kreuz, Tiwaz-Rune, Triquetra,
   Schädel, Mondsichel. Unterscheidung über die Form, dazu eine gedeckte Farb-Tönung als Zusatzhinweis.
-- **Wählbare Steine-Sets** — in den Einstellungen (mit Live-Vorschau) zwischen dem geritzten
-  „Sigille"-Set und dem räudig-blutigen „Doom"-Set umschalten; weitere Sets sind vorgesehen.
+- **Wählbare Steine-Sets** — in den Einstellungen (mit Live-Vorschau) zwischen fünf Sets
+  umschalten: den Black-Metal-Sets „Sigille" und „Doom" sowie drei freundlicheren Edelstein-Sets
+  aus dem Schwester-Projekt *Zaubersteine* („Zaubersteine", „G20", „Juwelen"). Erweiterbar.
 - **Treffer in alle Richtungen** — horizontal, vertikal und beide Diagonalen.
 - **Kettenreaktionen** — Kaskaden werden belohnt (Punkte = Steine × 10 × Kettenstufe).
 - **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
@@ -76,7 +77,7 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_AUTOSTART=1` — startet sofort ein Spiel
 - `STEINREGEN_LEVEL=<0..9>` — Start-Tempo
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
-- `STEINREGEN_SET=<id>` — Steine-Set (`sigil` / `doom`)
+- `STEINREGEN_SET=<id>` — Steine-Set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen`)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start den Einstellungsdialog
 
 ## Architektur
@@ -91,7 +92,8 @@ Drei Swift-Package-Manager-Module plus Tests:
 - **`SteinregenApp`** — SwiftUI-Shell: Startbildschirm, Tastatursteuerung, Game-Over-Overlay.
 
 Mehrere wiederverwendete Bausteine (der deterministische PRNG, der robuste Ressourcen-Loader,
-das Drei-Modul-Layout) stammen aus dem Schwester-Projekt *Zaubersteine*.
+das Drei-Modul-Layout) sowie die drei freundlichen Edelstein-Sets (Zaubersteine / G20 / Juwelen)
+stammen aus dem Schwester-Projekt *Zaubersteine*.
 
 ## Lizenz
 

@@ -10,15 +10,16 @@ vertically, or diagonally to clear them. Cleared stones make the ones above fall
 off chain reactions for bonus points.
 
 A raw **black-metal aesthetic**: pitch black, bone white, a single oxblood accent, drifting fog,
-film grain, and a blackletter title. The six stones are told apart by a white **sigil** (shape),
-backed by a muted, desaturated color tint.
+film grain, and a jagged black-metal logo. The six stones are told apart by a white **sigil**
+(shape), backed by a muted, desaturated color tint.
 
 ## Features
 
 - **6 stones, marked by sigils** — inverted pentagram, inverted cross, Tiwaz rune, triquetra,
   skull, crescent. Told apart by shape, with a muted color tint as a secondary cue.
-- **Selectable stone sets** — switch in Settings (with live preview) between the engraved
-  "Sigil" set and the grimy, blood-soaked "Doom" set; the system is built to add more.
+- **Selectable stone sets** — switch in Settings (with live preview) between five sets: the
+  engraved "Sigil" and grimy "Doom" black-metal sets, plus three friendlier gem sets adopted
+  from the sibling project *Zaubersteine* ("Zaubersteine", "G20", "Juwelen"). Built to add more.
 - **Matches in all directions** — horizontal, vertical, and both diagonals.
 - **Chain reactions** — cascading clears are rewarded (score = stones × 10 × chain step).
 - **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes
@@ -76,7 +77,7 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_AUTOSTART=1` — start a game immediately
 - `STEINREGEN_LEVEL=<0..9>` — starting speed
 - `STEINREGEN_SEED=<UInt64>` — fixed seed (otherwise random)
-- `STEINREGEN_SET=<id>` — stone set (`sigil` / `doom`)
+- `STEINREGEN_SET=<id>` — stone set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen`)
 - `STEINREGEN_SETTINGS=1` — open the settings dialog on launch
 
 ## Architecture
@@ -91,7 +92,8 @@ Three Swift Package Manager modules plus tests:
 - **`SteinregenApp`** — SwiftUI shell: start screen, keyboard input, game-over overlay.
 
 Several reusable building blocks (the deterministic PRNG, the robust resource loader, the
-three-module layout) come from the sibling project *Zaubersteine*.
+three-module layout) and the three "pleasant" gem sets (Zaubersteine / G20 / Juwelen) come
+from the sibling project *Zaubersteine*.
 
 ## License
 

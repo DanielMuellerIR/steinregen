@@ -117,10 +117,19 @@ struct StartView: View {
             Spacer()
 
             VStack(spacing: 6) {
-                Text("Steinregen")
-                    .font(.custom(Theme.blackletterFamily, size: 60))
-                    .foregroundStyle(Theme.bone.color)
-                    .shadow(color: .black.opacity(0.7), radius: 4, y: 2)
+                // Logo-Grafik statt Schriftzug; Fallback auf den Blackletter-Text, falls die
+                // Datei fehlt (z.B. in einem Build ohne logo.png im Bundle).
+                if let logo = Theme.logoImage() {
+                    Image(decorative: logo, scale: 1)
+                        .resizable().interpolation(.high).scaledToFit()
+                        .frame(maxWidth: 380, maxHeight: 150)
+                        .shadow(color: .black.opacity(0.7), radius: 6, y: 2)
+                } else {
+                    Text("Steinregen")
+                        .font(.custom(Theme.blackletterFamily, size: 60))
+                        .foregroundStyle(Theme.bone.color)
+                        .shadow(color: .black.opacity(0.7), radius: 4, y: 2)
+                }
                 Text("Tod macht Fliegen aus uns allen")
                     .font(.custom(Theme.blackletterFamily, size: 16))
                     .tracking(2)
@@ -210,7 +219,7 @@ struct ControlsLegend: View {
 /// liest — beim naechsten Spielstart gilt das gewaehlte Set. Neue Sets erscheinen hier
 /// automatisch, sobald sie in `StoneSets.all` stehen.
 struct SettingsView: View {
-    @AppStorage(StoneSets.defaultsKey) private var selectedSet = "sigil"
+    @AppStorage(StoneSets.defaultsKey) private var selectedSet = "doom"   // Standard-Set
     let onClose: () -> Void
 
     var body: some View {
@@ -237,7 +246,7 @@ struct SettingsView: View {
             .keyboardShortcut(.defaultAction)
         }
         .padding(24)
-        .frame(width: 430, height: 540)
+        .frame(width: 440, height: 760)
         .background(Color(red: 0.02, green: 0.02, blue: 0.03))
         .preferredColorScheme(.dark)
     }
@@ -271,11 +280,11 @@ struct StoneSetCard: View {
                     ForEach(Gem.colors, id: \.self) { gem in
                         Image(decorative: GemTextures.previewImage(gem, set: set.id), scale: 1)
                             .resizable().interpolation(.high)
-                            .frame(width: 42, height: 42)
+                            .frame(width: 38, height: 38)
                     }
                 }
             }
-            .padding(14)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
             .overlay(
