@@ -57,6 +57,9 @@ public final class GameScene: SKScene {
 
     public override func didMove(to view: SKView) {
         scaleMode = .resizeFill
+        // Szene sofort an die View-Größe angleichen, sonst wird der erste Frame (Szene noch in
+        // Ausgangsgröße) in den View gestreckt → verzerrte Steine bis zum ersten Resize.
+        if view.bounds.size.width > 0, view.bounds.size.height > 0 { size = view.bounds.size }
         anchorPoint = CGPoint(x: 0, y: 0)
         Theme.registerFonts()
         backgroundColor = Theme.canvas.sk
@@ -325,8 +328,9 @@ public final class GameScene: SKScene {
     }
 
     /// Fallgeschwindigkeit je Level (Sekunden pro Reihe). Reines Zahlen-Mapping, keine Wanduhr.
+    /// Level ist 1-basiert: Level 1 = ruhigster Start.
     private func fallInterval(_ level: Int) -> TimeInterval {
-        max(0.085, 0.80 - Double(level) * 0.06)
+        max(0.085, 0.80 - Double(level - 1) * 0.06)
     }
 
     private func stepGravity() {

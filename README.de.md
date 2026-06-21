@@ -28,7 +28,7 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 - **Kettenreaktionen** — Kaskaden werden belohnt (Punkte = Steine × 10 × Kettenstufe).
 - **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
   aufsetzt, räumt sie brettweit die Sorte der Zelle direkt darunter weg.
-- **Wählbares Start-Tempo** (Stufen 0–9); das Tempo steigt mit der Zahl geräumter Steine.
+- **Wählbares Start-Tempo** (Stufen 1–10); das Tempo steigt mit der Zahl geräumter Steine.
 - **Deterministisch, seed-getrieben** — gleicher Seed spielt exakt dieselbe Partie nach.
 
 ## Steuerung
@@ -80,7 +80,7 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 ```
 
 - `STEINREGEN_AUTOSTART=1` — startet sofort ein Spiel
-- `STEINREGEN_LEVEL=<0..9>` — Start-Tempo
+- `STEINREGEN_LEVEL=<1..10>` — Start-Tempo
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen`)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start den Einstellungsdialog

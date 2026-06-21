@@ -100,7 +100,7 @@ steinregen/                   (SwiftPM-Workspace)
 Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smoke-Tests):
 
 - `STEINREGEN_AUTOSTART=1` — startet sofort ein Spiel (überspringt das Menü)
-- `STEINREGEN_LEVEL=<0..9>` — Start-Tempostufe
+- `STEINREGEN_LEVEL=<1..10>` — Start-Tempostufe
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
@@ -128,7 +128,7 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
   sechs Sigille pulsierende Säule. Beim Aufsetzen räumt sie **brettweit die Sorte (Stein-Typ) der
   Zelle direkt darunter** weg (verpufft, wenn sie auf leerem Boden landet). Magic-Steine landen nie
   dauerhaft im Brett. — Bewusst klassisch-getreu umgesetzt.
-- **Level/Tempo**: Start-Tempostufe wählbar (0–9). Das Level steigt mit der Zahl geräumter Steine
+- **Level/Tempo**: Start-Tempostufe wählbar (1–10, 1-basiert). Das Level steigt mit der Zahl geräumter Steine
   (je 30 Steine +1); die Fallgeschwindigkeit nimmt mit dem Level zu (Mapping in `GameScene`).
 - **Game Over**: Einwurf-Spalte (Mitte) oben blockiert.
 
@@ -147,7 +147,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-21, v0.6.0)
+## 5. Status (Stand 2026-06-21, v0.6.1)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -177,6 +177,11 @@ und über den Menü-Button „Friedhof".
 **v0.6.0 — Soundeffekte (FreeDoom, BSD-3):** Drehen/Aufsetzen (zyklisch)/Auflösen/Game-Over
 (zufällig)/Level via `SoundFX`. In den Einstellungen an/aus (Aus = „mundtot"), im Spiel Taste **T**.
 **Vorgemerkt:** Musik (Taste **M**) — gibt es noch nicht, kommt später.
+
+**v0.6.1 — Bugfixes:** Fenster auf festes Seitenverhältnis gesperrt (`WindowConfigurator`,
+`NSWindow.contentAspectRatio`) + Szene-Größe beim Start an den View angeglichen → keine verzerrten
+Steine mehr. Level ist jetzt **1-basiert** (Start-Tempo 1–10, kein „Level 0" mehr; `fallInterval`
+rechnet mit `level-1`).
 
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,

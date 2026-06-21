@@ -28,7 +28,7 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
 - **Chain reactions** — cascading clears are rewarded (score = stones × 10 × chain step).
 - **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes
   every stone of the kind directly beneath it from the board.
-- **Selectable starting speed** (levels 0–9); speed increases as you clear stones.
+- **Selectable starting speed** (levels 1–10); speed increases as you clear stones.
 - **Deterministic, seed-driven** stone sequence — the same seed replays the exact same game.
 
 ## Controls
@@ -80,7 +80,7 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 ```
 
 - `STEINREGEN_AUTOSTART=1` — start a game immediately
-- `STEINREGEN_LEVEL=<0..9>` — starting speed
+- `STEINREGEN_LEVEL=<1..10>` — starting speed
 - `STEINREGEN_SEED=<UInt64>` — fixed seed (otherwise random)
 - `STEINREGEN_SET=<id>` — stone set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen`)
 - `STEINREGEN_SETTINGS=1` — open the settings dialog on launch

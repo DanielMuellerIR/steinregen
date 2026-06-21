@@ -39,6 +39,36 @@ private enum Screen {
     case playing
 }
 
+/// Sperrt das Fenster auf ein festes Seitenverhältnis (nur proportional vergrößer-/verkleinerbar,
+/// damit die Steine nie verzerren) und setzt eine Mindestgröße. Beim ersten Erscheinen wird die
+/// Fenstergröße auf das Verhältnis eingerastet — falls macOS einen abweichenden Frame wiederherstellt.
+private struct WindowConfigurator: NSViewRepresentable {
+    let aspectW: CGFloat
+    let aspectH: CGFloat
+    let minWidth: CGFloat
+
+    func makeNSView(context: Context) -> NSView {
+        let v = NSView()
+        DispatchQueue.main.async { configure(v.window, snap: true) }
+        return v
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { configure(nsView.window, snap: false) }
+    }
+    private func configure(_ window: NSWindow?, snap: Bool) {
+        guard let window else { return }
+        window.contentAspectRatio = NSSize(width: aspectW, height: aspectH)
+        window.contentMinSize = NSSize(width: minWidth, height: (minWidth * aspectH / aspectW).rounded())
+        if snap, let content = window.contentView {
+            let w = content.frame.width
+            let targetH = (w * aspectH / aspectW).rounded()
+            if abs(content.frame.height - targetH) > 1 {
+                window.setContentSize(NSSize(width: w, height: targetH))
+            }
+        }
+    }
+}
+
 /// Welches modale Sheet im Menue offen ist (Einstellungen oder Friedhof).
 private enum ActiveSheet: Int, Identifiable {
     case settings, friedhof
@@ -49,7 +79,7 @@ struct RootView: View {
     @State private var model = GameModel()
     @State private var scene = GameScene(size: CGSize(width: 410, height: 880))
     @State private var screen: Screen = .menu
-    @State private var startLevel: Int = 0
+    @State private var startLevel: Int = 1          // 1-basiert (kein „Level 0")
     @State private var currentSeed: UInt64 = 1
     @State private var activeSheet: ActiveSheet?
 
@@ -75,7 +105,8 @@ struct RootView: View {
                              onRetryNewSeed: { startGame(seed: Self.randomSeed()) })
             }
         }
-        .frame(minWidth: 360, minHeight: 560)
+        .frame(minWidth: 360, minHeight: 808)   // Mindestgröße im Brett-Seitenverhältnis
+        .background(WindowConfigurator(aspectW: 410, aspectH: 920, minWidth: 360))
         .preferredColorScheme(.dark)   // Fenster ist immer finster — unabhaengig vom System-Modus
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
@@ -95,7 +126,7 @@ struct RootView: View {
             if env["STEINREGEN_SETTINGS"] != nil { activeSheet = .settings }
             if env["STEINREGEN_FRIEDHOF"] != nil { activeSheet = .friedhof }
             if env["STEINREGEN_AUTOSTART"] != nil {
-                if let lvl = env["STEINREGEN_LEVEL"], let n = Int(lvl) { startLevel = min(max(n, 0), 9) }
+                if let lvl = env["STEINREGEN_LEVEL"], let n = Int(lvl) { startLevel = min(max(n, 1), 10) }
                 if let s = env["STEINREGEN_SEED"], let seed = UInt64(s) {
                     startGame(seed: seed)
                 } else {
@@ -156,7 +187,7 @@ struct StartView: View {
                 Text("Start-Tempo")
                     .font(.headline).foregroundStyle(.secondary)
                 HStack(spacing: 12) {
-                    Stepper(value: $startLevel, in: 0...9) {
+                    Stepper(value: $startLevel, in: 1...10) {
                         Text("Level \(startLevel)")
                             .font(.system(size: 18, weight: .semibold, design: .monospaced))
                             .frame(minWidth: 90, alignment: .leading)
@@ -201,9 +232,9 @@ struct StartView: View {
 
     private var tempoHint: String {
         switch startLevel {
-        case 0...2: return "ruhig — gut zum Einsteigen"
-        case 3...5: return "zügig"
-        case 6...7: return "schnell"
+        case 1...3: return "ruhig — gut zum Einsteigen"
+        case 4...6: return "zügig"
+        case 7...8: return "schnell"
         default:    return "sehr schnell — für Profis"
         }
     }
