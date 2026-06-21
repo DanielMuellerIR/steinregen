@@ -31,9 +31,9 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
 
 | Key | Action |
 |-----|--------|
-| ← → | move the column |
-| ↑ | rotate (cycle the three stones) |
-| ↓ | soft drop (faster fall) |
+| ← → · A D | move the column |
+| ↑ · W | rotate (cycle the three stones) |
+| ↓ · S | soft drop (faster fall) |
 | Space | hard drop |
 | Esc | back to main menu |
 

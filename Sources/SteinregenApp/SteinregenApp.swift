@@ -30,7 +30,7 @@ struct SteinregenApp: App {
             RootView()
         }
         .windowStyle(.titleBar)
-        .defaultSize(width: 540, height: 860)
+        .defaultSize(width: 410, height: 920)   // hochkant, nahezu randlos um das 6×13-Brett
     }
 }
 
@@ -41,7 +41,7 @@ private enum Screen {
 
 struct RootView: View {
     @State private var model = GameModel()
-    @State private var scene = GameScene(size: CGSize(width: 540, height: 780))
+    @State private var scene = GameScene(size: CGSize(width: 410, height: 880))
     @State private var screen: Screen = .menu
     @State private var startLevel: Int = 0
     @State private var currentSeed: UInt64 = 1
@@ -66,7 +66,7 @@ struct RootView: View {
                              onRetryNewSeed: { startGame(seed: Self.randomSeed()) })
             }
         }
-        .frame(minWidth: 440, minHeight: 680)
+        .frame(minWidth: 360, minHeight: 560)
         .preferredColorScheme(.dark)   // Fenster ist immer finster — unabhaengig vom System-Modus
         .sheet(isPresented: $showSettings) {
             SettingsView(onClose: { showSettings = false })
@@ -191,9 +191,9 @@ struct StartView: View {
 struct ControlsLegend: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            legend("←  →", "Säule bewegen")
-            legend("↑", "Säule drehen (Steine durchtauschen)")
-            legend("↓", "schneller fallen lassen")
+            legend("← →  ·  A D", "Säule bewegen")
+            legend("↑  ·  W", "Säule drehen (Steine durchtauschen)")
+            legend("↓  ·  S", "schneller fallen lassen")
             legend("Leertaste", "sofort fallen lassen")
         }
         .font(.system(size: 13, design: .rounded))
@@ -205,7 +205,7 @@ struct ControlsLegend: View {
         HStack(spacing: 12) {
             Text(key)
                 .font(.system(size: 13, weight: .bold, design: .monospaced))
-                .frame(width: 92, alignment: .leading)
+                .frame(width: 108, alignment: .leading)
                 .foregroundStyle(.primary)
             Text(desc).foregroundStyle(.secondary)
         }
@@ -306,51 +306,58 @@ struct GameplayView: View {
     let onRetrySameSeed: () -> Void
     let onRetryNewSeed: () -> Void
 
-    @FocusState private var focused: Bool
+    @State private var keyMonitor: Any?
 
     var body: some View {
         ZStack {
             GameBoardView(scene: scene)
-                .focusable()
-                .focusEffectDisabled()
-                .focused($focused)
-                // Bewegung/Drehen/Hartfall: Tastendruck + Auto-Wiederholung.
-                .onKeyPress(phases: [.down, .repeat]) { press in handleKey(press) }
-                // Softdrop-Ende: Pfeil-runter losgelassen.
-                .onKeyPress(phases: [.up]) { press in
-                    if press.key == .downArrow { scene.setSoftDrop(false) }
-                    return .handled
-                }
-                .onAppear { focused = true }
 
             if model.isGameOver {
                 GameOverOverlay(score: model.finalScore,
-                                onRetrySameSeed: { onRetrySameSeed(); focused = true },
-                                onRetryNewSeed: { onRetryNewSeed(); focused = true },
+                                onRetrySameSeed: onRetrySameSeed,
+                                onRetryNewSeed: onRetryNewSeed,
                                 onExit: onExit)
             }
         }
+        // Tastatur fokus-unabhaengig: ein lokaler NSEvent-Monitor empfaengt Tasten, sobald das
+        // Fenster aktiv ist — kein Warten auf SwiftUI-Fokus (das war die Ursache, dass die Steuerung
+        // anfangs ein paar Sekunden tot war). Installiert solange diese Ansicht sichtbar ist.
+        .onAppear { installKeyMonitor() }
+        .onDisappear { removeKeyMonitor() }
     }
 
-    private func handleKey(_ press: KeyPress) -> KeyPress.Result {
-        switch press.key {
-        case .leftArrow:
-            scene.inputLeft(); return .handled
-        case .rightArrow:
-            scene.inputRight(); return .handled
-        case .upArrow:
-            if press.phase == .down { scene.inputRotate() }   // nur einmal pro Druck, kein Dauer-Drehen
-            return .handled
-        case .downArrow:
-            scene.setSoftDrop(true); return .handled
-        case .space:
-            if press.phase == .down { scene.inputHardDrop() }
-            return .handled
-        case .escape:
-            if press.phase == .down { onExit() }
-            return .handled
-        default:
-            return .ignored
+    private func installKeyMonitor() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { event in
+            handle(event) ? nil : event   // verbrauchte Taste schlucken, Rest normal weiterreichen
+        }
+    }
+
+    private func removeKeyMonitor() {
+        if let m = keyMonitor { NSEvent.removeMonitor(m); keyMonitor = nil }
+    }
+
+    /// Verarbeitet eine Taste; `true` = verbraucht. Pfeiltasten UND W/A/S/D, Leertaste = Hard-Drop,
+    /// Esc = Menue. Bewegen wiederholt bei gehaltener Taste; Drehen/Hard-Drop nur einmal pro Anschlag.
+    private func handle(_ e: NSEvent) -> Bool {
+        guard !model.isGameOver else { return false }   // im Game-Over die SwiftUI-Buttons handeln lassen
+        let down = (e.type == .keyDown)
+        let rep = e.isARepeat
+        switch e.keyCode {
+        case 123: if down { scene.inputLeft() };  return true            // ←
+        case 124: if down { scene.inputRight() }; return true            // →
+        case 126: if down && !rep { scene.inputRotate() }; return true   // ↑
+        case 125: scene.setSoftDrop(down); return true                   // ↓ (Druck = an, Loslassen = aus)
+        case 49:  if down && !rep { scene.inputHardDrop() }; return true  // Leertaste
+        case 53:  if down { onExit() }; return true                      // Esc
+        default:  break
+        }
+        switch e.charactersIgnoringModifiers?.lowercased() {
+        case "a": if down { scene.inputLeft() };  return true
+        case "d": if down { scene.inputRight() }; return true
+        case "w": if down && !rep { scene.inputRotate() }; return true
+        case "s": scene.setSoftDrop(down); return true
+        default:  return false
         }
     }
 }

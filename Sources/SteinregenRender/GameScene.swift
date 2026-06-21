@@ -42,8 +42,8 @@ public final class GameScene: SKScene {
     private var boardOriginX: CGFloat = 0
     private var boardOriginY: CGFloat = 0
     private var gemSize: CGSize = .init(width: 36, height: 36)
-    private let topBarHeight: CGFloat = 64
-    private let outerPad: CGFloat = 18
+    private let topBarHeight: CGFloat = 56
+    private let outerPad: CGFloat = 8
 
     // MARK: Timing / Ablaufsteuerung
     private var lastUpdateTime: TimeInterval = 0

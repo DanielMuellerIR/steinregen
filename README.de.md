@@ -31,9 +31,9 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 
 | Taste | Aktion |
 |-------|--------|
-| ← → | Säule bewegen |
-| ↑ | drehen (die drei Steine durchtauschen) |
-| ↓ | schneller fallen (Softdrop) |
+| ← → · A D | Säule bewegen |
+| ↑ · W | drehen (die drei Steine durchtauschen) |
+| ↓ · S | schneller fallen (Softdrop) |
 | Leertaste | sofort fallen lassen |
 | Esc | zurück ins Hauptmenü |
 

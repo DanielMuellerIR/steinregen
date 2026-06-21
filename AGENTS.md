@@ -126,15 +126,18 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
 
 ### Steuerung
 
-- **← →** Säule horizontal bewegen
-- **↑** Säule drehen (Steine zyklisch durchtauschen)
-- **↓** schneller fallen (Softdrop, gehalten)
+- **← →** oder **A D** — Säule horizontal bewegen
+- **↑** oder **W** — Säule drehen (Steine zyklisch durchtauschen)
+- **↓** oder **S** — schneller fallen (Softdrop, gehalten)
 - **Leertaste** sofort fallen lassen (Hard-Drop)
 - **Esc** zurück ins Hauptmenü
 
+Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewusst **fokus-unabhängig**
+— sonst war die Steuerung nach Spielstart die ersten Sekunden tot (SwiftUI-Fokus kam zu spät).
+
 ---
 
-## 5. Status (Stand 2026-06-21, v0.3.0)
+## 5. Status (Stand 2026-06-21, v0.4.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -150,6 +153,11 @@ Live-Vorschau. Erzwingt Dark-Mode. Spiellogik unverändert.
 **v0.3.0 — drei weitere Steine-Sets** aus dem Schwester-Projekt *Zaubersteine* übernommen
 („Zaubersteine"/„G20"/„Juwelen", `ZaubersteineStones`) — die optisch angenehme Alternative
 zur Black-Metal-Optik. Außerdem: **neues Start-Logo** (`logo.png`) ersetzt den Schriftzug.
+Standard-Set jetzt **Doom**.
+
+**v0.4.0 — Steuerung & Layout:** Tastatur fokus-unabhängig via `NSEvent`-Monitor (behebt
+„Eingabe die ersten Sekunden tot"); zusätzlich **W/A/S/D** alternativ zu den Pfeiltasten.
+Spielfeld nahezu **randlos** (kleineres Padding, Fenster-Default im Brett-Format, alles größer).
 
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,
