@@ -22,6 +22,8 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
   aus dem Schwester-Projekt *Zaubersteine* („Zaubersteine", „G20", „Juwelen"). Erweiterbar.
 - **Friedhof (Bestenliste)** — beim Verrecken trägt man einen Namen ein (bis 16 Zeichen); jedes
   Grab zeigt Punkte und das Level, in dem man verreckt ist. Persistente Top 16, im Menü abrufbar.
+- **Soundeffekte** (aus Freedoom, BSD-3) — Aufsetzen, Auflösen, Drehen, Level und Game-Over.
+  In den Einstellungen oder im Spiel mit **T** umschaltbar; der stille Modus heißt „mundtot".
 - **Treffer in alle Richtungen** — horizontal, vertikal und beide Diagonalen.
 - **Kettenreaktionen** — Kaskaden werden belohnt (Punkte = Steine × 10 × Kettenstufe).
 - **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
@@ -37,6 +39,7 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 | ↑ · W | drehen (die drei Steine durchtauschen) |
 | ↓ · S | schneller fallen (Softdrop) |
 | Leertaste | sofort fallen lassen |
+| T | Ton an/aus (aus = „mundtot") |
 | Esc | zurück ins Hauptmenü |
 
 ## Bauen & Starten
@@ -104,5 +107,9 @@ MIT — siehe [LICENSE](LICENSE).
 
 Titel-/HUD-Schrift: **Pirata One** von Rodrigo Fuenzalida & Nicolas Massi, lizenziert unter der
 [SIL Open Font License](Sources/SteinregenRender/Resources/PirataOne-OFL.txt).
+
+Soundeffekte aus dem [Freedoom](https://github.com/freedoom/freedoom)-Projekt (dessen eigene freie
+Aufnahmen, nicht die kommerziellen Original-Doom-Sounds), lizenziert unter
+[BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
 🤖 Gebaut mit [Claude Code](https://claude.com/claude-code).

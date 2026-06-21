@@ -179,7 +179,7 @@ struct StartView: View {
 
             HStack(spacing: 12) {
                 Button(action: onSettings) {
-                    Label("Steine-Set", systemImage: "square.grid.2x2")
+                    Label("Einstellungen", systemImage: "gearshape")
                         .font(.system(size: 14, weight: .medium))
                         .frame(width: 150, height: 38)
                 }
@@ -242,13 +242,39 @@ struct ControlsLegend: View {
 /// automatisch, sobald sie in `StoneSets.all` stehen.
 struct SettingsView: View {
     @AppStorage(StoneSets.defaultsKey) private var selectedSet = "doom"   // Standard-Set
+    @AppStorage(SoundFX.mutedKey) private var mundtot = false             // true = Ton aus
     let onClose: () -> Void
 
     var body: some View {
-        VStack(spacing: 18) {
-            Text("Steine-Set")
+        VStack(spacing: 14) {
+            Text("Einstellungen")
                 .font(.custom(Theme.blackletterFamily, size: 32))
                 .foregroundStyle(Theme.bone.color)
+
+            // Ton (aus = „mundtot")
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Ton")
+                        .font(.custom(Theme.blackletterFamily, size: 20))
+                        .foregroundStyle(Theme.bone.color)
+                    Spacer()
+                    Toggle("", isOn: Binding(get: { !mundtot }, set: { mundtot = !$0 }))
+                        .labelsHidden()
+                        .tint(Theme.oxblood.color)
+                }
+                Text(mundtot ? "mundtot — keine Soundeffekte (im Spiel: Taste T)"
+                             : "Soundeffekte an (im Spiel: Taste T)")
+                    .font(.system(size: 12))
+                    .foregroundStyle(mundtot ? Theme.oxblood.color : Theme.boneDim.color)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+
+            Text("Steine-Set")
+                .font(.custom(Theme.blackletterFamily, size: 20))
+                .foregroundStyle(Theme.bone.color)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             ScrollView {
                 VStack(spacing: 14) {
@@ -268,7 +294,7 @@ struct SettingsView: View {
             .keyboardShortcut(.defaultAction)
         }
         .padding(24)
-        .frame(width: 440, height: 760)
+        .frame(width: 440, height: 820)
         .background(Color(red: 0.02, green: 0.02, blue: 0.03))
         .preferredColorScheme(.dark)
     }
@@ -380,6 +406,13 @@ struct GameplayView: View {
         case "d": if down { scene.inputRight() }; return true
         case "w": if down && !rep { scene.inputRotate() }; return true
         case "s": scene.setSoftDrop(down); return true
+        case "t":   // Ton ein/aus (S geht nicht — belegt durch Softdrop)
+            if down && !rep {
+                SoundFX.muted.toggle()
+                scene.flashHint(SoundFX.muted ? "mundtot" : "Ton an")
+            }
+            return true
+        // "m" ist für späteres Musik-Ein/Aus reserviert (Musik gibt es noch nicht).
         default:  return false
         }
     }

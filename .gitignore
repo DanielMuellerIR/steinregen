@@ -37,3 +37,7 @@ tools/AppIcon.icns
 
 # Analyse-Material (Videos/Frames vom Original – lokal, NIE ins Repo, urheberrechtlich)
 analyse/
+
+# Sound-Kandidaten zum Probehören (FreeDoom, BSD-3) – lokal, NICHT ins Repo.
+# Erst die finale Auswahl wandert (mit Lizenz/Attribution) in Sources/.../Resources/.
+assets/sound-candidates/

@@ -34,7 +34,7 @@ steinregen/                   (SwiftPM-Workspace)
 │   ├── SteinregenRender/     (SpriteKit-Szene, Spielloop, Theme = Palette/Fonts/Korn/Nebel,
 │   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones
 │   │                          + ZaubersteineStones (svg/procedural/png), GemTextures =
-│   │                          set-bewusste Textur-Fabrik, Magic-Animation)
+│   │                          set-bewusste Textur-Fabrik, SoundFX = Soundeffekte, Magic-Animation)
 │   └── SteinregenApp/        (SwiftUI-Shell: Startbildschirm, Einstellungen, Friedhof =
 │                              Bestenliste/Persistenz, Steuerung, Game-Over)
 └── Tests/
@@ -71,6 +71,12 @@ steinregen/                   (SwiftPM-Workspace)
   `logo.png` = Start-Logo (weiß auf transparent, aus einem KI-generierten Schriftzug auf die
   Buchstaben getrimmt + Schwarz transparent gemacht); ersetzt im Startbildschirm den Pirata-One-
   Schriftzug (`Theme.logoImage()`, Fallback auf Text). Pirata One bleibt für Untertitel/HUD/Game-Over.
+- **Soundeffekte**: 9 FreeDoom-WAVs (`ds*.wav`, BSD-3-Clause) + `FREEDOOM-LICENSE.txt` im Bundle,
+  abgespielt über `SoundFX`. Zuordnung: Drehen `dstink`, Aufsetzen zyklisch
+  `dsgetpow→dsoof→dsswtchn`, Auflösen `dspstop`, Game-Over zufällig `dspdiehi/dspldeth/dsdorcls`,
+  Level `dswpnup`. Ton-Aus = „mundtot" (UserDefaults `steinregen.mundtot`, Taste **T**, Einstellungen).
+  Kandidaten zum Probehören: `tools/get-sound-candidates.sh` + `tools/audition-sounds.sh`
+  (laden nach `assets/sound-candidates/`, git-ignoriert).
   Zusätzlich im Bundle: **Pirata One** (Blackletter-Titel/HUD-Schrift) als `PirataOne-Regular.ttf`
   + `PirataOne-OFL.txt` (SIL Open Font License — muss mitgeliefert werden), zur Laufzeit über
   `Theme.registerFonts()` registriert. Die wiederverwendeten Bausteine (deterministischer PRNG,
@@ -132,6 +138,8 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
 - **↑** oder **W** — Säule drehen (Steine zyklisch durchtauschen)
 - **↓** oder **S** — schneller fallen (Softdrop, gehalten)
 - **Leertaste** sofort fallen lassen (Hard-Drop)
+- **T** Ton ein/aus (Aus-Modus heißt „mundtot"); **M** ist für späteres Musik-Ein/Aus reserviert
+  (Musik gibt es noch nicht)
 - **Esc** zurück ins Hauptmenü
 
 Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewusst **fokus-unabhängig**
@@ -139,7 +147,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-21, v0.5.0)
+## 5. Status (Stand 2026-06-21, v0.6.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -164,7 +172,11 @@ Spielfeld nahezu **randlos** (kleineres Padding, Fenster-Default im Brett-Format
 **v0.5.0 — Friedhof (Bestenliste):** persistente Top-16-Liste (`Friedhof.swift`, UserDefaults,
 JSON). Name bis 16 Zeichen beim Game-Over (wenn der Score reicht), zweizeilige Grabstein-Einträge
 (Rang · Name · Score / rot „verreckt in Level X" + Sterbedatum). Erreichbar im Game-Over-Overlay
-und über den Menü-Button „Friedhof". **Offen:** Soundeffekte (FreeDoom, BSD-3 — Auswahl läuft).
+und über den Menü-Button „Friedhof".
+
+**v0.6.0 — Soundeffekte (FreeDoom, BSD-3):** Drehen/Aufsetzen (zyklisch)/Auflösen/Game-Over
+(zufällig)/Level via `SoundFX`. In den Einstellungen an/aus (Aus = „mundtot"), im Spiel Taste **T**.
+**Vorgemerkt:** Musik (Taste **M**) — gibt es noch nicht, kommt später.
 
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,

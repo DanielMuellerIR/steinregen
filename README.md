@@ -22,6 +22,8 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
   from the sibling project *Zaubersteine* ("Zaubersteine", "G20", "Juwelen"). Built to add more.
 - **Friedhof (graveyard high-score list)** — on death, enter a name (up to 16 chars); each grave
   shows the score and the level you died in. Persistent top 16, viewable from the menu.
+- **Sound effects** (from Freedoom, BSD-3) — landing, clearing, rotating, level-up and game-over
+  cues. Toggle in Settings or with **T** in-game; the silent mode is called "mundtot".
 - **Matches in all directions** — horizontal, vertical, and both diagonals.
 - **Chain reactions** — cascading clears are rewarded (score = stones × 10 × chain step).
 - **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes
@@ -37,6 +39,7 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
 | ↑ · W | rotate (cycle the three stones) |
 | ↓ · S | soft drop (faster fall) |
 | Space | hard drop |
+| T | toggle sound (off = "mundtot") |
 | Esc | back to main menu |
 
 ## Build & Run
@@ -104,5 +107,9 @@ MIT — see [LICENSE](LICENSE).
 
 Title/HUD typeface: **Pirata One** by Rodrigo Fuenzalida & Nicolas Massi, licensed under the
 [SIL Open Font License](Sources/SteinregenRender/Resources/PirataOne-OFL.txt).
+
+Sound effects from the [Freedoom](https://github.com/freedoom/freedoom) project (its own free
+recordings, not the original commercial Doom sounds), licensed under
+[BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
 🤖 Built with [Claude Code](https://claude.com/claude-code).

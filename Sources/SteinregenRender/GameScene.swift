@@ -50,6 +50,8 @@ public final class GameScene: SKScene {
     private var fallAccumulator: TimeInterval = 0
     private var isResolving = false
     private var softDropActive = false
+    /// Zuletzt gesehenes Level — um beim Anstieg den „Level geschafft"-Sound auszulösen.
+    private var lastLevel = 0
 
     // MARK: - Lebenszyklus
 
@@ -87,6 +89,7 @@ public final class GameScene: SKScene {
         // Gewaehltes Steine-Set aus den Einstellungen uebernehmen (gilt ab dieser Partie).
         GemTextures.activeSetID = StoneSets.selectedID
         engine = Engine(seed: seed, startLevel: startLevel)
+        lastLevel = engine!.level          // kein „Level geschafft" beim Start
         isResolving = false
         fallAccumulator = 0
         lastUpdateTime = 0
@@ -340,7 +343,7 @@ public final class GameScene: SKScene {
 
     public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true) } }
     public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true) } }
-    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece() } }
+    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate() } }
 
     /// Harter Fall: sofort bis zum Aufsetzen.
     public func inputHardDrop() {
@@ -371,6 +374,7 @@ public final class GameScene: SKScene {
 
     private func beginResolution(_ result: LockResult) {
         isResolving = true
+        SoundFX.land()                 // Säule ist aufgesetzt (Stein berührt Stein/Boden)
         for node in pieceNodes { node.isHidden = true }
         animateLock(result) { [weak self] in self?.endResolution() }
     }
@@ -402,6 +406,7 @@ public final class GameScene: SKScene {
 
     /// Laesst die getroffenen Zellen aufblitzen und verschwinden.
     private func flashAndRemove(_ cells: [Cell], completion: @escaping () -> Void) {
+        SoundFX.clear()                // eine Räum-Welle (Steine lösen sich auf)
         let flash = SKAction.group([
             SKAction.scale(to: 1.35, duration: 0.14),
             SKAction.fadeOut(withDuration: 0.16)
@@ -473,6 +478,7 @@ public final class GameScene: SKScene {
             model?.finalScore = self.engine!.score
             model?.finalLevel = self.engine!.level
             model?.isGameOver = true
+            SoundFX.gameOver()
             showGameOverBanner()
         }
         updateHUD()
@@ -491,6 +497,25 @@ public final class GameScene: SKScene {
         label.run(SKAction.fadeIn(withDuration: 0.4))
     }
 
+    /// Kurzer, einblendender Hinweis (z.B. „mundtot" / „Ton an" beim Umschalten mit T).
+    public func flashHint(_ text: String) {
+        hudLayer.childNode(withName: "hint")?.removeFromParent()
+        let label = makeLabel(size: 22, bold: true)
+        label.name = "hint"
+        label.text = text
+        label.fontColor = Theme.bone.sk
+        label.position = CGPoint(x: size.width / 2, y: size.height * 0.6)
+        label.alpha = 0
+        label.zPosition = 30
+        hudLayer.addChild(label)
+        label.run(SKAction.sequence([
+            SKAction.fadeIn(withDuration: 0.08),
+            SKAction.wait(forDuration: 0.7),
+            SKAction.fadeOut(withDuration: 0.4),
+            SKAction.removeFromParent()
+        ]))
+    }
+
     // MARK: - HUD
 
     private func updateHUD() {
@@ -499,6 +524,8 @@ public final class GameScene: SKScene {
         levelLabel.text = "Level \(engine.level)"
         model?.score = engine.score
         model?.level = engine.level
+        if engine.level > lastLevel { SoundFX.levelUp() }   // Level gestiegen
+        lastLevel = engine.level
 
         let pSize = previewNodes.first?.size ?? gemSize
         let isMagicPreview = engine.nextGems.allSatisfy { $0.isMagic }
