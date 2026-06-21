@@ -473,22 +473,30 @@ struct GameOverOverlay: View {
                         .font(.custom(Theme.blackletterFamily, size: 46))
                         .foregroundStyle(Theme.oxblood.color)
                     Text("Level \(level) · \(score) Punkte")
-                        .font(.system(size: 14, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Theme.boneDim.color)
+                        .font(.system(size: 19, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.bone.color)
                 }
 
                 if step == .entry {
                     entryView
                 } else {
-                    FriedhofView(entries: Friedhof.entries(), highlightID: highlightID, maxRows: 6)
-                        .frame(maxHeight: 250)
+                    FriedhofView(entries: Friedhof.entries(), highlightID: highlightID, maxRows: 5)
+                        .frame(maxHeight: 300)
                 }
 
                 buttons
             }
             .padding(28)
-            .frame(width: 360)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+            .frame(width: 366)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color(red: 0.06, green: 0.055, blue: 0.07))
+                    .shadow(color: .black.opacity(0.7), radius: 18, y: 8)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(Theme.oxblood.color.opacity(0.9), lineWidth: 2)
+            )
         }
         .onAppear {
             name = Friedhof.lastName
@@ -579,38 +587,38 @@ struct FriedhofView: View {
     private func row(rank: Int, e: GraveEntry, highlight: Bool) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Text("\(rank)")
-                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .font(.system(size: 15, weight: .medium, design: .monospaced))
                 .foregroundStyle(Theme.boneDim.color)
-                .frame(width: 22, alignment: .trailing)
-            VStack(alignment: .leading, spacing: 1) {
+                .frame(width: 24, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(e.name.isEmpty ? "Niemand" : e.name)
-                        .font(.custom(Theme.blackletterFamily, size: 18))
+                        .font(.custom(Theme.blackletterFamily, size: 22))
                         .foregroundStyle(Theme.bone.color)
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     Text("\(e.score)")
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .font(.system(size: 21, weight: .bold, design: .monospaced))
                         .foregroundStyle(Theme.bone.color)
                 }
                 HStack(alignment: .firstTextBaseline) {
                     Text("verreckt in Level \(e.level)")
-                        .font(.system(size: 12))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Theme.oxblood.color)
                     Spacer(minLength: 8)
                     Text(e.date, format: .dateTime.day().month().year())
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.boneDim.color)
                 }
             }
         }
-        .padding(.vertical, 7).padding(.horizontal, 10)
-        .background(highlight ? Theme.oxblood.color.opacity(0.18) : Color.white.opacity(0.04),
-                    in: RoundedRectangle(cornerRadius: 8))
+        .padding(.vertical, 9).padding(.horizontal, 12)
+        .background(highlight ? Theme.oxblood.color.opacity(0.22) : Color.white.opacity(0.06),
+                    in: RoundedRectangle(cornerRadius: 9))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(highlight ? Theme.oxblood.color : Color.white.opacity(0.06),
-                        lineWidth: highlight ? 1.5 : 0.5)
+            RoundedRectangle(cornerRadius: 9)
+                .stroke(highlight ? Theme.oxblood.color : Color.white.opacity(0.12),
+                        lineWidth: highlight ? 2 : 0.7)
         )
     }
 }

@@ -103,6 +103,14 @@ public struct Engine: Sendable {
 
     // MARK: Schwerkraft / Aufsetzen
 
+    /// Kann die aktive Saeule eine Reihe tiefer? Reine Abfrage (kein Zustand, kein Zufall) —
+    /// die Render-Schicht nutzt sie fuer das Lock-Delay (kurzes Korrektur-Fenster vor dem Aufsetzen).
+    public func canFall() -> Bool {
+        guard phase == .falling else { return false }
+        let below = current.row - 1
+        return below >= 0 && board[current.col, below] == nil
+    }
+
     /// Laesst die aktive Saeule eine Reihe fallen. Kann sie nicht weiter, setzt sie auf,
     /// berechnet die komplette Kaskade und liefert sie als `.locked(result)` zurueck.
     public mutating func gravityTick() -> TickOutcome {

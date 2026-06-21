@@ -131,6 +131,9 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
 - **Level/Tempo**: Start-Tempostufe wählbar (1–10, 1-basiert). Das Level steigt mit der Zahl geräumter Steine
   (je 30 Steine +1); die Fallgeschwindigkeit nimmt mit dem Level zu (Mapping in `GameScene`).
 - **Game Over**: Einwurf-Spalte (Mitte) oben blockiert.
+- **Lock-Delay** (Sega-Style): nach dem Aufsetzen ein kurzes Korrektur-Fenster (`lockDelay`, aktuell
+  0,3 s in `GameScene`), in dem die Säule noch geschoben/gedreht werden kann; bekommt sie dabei
+  wieder Luft, fällt sie normal weiter. Hard-Drop fixiert sofort. Core-Abfrage: `Engine.canFall()`.
 
 ### Steuerung
 
@@ -147,7 +150,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-21, v0.6.1)
+## 5. Status (Stand 2026-06-21, v0.7.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -182,6 +185,10 @@ und über den Menü-Button „Friedhof".
 `NSWindow.contentAspectRatio`) + Szene-Größe beim Start an den View angeglichen → keine verzerrten
 Steine mehr. Level ist jetzt **1-basiert** (Start-Tempo 1–10, kein „Level 0" mehr; `fallInterval`
 rechnet mit `level-1`).
+
+**v0.7.0 — Lock-Delay + Game-Over-Optik:** kurzes Korrektur-Fenster (0,3 s) nach dem Aufsetzen
+(`Engine.canFall()` + `lockDelay`). Game-Over-Overlay deutlich lesbarer: größere/kontrastreichere
+Schrift, echte Tafel mit Ochsenblut-Rahmen statt mattem Material.
 
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,

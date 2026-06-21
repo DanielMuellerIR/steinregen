@@ -52,6 +52,11 @@ public final class GameScene: SKScene {
     private var softDropActive = false
     /// Zuletzt gesehenes Level — um beim Anstieg den „Level geschafft"-Sound auszulösen.
     private var lastLevel = 0
+    /// Lock-Delay (Sega-Style): kurzes Korrektur-Fenster, in dem eine aufgesetzte Saeule noch
+    /// geschoben/gedreht werden kann, bevor sie fixiert. Verschiebt man sie so, dass sie wieder
+    /// fallen kann, geht es normal weiter. Wert in Sekunden — zum Ausprobieren gedacht.
+    private let lockDelay: TimeInterval = 0.3
+    private var lockDelayAccumulator: TimeInterval = 0
 
     // MARK: - Lebenszyklus
 
@@ -95,6 +100,7 @@ public final class GameScene: SKScene {
         lastLevel = engine!.level          // kein „Level geschafft" beim Start
         isResolving = false
         fallAccumulator = 0
+        lockDelayAccumulator = 0
         lastUpdateTime = 0
         softDropActive = false
         model?.reset()
@@ -319,11 +325,24 @@ public final class GameScene: SKScene {
         if lastUpdateTime == 0 { lastUpdateTime = currentTime; return }
         let dt = currentTime - lastUpdateTime
         lastUpdateTime = currentTime
-        fallAccumulator += dt
-        let interval = softDropActive ? min(0.045, fallInterval(engine.level)) : fallInterval(engine.level)
-        if fallAccumulator >= interval {
+
+        if engine.canFall() {
+            // Normales Fallen. (Hat die Saeule durch Schieben wieder Luft, läuft das Lock-Delay nicht.)
+            lockDelayAccumulator = 0
+            fallAccumulator += dt
+            let interval = softDropActive ? min(0.045, fallInterval(engine.level)) : fallInterval(engine.level)
+            if fallAccumulator >= interval {
+                fallAccumulator = 0
+                stepGravity()
+            }
+        } else {
+            // Aufgesetzt → kurzes Korrektur-Fenster (Lock-Delay); erst danach wird fixiert.
             fallAccumulator = 0
-            stepGravity()
+            lockDelayAccumulator += dt
+            if lockDelayAccumulator >= lockDelay {
+                lockDelayAccumulator = 0
+                stepGravity()          // canFall() ist false → gravityTick() setzt jetzt auf
+            }
         }
     }
 
