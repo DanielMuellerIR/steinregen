@@ -39,13 +39,19 @@ private enum Screen {
     case playing
 }
 
+/// Welches modale Sheet im Menue offen ist (Einstellungen oder Friedhof).
+private enum ActiveSheet: Int, Identifiable {
+    case settings, friedhof
+    var id: Int { rawValue }
+}
+
 struct RootView: View {
     @State private var model = GameModel()
     @State private var scene = GameScene(size: CGSize(width: 410, height: 880))
     @State private var screen: Screen = .menu
     @State private var startLevel: Int = 0
     @State private var currentSeed: UInt64 = 1
-    @State private var showSettings = false
+    @State private var activeSheet: ActiveSheet?
 
     var body: some View {
         ZStack {
@@ -57,7 +63,10 @@ struct RootView: View {
 
             switch screen {
             case .menu:
-                StartView(startLevel: $startLevel, showSettings: $showSettings, onStart: startGame)
+                StartView(startLevel: $startLevel,
+                          onSettings: { activeSheet = .settings },
+                          onFriedhof: { activeSheet = .friedhof },
+                          onStart: startGame)
             case .playing:
                 GameplayView(scene: scene,
                              model: model,
@@ -68,18 +77,23 @@ struct RootView: View {
         }
         .frame(minWidth: 360, minHeight: 560)
         .preferredColorScheme(.dark)   // Fenster ist immer finster — unabhaengig vom System-Modus
-        .sheet(isPresented: $showSettings) {
-            SettingsView(onClose: { showSettings = false })
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .settings: SettingsView(onClose: { activeSheet = nil })
+            case .friedhof: FriedhofSheet(onClose: { activeSheet = nil })
+            }
         }
         .onAppear {
             scene.model = model
             // Automations-/Test-Naht: STEINREGEN_AUTOSTART startet sofort ein Spiel (fuer
             // automatische Screenshots / headless-Smoke-Test). STEINREGEN_LEVEL setzt das
             // Start-Tempo, STEINREGEN_SEED den Seed (sonst zufaellig), STEINREGEN_SET das
-            // Steine-Set ("sigil"/"doom"/…).
+            // Steine-Set ("sigil"/"doom"/…); STEINREGEN_SETTINGS/STEINREGEN_FRIEDHOF oeffnen
+            // direkt den jeweiligen Dialog.
             let env = ProcessInfo.processInfo.environment
             if let setID = env["STEINREGEN_SET"] { StoneSets.selectedID = setID }
-            if env["STEINREGEN_SETTINGS"] != nil { showSettings = true }   // Dialog direkt oeffnen
+            if env["STEINREGEN_SETTINGS"] != nil { activeSheet = .settings }
+            if env["STEINREGEN_FRIEDHOF"] != nil { activeSheet = .friedhof }
             if env["STEINREGEN_AUTOSTART"] != nil {
                 if let lvl = env["STEINREGEN_LEVEL"], let n = Int(lvl) { startLevel = min(max(n, 0), 9) }
                 if let s = env["STEINREGEN_SEED"], let seed = UInt64(s) {
@@ -109,7 +123,8 @@ struct RootView: View {
 
 struct StartView: View {
     @Binding var startLevel: Int
-    @Binding var showSettings: Bool
+    let onSettings: () -> Void
+    let onFriedhof: () -> Void
     let onStart: () -> Void
 
     var body: some View {
@@ -162,10 +177,17 @@ struct StartView: View {
             .tint(Theme.oxblood.color)
             .keyboardShortcut(.defaultAction)
 
-            Button { showSettings = true } label: {
-                Label("Steine-Set wählen", systemImage: "square.grid.2x2")
-                    .font(.system(size: 14, weight: .medium))
-                    .frame(width: 220, height: 38)
+            HStack(spacing: 12) {
+                Button(action: onSettings) {
+                    Label("Steine-Set", systemImage: "square.grid.2x2")
+                        .font(.system(size: 14, weight: .medium))
+                        .frame(width: 150, height: 38)
+                }
+                Button(action: onFriedhof) {
+                    Label("Friedhof", systemImage: "list.number")
+                        .font(.system(size: 14, weight: .medium))
+                        .frame(width: 150, height: 38)
+                }
             }
             .buttonStyle(.bordered)
             .tint(Theme.boneDim.color)
@@ -314,6 +336,7 @@ struct GameplayView: View {
 
             if model.isGameOver {
                 GameOverOverlay(score: model.finalScore,
+                                level: model.finalLevel,
                                 onRetrySameSeed: onRetrySameSeed,
                                 onRetryNewSeed: onRetryNewSeed,
                                 onExit: onExit)
@@ -366,49 +389,187 @@ struct GameplayView: View {
 
 struct GameOverOverlay: View {
     let score: Int
+    let level: Int
     let onRetrySameSeed: () -> Void
     let onRetryNewSeed: () -> Void
     let onExit: () -> Void
 
+    private enum Step { case entry, list }
+    @State private var step: Step = .entry
+    @State private var name = ""
+    @State private var highlightID: UUID? = nil
+    @FocusState private var nameFocused: Bool
+
     var body: some View {
         ZStack {
-            Color.black.opacity(0.62).ignoresSafeArea()
-            VStack(spacing: 22) {
+            Color.black.opacity(0.66).ignoresSafeArea()
+            VStack(spacing: 16) {
                 VStack(spacing: 2) {
                     Text("verreckt")
-                        .font(.custom(Theme.blackletterFamily, size: 48))
+                        .font(.custom(Theme.blackletterFamily, size: 46))
                         .foregroundStyle(Theme.oxblood.color)
-                    Text("der schacht ist verstopft")
-                        .font(.custom(Theme.blackletterFamily, size: 14))
-                        .tracking(1.5)
+                    Text("Level \(level) · \(score) Punkte")
+                        .font(.system(size: 14, weight: .medium, design: .monospaced))
                         .foregroundStyle(Theme.boneDim.color)
                 }
-                VStack(spacing: 2) {
-                    Text("Punkte").font(.headline).foregroundStyle(.secondary)
-                    Text("\(score)")
-                        .font(.system(size: 44, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Theme.bone.color)
-                }
-                VStack(spacing: 12) {
-                    Button(action: onRetrySameSeed) {
-                        Text("Nochmal (gleicher Seed)").frame(width: 240, height: 42)
-                    }
-                    .buttonStyle(.borderedProminent).tint(Theme.oxblood.color)
-                    .keyboardShortcut(.defaultAction)
 
-                    Button(action: onRetryNewSeed) {
-                        Text("Neues Spiel").frame(width: 240, height: 42)
-                    }
-                    .buttonStyle(.bordered)
-
-                    Button(action: onExit) {
-                        Text("Hauptmenü").frame(width: 240, height: 36)
-                    }
-                    .buttonStyle(.borderless)
+                if step == .entry {
+                    entryView
+                } else {
+                    FriedhofView(entries: Friedhof.entries(), highlightID: highlightID, maxRows: 6)
+                        .frame(maxHeight: 250)
                 }
+
+                buttons
             }
-            .padding(40)
+            .padding(28)
+            .frame(width: 360)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         }
+        .onAppear {
+            name = Friedhof.lastName
+            if Friedhof.qualifies(score: score) {
+                step = .entry
+                DispatchQueue.main.async { nameFocused = true }
+            } else {
+                step = .list
+            }
+        }
+    }
+
+    private var entryView: some View {
+        VStack(spacing: 10) {
+            Text("Ein Grab auf dem Friedhof — trag dich ein:")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.boneDim.color)
+            TextField("Name", text: $name)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 240)
+                .focused($nameFocused)
+                .onChange(of: name) { _, v in if v.count > 16 { name = String(v.prefix(16)) } }
+                .onSubmit(submit)
+            Button(action: submit) {
+                Text("Begraben").frame(width: 240, height: 40)
+            }
+            .buttonStyle(.borderedProminent).tint(Theme.oxblood.color)
+            .keyboardShortcut(.defaultAction)
+        }
+    }
+
+    private var buttons: some View {
+        VStack(spacing: 10) {
+            Button(action: onRetrySameSeed) {
+                Text("Nochmal (gleicher Seed)").frame(width: 240, height: 40)
+            }
+            .buttonStyle(.bordered)
+            Button(action: onRetryNewSeed) {
+                Text("Neues Spiel").frame(width: 240, height: 40)
+            }
+            .buttonStyle(.bordered)
+            Button(action: onExit) {
+                Text("Hauptmenü").frame(width: 240, height: 34)
+            }
+            .buttonStyle(.borderless)
+        }
+    }
+
+    private func submit() {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        highlightID = Friedhof.add(name: trimmed.isEmpty ? "Niemand" : trimmed, score: score, level: level)
+        step = .list
+    }
+}
+
+// MARK: - Friedhof (Bestenliste)
+
+/// Zweizeilige Grabstein-Liste: Zeile 1 Name + Score, Zeile 2 in Rot „verreckt in Level …"
+/// (plus ein dezentes Sterbedatum rechts). Wird im Game-Over-Overlay (gekürzt) und im
+/// Friedhof-Fenster (vollständig) verwendet.
+struct FriedhofView: View {
+    let entries: [GraveEntry]
+    var highlightID: UUID? = nil
+    var maxRows: Int? = nil
+
+    var body: some View {
+        let shown = maxRows.map { Array(entries.prefix($0)) } ?? entries
+        Group {
+            if entries.isEmpty {
+                Text("Noch frisch — kein Grab ausgehoben.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.boneDim.color)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
+            } else {
+                ScrollView {
+                    VStack(spacing: 7) {
+                        ForEach(Array(shown.enumerated()), id: \.element.id) { idx, e in
+                            row(rank: idx + 1, e: e, highlight: e.id == highlightID)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                }
+            }
+        }
+    }
+
+    private func row(rank: Int, e: GraveEntry, highlight: Bool) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text("\(rank)")
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .foregroundStyle(Theme.boneDim.color)
+                .frame(width: 22, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(e.name.isEmpty ? "Niemand" : e.name)
+                        .font(.custom(Theme.blackletterFamily, size: 18))
+                        .foregroundStyle(Theme.bone.color)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text("\(e.score)")
+                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.bone.color)
+                }
+                HStack(alignment: .firstTextBaseline) {
+                    Text("verreckt in Level \(e.level)")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.oxblood.color)
+                    Spacer(minLength: 8)
+                    Text(e.date, format: .dateTime.day().month().year())
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .padding(.vertical, 7).padding(.horizontal, 10)
+        .background(highlight ? Theme.oxblood.color.opacity(0.18) : Color.white.opacity(0.04),
+                    in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(highlight ? Theme.oxblood.color : Color.white.opacity(0.06),
+                        lineWidth: highlight ? 1.5 : 0.5)
+        )
+    }
+}
+
+/// Der Friedhof als eigenes Fenster (Menü-Button „Friedhof").
+struct FriedhofSheet: View {
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Friedhof")
+                .font(.custom(Theme.blackletterFamily, size: 34))
+                .foregroundStyle(Theme.bone.color)
+            FriedhofView(entries: Friedhof.entries())
+            Button(action: onClose) {
+                Text("Schließen").font(.system(size: 16, weight: .bold)).frame(width: 200, height: 42)
+            }
+            .buttonStyle(.borderedProminent).tint(Theme.oxblood.color)
+            .keyboardShortcut(.defaultAction)
+        }
+        .padding(24)
+        .frame(width: 440, height: 640)
+        .background(Color(red: 0.02, green: 0.02, blue: 0.03))
+        .preferredColorScheme(.dark)
     }
 }

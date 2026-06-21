@@ -20,6 +20,8 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 - **Wählbare Steine-Sets** — in den Einstellungen (mit Live-Vorschau) zwischen fünf Sets
   umschalten: den Black-Metal-Sets „Sigille" und „Doom" sowie drei freundlicheren Edelstein-Sets
   aus dem Schwester-Projekt *Zaubersteine* („Zaubersteine", „G20", „Juwelen"). Erweiterbar.
+- **Friedhof (Bestenliste)** — beim Verrecken trägt man einen Namen ein (bis 16 Zeichen); jedes
+  Grab zeigt Punkte und das Level, in dem man verreckt ist. Persistente Top 16, im Menü abrufbar.
 - **Treffer in alle Richtungen** — horizontal, vertikal und beide Diagonalen.
 - **Kettenreaktionen** — Kaskaden werden belohnt (Punkte = Steine × 10 × Kettenstufe).
 - **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
@@ -79,6 +81,7 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen`)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start den Einstellungsdialog
+- `STEINREGEN_FRIEDHOF=1` — öffnet beim Start den Friedhof (Bestenliste)
 
 ## Architektur
 

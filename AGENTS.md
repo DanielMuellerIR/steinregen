@@ -35,7 +35,8 @@ steinregen/                   (SwiftPM-Workspace)
 │   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones
 │   │                          + ZaubersteineStones (svg/procedural/png), GemTextures =
 │   │                          set-bewusste Textur-Fabrik, Magic-Animation)
-│   └── SteinregenApp/        (SwiftUI-Shell: Startbildschirm, Einstellungen, Steuerung, Game-Over)
+│   └── SteinregenApp/        (SwiftUI-Shell: Startbildschirm, Einstellungen, Friedhof =
+│                              Bestenliste/Persistenz, Steuerung, Game-Over)
 └── Tests/
     └── SteinregenCoreTests/  (Determinismus, Treffer h/v/diagonal, Kaskade, Magic, Game-Over)
 ```
@@ -97,6 +98,7 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
+- `STEINREGEN_FRIEDHOF=1` — öffnet beim Start direkt den Friedhof (Bestenliste)
 
 Fenster-gezielter Screenshot ohne Fokus-Klau: Window-ID per CoreGraphics holen, dann
 `screencapture -x -o -l <id>` (kein Fenster-nach-vorn nötig).
@@ -137,7 +139,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-21, v0.4.0)
+## 5. Status (Stand 2026-06-21, v0.5.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -158,6 +160,11 @@ Standard-Set jetzt **Doom**.
 **v0.4.0 — Steuerung & Layout:** Tastatur fokus-unabhängig via `NSEvent`-Monitor (behebt
 „Eingabe die ersten Sekunden tot"); zusätzlich **W/A/S/D** alternativ zu den Pfeiltasten.
 Spielfeld nahezu **randlos** (kleineres Padding, Fenster-Default im Brett-Format, alles größer).
+
+**v0.5.0 — Friedhof (Bestenliste):** persistente Top-16-Liste (`Friedhof.swift`, UserDefaults,
+JSON). Name bis 16 Zeichen beim Game-Over (wenn der Score reicht), zweizeilige Grabstein-Einträge
+(Rang · Name · Score / rot „verreckt in Level X" + Sterbedatum). Erreichbar im Game-Over-Overlay
+und über den Menü-Button „Friedhof". **Offen:** Soundeffekte (FreeDoom, BSD-3 — Auswahl läuft).
 
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,

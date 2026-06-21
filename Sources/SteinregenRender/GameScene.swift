@@ -471,6 +471,7 @@ public final class GameScene: SKScene {
             renderPiece()
         } else {
             model?.finalScore = self.engine!.score
+            model?.finalLevel = self.engine!.level
             model?.isGameOver = true
             showGameOverBanner()
         }

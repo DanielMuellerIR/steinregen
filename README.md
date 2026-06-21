@@ -20,6 +20,8 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
 - **Selectable stone sets** — switch in Settings (with live preview) between five sets: the
   engraved "Sigil" and grimy "Doom" black-metal sets, plus three friendlier gem sets adopted
   from the sibling project *Zaubersteine* ("Zaubersteine", "G20", "Juwelen"). Built to add more.
+- **Friedhof (graveyard high-score list)** — on death, enter a name (up to 16 chars); each grave
+  shows the score and the level you died in. Persistent top 16, viewable from the menu.
 - **Matches in all directions** — horizontal, vertical, and both diagonals.
 - **Chain reactions** — cascading clears are rewarded (score = stones × 10 × chain step).
 - **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes
@@ -79,6 +81,7 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_SEED=<UInt64>` — fixed seed (otherwise random)
 - `STEINREGEN_SET=<id>` — stone set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen`)
 - `STEINREGEN_SETTINGS=1` — open the settings dialog on launch
+- `STEINREGEN_FRIEDHOF=1` — open the Friedhof (high-score list) on launch
 
 ## Architecture
 
