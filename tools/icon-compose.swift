@@ -1,9 +1,11 @@
 // icon-compose.swift
-// Erzeugt das App-Icon-Master (1024×1024 PNG) fuer Steinregen aus den echten Stein-PNGs:
-// dunkle macOS-„Squircle" + eine fallende Dreier-Saeule (Rubin/Smaragd/Saphir) mit
-// dezenten Fall-Streifen. Plattformneutral (CoreGraphics + ImageIO), kein AppKit.
+// Erzeugt das App-Icon-Master (1024×1024 PNG) fuer Steinregen — PROZEDURAL, im Black-Metal-Look:
+// dunkle macOS-„Squircle", ein Ochsenblut-Höllenschein und darauf ein umgekehrtes Pentagramm
+// (Spitze nach unten) im Kreis, knochenweiß. Passt zum neuen Spiel-Look (Sigil statt Edelstein).
+// Plattformneutral (CoreGraphics + ImageIO), kein AppKit.
 //
 // Aufruf:  xcrun swift tools/icon-compose.swift <resourcesDir> <output.png>
+// (Das Argument <resourcesDir> wird nicht mehr gebraucht — das Icon ist rein prozedural.)
 
 import CoreGraphics
 import ImageIO
@@ -15,7 +17,6 @@ guard args.count >= 3 else {
     FileHandle.standardError.write("usage: icon-compose.swift <resourcesDir> <output.png>\n".data(using: .utf8)!)
     exit(2)
 }
-let resDir = args[1]
 let outPath = args[2]
 
 let S = 1024
@@ -26,12 +27,9 @@ guard let ctx = CGContext(data: nil, width: S, height: S, bitsPerComponent: 8, b
 }
 let size = CGFloat(S)
 
-func loadGem(_ name: String) -> CGImage? {
-    let url = URL(fileURLWithPath: resDir).appendingPathComponent("\(name).png")
-    guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
-          let img = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return nil }
-    return img
-}
+// Palette (synchron zum Spiel-Theme).
+let bone = CGColor(red: 0.804, green: 0.780, blue: 0.729, alpha: 1)
+let oxblood = CGColor(red: 0.48, green: 0.10, blue: 0.10, alpha: 1)
 
 // MARK: - Squircle-Hintergrund (macOS-Big-Sur-Raster: 824er Rechteck, ~100 Rand)
 let inset: CGFloat = 100
@@ -47,60 +45,57 @@ ctx.setFillColor(CGColor(gray: 0, alpha: 1))
 ctx.fillPath()
 ctx.restoreGState()
 
-// Dunkler Vertikalverlauf im Squircle.
+// Rabenschwarzer Vertikalverlauf + Ochsenblut-Höllenschein hinter dem Pentagramm.
 ctx.saveGState()
 ctx.addPath(bgPath)
 ctx.clip()
 let grad = CGGradient(colorsSpace: cs,
-                      colors: [CGColor(red: 0.13, green: 0.14, blue: 0.24, alpha: 1),
-                               CGColor(red: 0.05, green: 0.05, blue: 0.10, alpha: 1)] as CFArray,
+                      colors: [CGColor(red: 0.075, green: 0.075, blue: 0.085, alpha: 1),
+                               CGColor(red: 0.015, green: 0.015, blue: 0.020, alpha: 1)] as CFArray,
                       locations: [0, 1])!
 ctx.drawLinearGradient(grad, start: CGPoint(x: 0, y: size), end: CGPoint(x: 0, y: 0), options: [])
 
-// Sanfter oberer Glanz.
 let glow = CGGradient(colorsSpace: cs,
-                      colors: [CGColor(red: 1, green: 1, blue: 1, alpha: 0.10),
-                               CGColor(red: 1, green: 1, blue: 1, alpha: 0)] as CFArray,
+                      colors: [CGColor(red: 0.48, green: 0.10, blue: 0.10, alpha: 0.55),
+                               CGColor(red: 0.48, green: 0.10, blue: 0.10, alpha: 0)] as CFArray,
                       locations: [0, 1])!
 ctx.drawRadialGradient(glow,
-                       startCenter: CGPoint(x: size/2, y: size*0.82), startRadius: 0,
-                       endCenter: CGPoint(x: size/2, y: size*0.82), endRadius: size*0.55, options: [])
+                       startCenter: CGPoint(x: size/2, y: size*0.52), startRadius: 0,
+                       endCenter: CGPoint(x: size/2, y: size*0.52), endRadius: size*0.46, options: [])
 ctx.restoreGState()
 
-// MARK: - Fallende Dreier-Saeule
-// Reihenfolge oben→unten. (CG-Ursprung unten links → groesste y zuerst zeichnen = oben.)
-let gemsTopToBottom = ["ruby", "emerald", "sapphire"]
-let gemW: CGFloat = 250
-let gap: CGFloat = 10
-let totalH = gemW * 3 + gap * 2
-let firstTopY = size/2 + totalH/2           // obere Kante des obersten Steins
-let cx = size/2
-
-for (i, name) in gemsTopToBottom.enumerated() {
-    let topY = firstTopY - CGFloat(i) * (gemW + gap)
-    let rect = CGRect(x: cx - gemW/2, y: topY - gemW, width: gemW, height: gemW)
-
-    // Dezenter Fall-Streifen oberhalb des Steins.
-    ctx.saveGState()
-    let streakW: CGFloat = gemW * 0.30
-    let streakRect = CGRect(x: cx - streakW/2, y: rect.maxY, width: streakW, height: 150)
-    ctx.clip(to: streakRect)
-    let streak = CGGradient(colorsSpace: cs,
-                            colors: [CGColor(red: 1, green: 1, blue: 1, alpha: 0),
-                                     CGColor(red: 0.8, green: 0.85, blue: 1, alpha: 0.16)] as CFArray,
-                            locations: [0, 1])!
-    ctx.drawLinearGradient(streak, start: CGPoint(x: 0, y: streakRect.maxY),
-                           end: CGPoint(x: 0, y: streakRect.minY), options: [])
-    ctx.restoreGState()
-
-    // Stein mit weichem Schatten.
-    if let gem = loadGem(name) {
-        ctx.saveGState()
-        ctx.setShadow(offset: CGSize(width: 0, height: -8), blur: 22, color: CGColor(gray: 0, alpha: 0.45))
-        ctx.draw(gem, in: rect)
-        ctx.restoreGState()
-    }
+// MARK: - Umgekehrtes Pentagramm im Kreis (Spitze nach unten)
+// Fuenf Eckpunkte auf einem Kreis; CG-Ursprung unten links (y nach oben), „unten" = kleinstes y.
+let center = CGPoint(x: size/2, y: size/2)
+let R: CGFloat = 300
+func vertex(_ deg: CGFloat) -> CGPoint {
+    let r = deg * .pi / 180
+    return CGPoint(x: center.x + R * cos(r), y: center.y + R * sin(r))
 }
+// Winkel: eine Spitze gerade nach unten (270°), dann je +72°.
+let v = [vertex(270), vertex(342), vertex(54), vertex(126), vertex(198)]
+// Pentagramm = jeden zweiten Punkt verbinden: 0→2→4→1→3→0.
+let starOrder = [v[0], v[2], v[4], v[1], v[3]]
+
+func strokeStarAndCircle(color: CGColor, starWidth: CGFloat, circleWidth: CGFloat, circleR: CGFloat) {
+    ctx.setLineJoin(.round)
+    ctx.setLineCap(.round)
+    ctx.setStrokeColor(color)
+    // Kreis.
+    ctx.setLineWidth(circleWidth)
+    ctx.addEllipse(in: CGRect(x: center.x - circleR, y: center.y - circleR, width: 2*circleR, height: 2*circleR))
+    ctx.strokePath()
+    // Stern.
+    ctx.setLineWidth(starWidth)
+    ctx.move(to: starOrder[0])
+    for p in starOrder.dropFirst() { ctx.addLine(to: p) }
+    ctx.closePath()
+    ctx.strokePath()
+}
+
+// Erst breiter Ochsenblut-Schein (Halo), dann knochenweiss obendrauf.
+strokeStarAndCircle(color: oxblood.copy(alpha: 0.7)!, starWidth: 58, circleWidth: 46, circleR: 362)
+strokeStarAndCircle(color: bone, starWidth: 30, circleWidth: 22, circleR: 360)
 
 // MARK: - PNG schreiben
 guard let image = ctx.makeImage() else { exit(1) }

@@ -17,10 +17,14 @@ public final class GameScene: SKScene {
     private var engine: Engine?
 
     // MARK: Layer + Knoten
+    /// Ganz hinten: animierter, ziehender Nebel.
+    private let fogLayer = SKNode()
     private let backgroundLayer = SKNode()
     private let boardLayer = SKNode()
     private let pieceLayer = SKNode()
     private let hudLayer = SKNode()
+    /// Liegt ueber Brett/Saeule (aber unter dem HUD) und legt das raeudige Korn drueber.
+    private let overlayLayer = SKNode()
 
     /// Brett-Knoten, indiziert [col][row]; nil = leere Zelle.
     private var gemNodes: [[SKSpriteNode?]] =
@@ -52,12 +56,19 @@ public final class GameScene: SKScene {
     public override func didMove(to view: SKView) {
         scaleMode = .resizeFill
         anchorPoint = CGPoint(x: 0, y: 0)
-        backgroundColor = SKColor(red: 0.07, green: 0.08, blue: 0.12, alpha: 1)
+        Theme.registerFonts()
+        backgroundColor = Theme.canvas.sk
         if backgroundLayer.parent == nil {
+            addChild(fogLayer)
             addChild(backgroundLayer)
             addChild(boardLayer)
             addChild(pieceLayer)
+            addChild(overlayLayer)
             addChild(hudLayer)
+            // Zeichenreihenfolge: Nebel ganz hinten, Korn ueber den Steinen, HUD oben (bleibt scharf).
+            fogLayer.zPosition = -1
+            overlayLayer.zPosition = 50
+            hudLayer.zPosition = 100
         }
         layout()
         if let engine { renderBoardInstant(engine.board); renderPiece(); updateHUD() }
@@ -73,6 +84,8 @@ public final class GameScene: SKScene {
 
     /// Startet (oder restartet) eine Partie mit gegebenem Seed und Start-Tempostufe.
     public func start(seed: UInt64, startLevel: Int) {
+        // Gewaehltes Steine-Set aus den Einstellungen uebernehmen (gilt ab dieser Partie).
+        GemTextures.activeSetID = StoneSets.selectedID
         engine = Engine(seed: seed, startLevel: startLevel)
         isResolving = false
         fallAccumulator = 0
@@ -99,8 +112,45 @@ public final class GameScene: SKScene {
         boardOriginX = (size.width - boardW) / 2
         boardOriginY = outerPad
         gemSize = CGSize(width: tile * 0.94, height: tile * 0.94)
+        buildFog()
         buildBackground(boardW: boardW, boardH: boardH)
         buildHUD(boardW: boardW, boardH: boardH)
+        buildGrain()
+    }
+
+    /// Baut zwei gegenlaeufig driftende, leicht pulsierende Nebelschichten — der animierte Hintergrund.
+    private func buildFog() {
+        fogLayer.removeAllChildren()
+        guard size.width > 0, size.height > 0 else { return }
+        let tex = GemTextures.fog()
+
+        func makeFog(scale: CGFloat, alpha: CGFloat, dx: CGFloat, dy: CGFloat, dur: TimeInterval, offset: CGPoint) {
+            let node = SKSpriteNode(texture: tex)
+            // Deutlich groesser als die Szene, damit beim Driften nie ein Rand sichtbar wird.
+            node.size = CGSize(width: size.width * 1.7, height: size.height * 1.5)
+            node.setScale(scale)
+            node.position = CGPoint(x: size.width / 2 + offset.x, y: size.height / 2 + offset.y)
+            node.alpha = alpha
+            fogLayer.addChild(node)
+            let move = SKAction.sequence([SKAction.moveBy(x: dx, y: dy, duration: dur),
+                                          SKAction.moveBy(x: -dx, y: -dy, duration: dur)])
+            move.timingMode = .easeInEaseOut
+            let pulse = SKAction.sequence([SKAction.scale(to: scale * 1.08, duration: dur * 0.85),
+                                           SKAction.scale(to: scale, duration: dur * 0.85)])
+            node.run(SKAction.repeatForever(SKAction.group([move, pulse])))
+        }
+        makeFog(scale: 1.00, alpha: 0.28, dx:  46, dy:  14, dur: 17, offset: CGPoint(x: -20, y: 0))
+        makeFog(scale: 1.35, alpha: 0.18, dx: -60, dy: -10, dur: 23, offset: CGPoint(x:  30, y: 20))
+    }
+
+    /// Legt das statische Korn als ganzflaechigen Schleier ueber die Szene (raeudiger Lo-Fi-Look).
+    private func buildGrain() {
+        overlayLayer.removeAllChildren()
+        guard size.width > 0, size.height > 0 else { return }
+        let grain = SKSpriteNode(texture: GemTextures.grain(), size: size)
+        grain.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        grain.alpha = 0.32
+        overlayLayer.addChild(grain)
     }
 
     private func cellCenter(col: Int, row: Int) -> CGPoint {
@@ -114,8 +164,9 @@ public final class GameScene: SKScene {
         let panel = SKShapeNode(rect: CGRect(x: boardOriginX - 6, y: boardOriginY - 6,
                                              width: boardW + 12, height: boardH + 12),
                                 cornerRadius: 12)
-        panel.fillColor = SKColor(red: 0.04, green: 0.05, blue: 0.08, alpha: 1)
-        panel.strokeColor = SKColor(red: 0.30, green: 0.34, blue: 0.50, alpha: 0.9)
+        // Halbtransparent, damit der Nebel auch hinter dem Schacht durchzieht.
+        panel.fillColor = Theme.panel.sk(0.6)
+        panel.strokeColor = Theme.oxbloodDark.sk
         panel.lineWidth = 2
         backgroundLayer.addChild(panel)
         // Feines Raster.
@@ -132,7 +183,7 @@ public final class GameScene: SKScene {
             path.addLine(to: CGPoint(x: boardOriginX + boardW, y: y))
         }
         grid.path = path
-        grid.strokeColor = SKColor(white: 1, alpha: 0.05)
+        grid.strokeColor = Theme.bone.sk(0.045)
         grid.lineWidth = 1
         backgroundLayer.addChild(grid)
     }
@@ -151,13 +202,13 @@ public final class GameScene: SKScene {
         levelLabel = makeLabel(size: 16, bold: false)
         levelLabel.horizontalAlignmentMode = .left
         levelLabel.verticalAlignmentMode = .center
-        levelLabel.fontColor = SKColor(white: 0.75, alpha: 1)
+        levelLabel.fontColor = Theme.boneDim.sk
         levelLabel.position = CGPoint(x: boardOriginX - 6, y: barY - 24)
         hudLayer.addChild(levelLabel)
 
         nextLabel = makeLabel(size: 13, bold: true)
-        nextLabel.text = "NÄCHSTE"
-        nextLabel.fontColor = SKColor(white: 0.6, alpha: 1)
+        nextLabel.text = "als nächstes"
+        nextLabel.fontColor = Theme.boneDim.sk
         nextLabel.horizontalAlignmentMode = .right
         nextLabel.verticalAlignmentMode = .center
         let rightX = boardOriginX + boardW + 6
@@ -178,10 +229,12 @@ public final class GameScene: SKScene {
         }
     }
 
+    /// Alle HUD-Texte in der mitgelieferten Blackletter-Schrift. `bold` bleibt aus Kompatibilitaet
+    /// erhalten, hat aber keine Wirkung (Pirata One hat nur einen Schnitt).
     private func makeLabel(size: CGFloat, bold: Bool) -> SKLabelNode {
-        let label = SKLabelNode(fontNamed: bold ? "AvenirNext-Bold" : "AvenirNext-Medium")
+        let label = SKLabelNode(fontNamed: Theme.blackletterPostScript)
         label.fontSize = size
-        label.fontColor = .white
+        label.fontColor = Theme.bone.sk
         return label
     }
 
@@ -222,7 +275,7 @@ public final class GameScene: SKScene {
             node.size = gemSize
             let gem = engine.current.gems[i]
             if gem.isMagic {
-                node.texture = GemTextures.colorTextures.first
+                node.texture = GemTextures.magicTextures.first
                 applyMagicAnimation(to: node)
             } else {
                 node.removeAction(forKey: "magic")
@@ -241,7 +294,7 @@ public final class GameScene: SKScene {
     /// Pulsierender Regenbogen fuer Magic-Steine: Texturen durchwechseln + sanftes Pulsieren.
     private func applyMagicAnimation(to node: SKSpriteNode) {
         guard node.action(forKey: "magic") == nil else { return }
-        let cycle = SKAction.animate(with: GemTextures.colorTextures, timePerFrame: 0.09,
+        let cycle = SKAction.animate(with: GemTextures.magicTextures, timePerFrame: 0.09,
                                      resize: false, restore: false)
         let pulse = SKAction.sequence([
             SKAction.scale(to: 1.12, duration: 0.35),
@@ -395,7 +448,7 @@ public final class GameScene: SKScene {
     private func showMagicLanding(_ landed: Piece, completion: @escaping () -> Void) {
         var nodes: [SKSpriteNode] = []
         for i in 0..<3 {
-            let node = SKSpriteNode(texture: GemTextures.colorTextures.first, size: gemSize)
+            let node = SKSpriteNode(texture: GemTextures.magicTextures.first, size: gemSize)
             node.position = cellCenter(col: landed.col, row: landed.row + i)
             node.zPosition = 6
             applyMagicAnimation(to: node)
@@ -427,8 +480,9 @@ public final class GameScene: SKScene {
     }
 
     private func showGameOverBanner() {
-        let label = makeLabel(size: 40, bold: true)
-        label.text = "GAME OVER"
+        let label = makeLabel(size: 46, bold: true)
+        label.text = "verreckt"
+        label.fontColor = Theme.oxblood.sk
         label.position = CGPoint(x: size.width / 2, y: size.height / 2)
         label.alpha = 0
         label.zPosition = 20
@@ -451,7 +505,7 @@ public final class GameScene: SKScene {
             node.size = pSize
             let gem = engine.nextGems[i]
             if isMagicPreview {
-                node.texture = GemTextures.colorTextures.first
+                node.texture = GemTextures.magicTextures.first
                 applyMagicAnimation(to: node)
             } else {
                 node.removeAction(forKey: "magic")

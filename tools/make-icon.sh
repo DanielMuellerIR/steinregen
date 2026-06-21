@@ -1,5 +1,6 @@
 #!/bin/bash
-# Baut das App-Icon (tools/AppIcon.icns) aus den Stein-PNGs.
+# Baut das App-Icon (tools/AppIcon.icns) — prozedural via icon-compose.swift
+# (umgekehrtes Pentagramm im Kreis, Black-Metal-Look).
 # Nutzung:  bash tools/make-icon.sh
 set -euo pipefail
 

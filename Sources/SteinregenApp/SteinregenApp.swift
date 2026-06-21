@@ -11,9 +11,16 @@ import AppKit
 import SteinregenCore
 import SteinregenRender
 
+/// Bequemer Brueckenbau: dieselbe (r,g,b)-Palette wie die Render-Schicht als SwiftUI-`Color`.
+private extension Theme.RGB {
+    var color: Color { Color(red: r, green: g, blue: b) }
+}
+
 @main
 struct SteinregenApp: App {
     init() {
+        // Blackletter-Schrift einmalig registrieren, BEVOR die erste View gezeichnet wird.
+        Theme.registerFonts()
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
@@ -38,18 +45,19 @@ struct RootView: View {
     @State private var screen: Screen = .menu
     @State private var startLevel: Int = 0
     @State private var currentSeed: UInt64 = 1
+    @State private var showSettings = false
 
     var body: some View {
         ZStack {
-            // Hintergrund-Verlauf fuer alle Screens.
-            LinearGradient(colors: [Color(red: 0.10, green: 0.11, blue: 0.18),
-                                    Color(red: 0.04, green: 0.05, blue: 0.09)],
+            // Rabenschwarzer Hintergrund-Verlauf fuer alle Screens.
+            LinearGradient(colors: [Color(red: 0.055, green: 0.055, blue: 0.066),
+                                    Color(red: 0.012, green: 0.012, blue: 0.020)],
                            startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
 
             switch screen {
             case .menu:
-                StartView(startLevel: $startLevel, onStart: startGame)
+                StartView(startLevel: $startLevel, showSettings: $showSettings, onStart: startGame)
             case .playing:
                 GameplayView(scene: scene,
                              model: model,
@@ -59,12 +67,19 @@ struct RootView: View {
             }
         }
         .frame(minWidth: 440, minHeight: 680)
+        .preferredColorScheme(.dark)   // Fenster ist immer finster — unabhaengig vom System-Modus
+        .sheet(isPresented: $showSettings) {
+            SettingsView(onClose: { showSettings = false })
+        }
         .onAppear {
             scene.model = model
             // Automations-/Test-Naht: STEINREGEN_AUTOSTART startet sofort ein Spiel (fuer
             // automatische Screenshots / headless-Smoke-Test). STEINREGEN_LEVEL setzt das
-            // Start-Tempo, STEINREGEN_SEED den Seed (sonst zufaellig).
+            // Start-Tempo, STEINREGEN_SEED den Seed (sonst zufaellig), STEINREGEN_SET das
+            // Steine-Set ("sigil"/"doom"/…).
             let env = ProcessInfo.processInfo.environment
+            if let setID = env["STEINREGEN_SET"] { StoneSets.selectedID = setID }
+            if env["STEINREGEN_SETTINGS"] != nil { showSettings = true }   // Dialog direkt oeffnen
             if env["STEINREGEN_AUTOSTART"] != nil {
                 if let lvl = env["STEINREGEN_LEVEL"], let n = Int(lvl) { startLevel = min(max(n, 0), 9) }
                 if let s = env["STEINREGEN_SEED"], let seed = UInt64(s) {
@@ -94,6 +109,7 @@ struct RootView: View {
 
 struct StartView: View {
     @Binding var startLevel: Int
+    @Binding var showSettings: Bool
     let onStart: () -> Void
 
     var body: some View {
@@ -101,15 +117,14 @@ struct StartView: View {
             Spacer()
 
             VStack(spacing: 6) {
-                Text("STEINREGEN")
-                    .font(.system(size: 52, weight: .heavy, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(colors: [.red, .yellow, .green, .cyan, .blue, .purple],
-                                       startPoint: .leading, endPoint: .trailing))
-                    .shadow(color: .black.opacity(0.4), radius: 6, y: 3)
-                Text("Ein Columns-Klon · nativ macOS")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.secondary)
+                Text("Steinregen")
+                    .font(.custom(Theme.blackletterFamily, size: 60))
+                    .foregroundStyle(Theme.bone.color)
+                    .shadow(color: .black.opacity(0.7), radius: 4, y: 2)
+                Text("Tod macht Fliegen aus uns allen")
+                    .font(.custom(Theme.blackletterFamily, size: 16))
+                    .tracking(2)
+                    .foregroundStyle(Theme.oxblood.color)
             }
 
             // Start-Tempostufe.
@@ -135,8 +150,16 @@ struct StartView: View {
                     .frame(width: 220, height: 50)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.indigo)
+            .tint(Theme.oxblood.color)
             .keyboardShortcut(.defaultAction)
+
+            Button { showSettings = true } label: {
+                Label("Steine-Set wählen", systemImage: "square.grid.2x2")
+                    .font(.system(size: 14, weight: .medium))
+                    .frame(width: 220, height: 38)
+            }
+            .buttonStyle(.bordered)
+            .tint(Theme.boneDim.color)
 
             ControlsLegend()
 
@@ -160,7 +183,7 @@ struct ControlsLegend: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             legend("←  →", "Säule bewegen")
-            legend("↑", "Säule drehen (Farben durchtauschen)")
+            legend("↑", "Säule drehen (Steine durchtauschen)")
             legend("↓", "schneller fallen lassen")
             legend("Leertaste", "sofort fallen lassen")
         }
@@ -177,6 +200,91 @@ struct ControlsLegend: View {
                 .foregroundStyle(.primary)
             Text(desc).foregroundStyle(.secondary)
         }
+    }
+}
+
+// MARK: - Einstellungen (Steine-Set)
+
+/// Auswahl-Dialog fuer das Steine-Set, mit Live-Vorschau. Die Auswahl wird per `@AppStorage`
+/// im selben UserDefaults-Schluessel gemerkt, den die Render-Schicht (`StoneSets.selectedID`)
+/// liest — beim naechsten Spielstart gilt das gewaehlte Set. Neue Sets erscheinen hier
+/// automatisch, sobald sie in `StoneSets.all` stehen.
+struct SettingsView: View {
+    @AppStorage(StoneSets.defaultsKey) private var selectedSet = "sigil"
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Text("Steine-Set")
+                .font(.custom(Theme.blackletterFamily, size: 32))
+                .foregroundStyle(Theme.bone.color)
+
+            ScrollView {
+                VStack(spacing: 14) {
+                    ForEach(StoneSets.all) { set in
+                        StoneSetCard(set: set, selected: selectedSet == set.id) {
+                            selectedSet = set.id
+                        }
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+
+            Button(action: onClose) {
+                Text("Fertig").font(.system(size: 16, weight: .bold)).frame(width: 200, height: 42)
+            }
+            .buttonStyle(.borderedProminent).tint(Theme.oxblood.color)
+            .keyboardShortcut(.defaultAction)
+        }
+        .padding(24)
+        .frame(width: 430, height: 540)
+        .background(Color(red: 0.02, green: 0.02, blue: 0.03))
+        .preferredColorScheme(.dark)
+    }
+}
+
+/// Eine anklickbare Karte je Set: Name, Kurzbeschreibung und eine Vorschau der sechs Steine.
+struct StoneSetCard: View {
+    let set: StoneSet
+    let selected: Bool
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(set.name)
+                            .font(.custom(Theme.blackletterFamily, size: 22))
+                            .foregroundStyle(Theme.bone.color)
+                        Text(set.subtitle)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.boneDim.color)
+                    }
+                    Spacer()
+                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 20))
+                        .foregroundStyle(selected ? Theme.oxblood.color : Theme.boneDim.color)
+                }
+                // Live-Vorschau: die sechs Steine dieses Sets.
+                HStack(spacing: 6) {
+                    ForEach(Gem.colors, id: \.self) { gem in
+                        Image(decorative: GemTextures.previewImage(gem, set: set.id), scale: 1)
+                            .resizable().interpolation(.high)
+                            .frame(width: 42, height: 42)
+                    }
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(selected ? Theme.oxblood.color : Color.white.opacity(0.10),
+                            lineWidth: selected ? 2 : 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -248,22 +356,28 @@ struct GameOverOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.55).ignoresSafeArea()
+            Color.black.opacity(0.62).ignoresSafeArea()
             VStack(spacing: 22) {
-                Text("Game Over")
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
+                VStack(spacing: 2) {
+                    Text("verreckt")
+                        .font(.custom(Theme.blackletterFamily, size: 48))
+                        .foregroundStyle(Theme.oxblood.color)
+                    Text("der schacht ist verstopft")
+                        .font(.custom(Theme.blackletterFamily, size: 14))
+                        .tracking(1.5)
+                        .foregroundStyle(Theme.boneDim.color)
+                }
                 VStack(spacing: 2) {
                     Text("Punkte").font(.headline).foregroundStyle(.secondary)
                     Text("\(score)")
                         .font(.system(size: 44, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(Theme.bone.color)
                 }
                 VStack(spacing: 12) {
                     Button(action: onRetrySameSeed) {
                         Text("Nochmal (gleicher Seed)").frame(width: 240, height: 42)
                     }
-                    .buttonStyle(.borderedProminent).tint(.indigo)
+                    .buttonStyle(.borderedProminent).tint(Theme.oxblood.color)
                     .keyboardShortcut(.defaultAction)
 
                     Button(action: onRetryNewSeed) {
