@@ -178,7 +178,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-22, v0.11.1)
+## 5. Status (Stand 2026-06-22, v0.11.2)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -319,7 +319,9 @@ muss die Inhalts-`VStack` `maxWidth: .infinity` haben, sonst schrumpft sie auf i
 rutscht nach links (fiel auf iPhone nicht auf, weil die Spacer-Leiste die VStack ohnehin füllt). Auf
 iPad-Air-11-Simulator verifiziert; iPhone-Layout unverändert. **v0.11.1:** Einzug oben/unten
 vergrößert (240/188 pt), damit das Brett spürbar kleiner ist und Logo bzw. Steuerleiste klar
-freistehen (vorher saßen sie direkt an der Brett-Kante) — auf iPad weiterhin gut spielbar groß.
+freistehen (vorher saßen sie direkt an der Brett-Kante) — auf iPad weiterhin gut spielbar groß. **v0.11.2:**
+Logo auf iPad spürbar vergrößert — im Menü (`StartView`, 660×320 statt 480×210) und im Spiel
+(620×210 statt 540×150, Brett-Einzug oben entsprechend auf 290).
 
 **Beauftragte TODOs (Stand 2026-06-22):**
 - **iOS-App (iPhone + iPad):** ✅ Grundgerüst + Touch-Steuerung, App-Icon, automatisches

@@ -200,6 +200,25 @@ struct StartView: View {
     @State private var keyMonitor: Any?
     #endif
 
+    #if os(iOS)
+    private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+    #endif
+    // Menü-Logo: auf iPad deutlich größer (dort ist reichlich Platz), sonst Standardmaß.
+    private var menuLogoMaxWidth: CGFloat {
+        #if os(iOS)
+        isPad ? 660 : 480
+        #else
+        480
+        #endif
+    }
+    private var menuLogoHeight: CGFloat {
+        #if os(iOS)
+        isPad ? 320 : 210
+        #else
+        210
+        #endif
+    }
+
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -212,8 +231,8 @@ struct StartView: View {
                 if let logo = Theme.logoImage() {
                     Image(decorative: logo, scale: 1)
                         .resizable().interpolation(.high).scaledToFit()
-                        .frame(maxWidth: 480)
-                        .frame(height: 210)
+                        .frame(maxWidth: menuLogoMaxWidth)
+                        .frame(height: menuLogoHeight)
                         .shadow(color: .black.opacity(0.7), radius: 6, y: 2)
                 } else {
                     Text("Steinregen")
@@ -509,7 +528,7 @@ struct GameplayView: View {
             // iPad: Brett vertikal einrücken, damit über dem Schacht Platz fürs Logo und darunter
             // für die Steuerleiste bleibt (iPhone füllt wie gehabt — kein Einzug).
             GameBoardView(scene: scene)
-                .padding(.top, isPad ? 240 : 0)
+                .padding(.top, isPad ? 290 : 0)
                 .padding(.bottom, isPad ? 188 : 0)
             // Touch-Steuerung (Gesten über dem Brett + dezente Knopfleiste + Menü-Knopf), nur im Spiel.
             if !model.isGameOver {
@@ -940,11 +959,11 @@ private struct TouchControlsOverlay: View {
                 if let logo = Theme.logoImage() {
                     Image(decorative: logo, scale: 1)
                         .resizable().interpolation(.high).scaledToFit()
-                        .frame(maxWidth: isPad ? 540 : 380, maxHeight: isPad ? 150 : 140)
+                        .frame(maxWidth: isPad ? 620 : 380, maxHeight: isPad ? 210 : 140)
                         .opacity(0.95)
                         .shadow(color: .black.opacity(0.6), radius: 6, y: 2)
                         .allowsHitTesting(false)
-                        .padding(.top, isPad ? 44 : 6)
+                        .padding(.top, isPad ? 48 : 6)
                 }
                 Spacer()
                 controlBar
