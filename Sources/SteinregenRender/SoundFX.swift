@@ -1,17 +1,21 @@
 // SoundFX.swift
-// Schmale Audio-Schicht für die Soundeffekte (FreeDoom-WAVs, BSD-3 — siehe
-// Resources/FREEDOOM-LICENSE.txt). Reine Präsentation: KEIN Bezug zum deterministischen Core.
+// Schmale Audio-Schicht für die Soundeffekte. Seit 2026-06-22 eigene, lokal mit
+// Stable Audio 3 erzeugte Klänge (mono AAC/.m4a, passend zur Black-Metal-Ästhetik)
+// statt der früheren Freedoom-WAVs. Reine Präsentation: KEIN Bezug zum
+// deterministischen Core (der Zufall hier ist Render-Zufall, kein Core-Zufall).
 //
-// Zuordnung (vom Nutzer gewählt):
-//   • Drehen        → dstink
-//   • Aufsetzen     → zyklisch dsgetpow → dsoof → dsswtchn (bei jedem Aufruf der nächste)
-//   • Auflösen      → dspstop
-//   • Game Over     → zufällig aus dspdiehi / dspldeth / dsdorcls
-//   • Level geschafft → dswpnup
+// Zuordnung (Event → Resource-Name, jeweils .m4a im Render-Bundle):
+//   • Drehen          → "drehen"
+//   • Auflösen        → "aufloesen"
+//   • Level geschafft → "level"
+//   • Aufsetzen       → zufällig aus "aufsetzen-1…6" (wird sehr oft gehört →
+//                        etwas leiser + nie direkt dieselbe Variante wie zuletzt,
+//                        damit es nicht monoton wirkt)
+//   • Game Over       → zufällig aus "gameover-1…7"
 //
-// „mundtot" = Ton aus (persistiert in UserDefaults, geteilt mit der Einstellungen-View und der
-// T-Taste im Spiel). Pro Sound ein kleiner Player-Pool, damit schnelle Wiederholungen (Kaskaden)
-// sich nicht gegenseitig abschneiden.
+// „mundtot" = Ton aus (persistiert in UserDefaults, geteilt mit der Einstellungen-View
+// und der T-Taste im Spiel). Pro Sound ein kleiner Player-Pool, damit schnelle
+// Wiederholungen (Kaskaden) sich nicht gegenseitig abschneiden.
 
 import AVFoundation
 import Foundation
@@ -29,25 +33,41 @@ public enum SoundFX {
 
     // MARK: - Spiel-Events
 
-    public static func rotate()   { play("dstink", volume: 0.55) }
-    public static func clear()    { play("dspstop", volume: 0.85) }
-    public static func levelUp()  { play("dswpnup", volume: 0.9) }
+    public static func rotate()   { play("drehen", volume: 0.55) }
+    public static func clear()    { play("aufloesen", volume: 0.85) }
+    public static func levelUp()  { play("level", volume: 0.9) }
 
-    /// Aufsetzen: zyklisch durch die drei Klänge (der Reihe nach).
+    /// Aufsetzen: oft gehörter Klang → zufällig aus dem Pool, aber nie direkt
+    /// dieselbe Variante wie zuletzt; etwas leiser, weil bewusst dezent gewählt.
     public static func land() {
-        let name = landCycle[landIndex % landCycle.count]
-        landIndex += 1
-        play(name, volume: 0.8)
+        play(pick(landPool, avoiding: &lastLand), volume: 0.7)
     }
 
-    /// Game Over: jedes Mal zufällig einer der drei (Render-Zufall, kein Core-Zufall).
+    /// Game Over: jedes Mal zufällig einer aus dem Pool (seltenes Event).
     public static func gameOver() {
-        play(gameOverPool.randomElement() ?? "dspldeth", volume: 0.95)
+        play(pick(gameOverPool, avoiding: &lastGameOver), volume: 0.95)
     }
 
-    private static let landCycle = ["dsgetpow", "dsoof", "dsswtchn"]
-    private static var landIndex = 0
-    private static let gameOverPool = ["dspdiehi", "dspldeth", "dsdorcls"]
+    // Varianten-Pools (Dateinamen ohne Endung; siehe Resources/<name>.m4a).
+    // Bei geänderter Anzahl exportierter Varianten hier die Bereiche anpassen.
+    private static let landPool     = (1...1).map { "aufsetzen-\($0)" }
+    private static let gameOverPool = (1...7).map { "gameover-\($0)" }
+    private static var lastLand = ""
+    private static var lastGameOver = ""
+
+    /// Liefert ein zufälliges Element, das (bei Pool-Größe > 1) nicht gleich dem
+    /// zuletzt gewählten ist — verhindert unmittelbare Wiederholungen.
+    private static func pick(_ pool: [String], avoiding last: inout String) -> String {
+        guard pool.count > 1 else { return pool.first ?? "" }
+        var name = pool.randomElement()!
+        var guardCount = 0
+        while name == last && guardCount < 8 {
+            name = pool.randomElement()!
+            guardCount += 1
+        }
+        last = name
+        return name
+    }
 
     // MARK: - Player-Pools
 
@@ -56,7 +76,7 @@ public enum SoundFX {
     private static var ring: [String: Int] = [:]
 
     private static func play(_ name: String, volume: Float) {
-        guard !muted else { return }
+        guard !muted, !name.isEmpty else { return }
         let pool = pool(for: name)
         guard !pool.isEmpty else { return }
         let i = (ring[name] ?? 0) % pool.count
@@ -70,7 +90,7 @@ public enum SoundFX {
     private static func pool(for name: String) -> [AVAudioPlayer] {
         if let existing = pools[name] { return existing }
         var players: [AVAudioPlayer] = []
-        if let url = Theme.resourceBundle.url(forResource: name, withExtension: "wav") {
+        if let url = Theme.resourceBundle.url(forResource: name, withExtension: "m4a") {
             for _ in 0..<poolSize {
                 if let p = try? AVAudioPlayer(contentsOf: url) { p.prepareToPlay(); players.append(p) }
             }

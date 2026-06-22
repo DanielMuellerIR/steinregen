@@ -23,8 +23,9 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
   „FreeDoom"-Pixel-Set aus originalen Freedoom-Sprites. Erweiterbar.
 - **Friedhof (Bestenliste)** — beim Verrecken trägt man einen Namen ein (bis 16 Zeichen); jedes
   Grab zeigt Punkte und das Level, in dem man verreckt ist. Persistente Top 16, im Menü abrufbar.
-- **Soundeffekte** (aus Freedoom, BSD-3) — Aufsetzen, Auflösen, Drehen, Level und Game-Over.
-  In den Einstellungen oder im Spiel mit **T** umschaltbar; der stille Modus heißt „mundtot".
+- **Soundeffekte** (lokal erzeugt) — Aufsetzen, Auflösen, Drehen, Level und Game-Over, mit
+  mehreren zufälligen Varianten pro Ereignis. In den Einstellungen oder im Spiel mit **T**
+  umschaltbar; der stille Modus heißt „mundtot".
 - **Treffer in alle Richtungen** — horizontal, vertikal und beide Diagonalen.
 - **Kettenreaktionen** — Kaskaden werden belohnt (Punkte = Steine × 10 × Kettenstufe).
 - **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
@@ -109,9 +110,12 @@ MIT — siehe [LICENSE](LICENSE).
 Titel-/HUD-Schrift: **Grenze Gotisch** von Omnibus-Type, lizenziert unter der
 [SIL Open Font License](Sources/SteinregenRender/Resources/GrenzeGotisch-OFL.txt).
 
-Soundeffekte und die „FreeDoom"-Steine-Sprites stammen aus dem
+Die „FreeDoom"-Steine-Sprites stammen aus dem
 [Freedoom](https://github.com/freedoom/freedoom)-Projekt (dessen eigene freie Assets, nicht das
 kommerzielle Original-Doom-Material), lizenziert unter
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
+
+Die Soundeffekte wurden lokal mit einem offenen Audio-Modell (Stable Audio 3) erzeugt und sind
+Teil dieses Projekts.
 
 🤖 Gebaut mit [Claude Code](https://claude.com/claude-code).

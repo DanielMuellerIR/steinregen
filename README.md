@@ -23,8 +23,9 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
   pixel-art set built from original Freedoom sprites. Built to add more.
 - **Friedhof (graveyard high-score list)** — on death, enter a name (up to 16 chars); each grave
   shows the score and the level you died in. Persistent top 16, viewable from the menu.
-- **Sound effects** (from Freedoom, BSD-3) — landing, clearing, rotating, level-up and game-over
-  cues. Toggle in Settings or with **T** in-game; the silent mode is called "mundtot".
+- **Sound effects** (locally generated) — landing, clearing, rotating, level-up and game-over
+  cues, with several random variants per event. Toggle in Settings or with **T** in-game;
+  the silent mode is called "mundtot".
 - **Matches in all directions** — horizontal, vertical, and both diagonals.
 - **Chain reactions** — cascading clears are rewarded (score = stones × 10 × chain step).
 - **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes
@@ -109,9 +110,12 @@ MIT — see [LICENSE](LICENSE).
 Title/HUD typeface: **Grenze Gotisch** by Omnibus-Type, licensed under the
 [SIL Open Font License](Sources/SteinregenRender/Resources/GrenzeGotisch-OFL.txt).
 
-Sound effects and the "FreeDoom" stone-set sprites come from the
+The "FreeDoom" stone-set sprites come from the
 [Freedoom](https://github.com/freedoom/freedoom) project (its own free assets, not the original
 commercial Doom material), licensed under
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
+
+The sound effects were generated locally with an open audio model (Stable Audio 3) and ship as
+part of this project.
 
 🤖 Built with [Claude Code](https://claude.com/claude-code).
