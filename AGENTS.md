@@ -291,7 +291,7 @@ sowie die **gesamte Touch-Steuerung** per `idb` (headless Touch-Injektion): Bewe
 Halten/Auto-Repeat, Rotieren (Knopf + Brett-Tippen), Hard-Drop (Knopf + Wisch nach unten),
 Wisch-Bewegen. Hinweis: ein 0-ms-Synthetik-Tap löst SwiftUIs `Button`/`onTapGesture` nicht aus
 (`DragGesture`-Knöpfe schon) — ein echter Finger mit ~100 ms greift, reines Test-Artefakt, kein
-App-Bug. **Noch offen:** abschließender Test auf echtem Gerät.
+App-Bug. **Test auf echtem Gerät:** ✅ erledigt (2026-06-22) — läuft auf zwei echten iPhones.
 
 **v0.10.1 — iOS-Politur:** Im Spiel füllt das Steinregen-Logo den freien Raum über dem Brett
 (zwischen Menü-Knopf und Schacht) — rein dekorativ (`allowsHitTesting(false)`, Tippen dreht dort
@@ -331,7 +331,9 @@ zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Sim
 **Beauftragte TODOs (Stand 2026-06-22):**
 - **iOS-App (iPhone + iPad):** ✅ Grundgerüst + Touch-Steuerung, App-Icon, automatisches
   Geräte-Signing und iPad-Layout erledigt (v0.10.0–v0.11.0, siehe oben); teilt Core+Render mit macOS.
-  Im iPhone- und iPad-Simulator verifiziert. **Rest:** abschließender Test auf echtem Gerät.
+  Im iPhone- und iPad-Simulator verifiziert; **auf zwei echten iPhones getestet (2026-06-22) — läuft.**
+  Hinweis: Geräte-Signing kann periodisch eine Apple-PLA-Zustimmung verlangen (developer.apple.com →
+  Agreement akzeptieren), dann in Xcode „Try Again" — kein Code-Problem. **Damit iOS vollständig.**
 - **Weitere Steine-Sets generieren** — ✅ erledigt für FreeDoom (Set „FreeDoom", v0.9.0; Lizenz
   verifiziert + dokumentiert). Weitere Sets jederzeit möglich (Renderer + ein `StoneSets.all`-Eintrag).
 - **Zaubersteine-Set-Assets aktualisieren** (für später, noch offen) — das Set
