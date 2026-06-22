@@ -285,14 +285,17 @@ links/rechts wischen = ein Schritt, runter wischen = Hard-Drop) plus eine dezent
 Menü-Knopf oben links; die Dialoge laufen über `dialogFrame` bildschirmfüllend statt im festen
 Sheet-Maß. Das Brett rendert dank `scaleMode = .resizeFill` + adaptivem `layout()` unverzerrt
 (quadratische Kacheln, zentriert). Build/Run: `tools/make-ios-app.sh` (xcodegen → Xcode-Projekt →
-Simulator). Im iPhone-17-Simulator verifiziert: Menü, Gameplay (Brett + Touch-Leiste), Einstellungen.
-**Noch offen:** interaktiver Touch-Test auf echtem Gerät / per Hand (headless gibt es keine
-Touch-Injektion); iOS-App-Icon (Asset-Catalog fehlt → blankes Icon); Gerätesignatur; iPad-Layout.
+Simulator). Im iPhone-17-Simulator verifiziert: Menü, Gameplay (Brett + Touch-Leiste), Einstellungen
+sowie die **gesamte Touch-Steuerung** per `idb` (headless Touch-Injektion): Bewegen ◀▶ inkl.
+Halten/Auto-Repeat, Rotieren (Knopf + Brett-Tippen), Hard-Drop (Knopf + Wisch nach unten),
+Wisch-Bewegen. Hinweis: ein 0-ms-Synthetik-Tap löst SwiftUIs `Button`/`onTapGesture` nicht aus
+(`DragGesture`-Knöpfe schon) — ein echter Finger mit ~100 ms greift, reines Test-Artefakt, kein
+App-Bug. **Noch offen:** iOS-App-Icon (Asset-Catalog fehlt → blankes Icon); Gerätesignatur; iPad-Layout.
 
 **Beauftragte TODOs (Stand 2026-06-22):**
-- **iOS-App (iPhone):** ✅ Grundgerüst erledigt (v0.10.0, siehe oben) — im Simulator spielbar mit
-  Touch-Steuerung, teilt Core+Render mit macOS. **Rest:** interaktiver Touch-Test auf echtem Gerät,
-  iOS-App-Icon, Gerätesignatur, ggf. iPad-Layout + Touch-Feinschliff.
+- **iOS-App (iPhone):** ✅ Grundgerüst + Touch-Steuerung erledigt und im Simulator verifiziert
+  (v0.10.0, siehe oben); teilt Core+Render mit macOS. **Rest:** iOS-App-Icon, Gerätesignatur,
+  ggf. iPad-Layout + Test auf echtem Gerät.
 - **Weitere Steine-Sets generieren** — ✅ erledigt für FreeDoom (Set „FreeDoom", v0.9.0; Lizenz
   verifiziert + dokumentiert). Weitere Sets jederzeit möglich (Renderer + ein `StoneSets.all`-Eintrag).
 - **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
