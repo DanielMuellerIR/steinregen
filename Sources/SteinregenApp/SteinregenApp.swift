@@ -402,7 +402,20 @@ struct ControlsLegend: View {
 struct SettingsView: View {
     @AppStorage(StoneSets.defaultsKey) private var selectedSet = "doom"   // Standard-Set
     @AppStorage(SoundFX.mutedKey) private var mundtot = false             // true = Ton aus
+    @AppStorage(SoundFX.setKey) private var soundSetRaw = SoundFX.SoundSet.eigene.rawValue  // Klang-Set
     let onClose: () -> Void
+
+    /// Steine-Set per Tastatur durchschalten (↑ ↓): verschiebt die Auswahl zyklisch
+    /// durch `StoneSets.all`. Die Auswahl wirkt sofort (Live-Vorschau in den Karten).
+    private func moveStone(_ direction: Int) {
+        let all = StoneSets.all
+        guard let i = all.firstIndex(where: { $0.id == selectedSet }) else {
+            if let first = all.first { selectedSet = first.id }
+            return
+        }
+        let n = all.count
+        selectedSet = all[(i + direction + n) % n].id
+    }
 
     var body: some View {
         VStack(spacing: 14) {
@@ -410,19 +423,27 @@ struct SettingsView: View {
                 .font(.custom(Theme.blackletterFamily, size: 34))
                 .foregroundStyle(Theme.bone.color)
 
-            // Ton (aus = „mundtot")
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("Ton")
-                        .font(.custom(Theme.blackletterFamily, size: 22))
-                        .foregroundStyle(Theme.bone.color)
-                    Spacer()
-                    Toggle("", isOn: Binding(get: { !mundtot }, set: { mundtot = !$0 }))
-                        .labelsHidden()
-                        .tint(Theme.oxblood.color)
-                }
-                Text(mundtot ? "mundtot — keine Soundeffekte (im Spiel: Taste T)"
-                             : "Soundeffekte an (im Spiel: Taste T)")
+            // Ton & Klang — eine Karte, drei sich gegenseitig ausschließende Optionen:
+            // „Steinregen" (eigene Klänge, Ton an) · „Freedoom" (klassische Klänge, Ton an) ·
+            // „Mundtot" (Ton aus). Bedienbar per Maus UND Tastatur (← → / Leertaste). Gleiche
+            // Theme-Schrift wie der Rest (kein Stilbruch). Treibt SoundFX.muted + .soundSet.
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Ton")
+                    .font(.custom(Theme.blackletterFamily, size: 22))
+                    .foregroundStyle(Theme.bone.color)
+                ThemeSegmented(
+                    options: [("Steinregen", "eigene"),
+                              ("Freedoom", "freedoom"),
+                              ("Mundtot", "mundtot")],
+                    selection: Binding(
+                        get: { mundtot ? "mundtot" : soundSetRaw },
+                        set: { v in
+                            if v == "mundtot" { mundtot = true }
+                            else { mundtot = false; soundSetRaw = v }
+                        }))
+                Text(mundtot
+                     ? "Mundtot — keine Soundeffekte (im Spiel: Taste T)"
+                     : "Soundeffekte an, Set \(soundSetRaw == "freedoom" ? "Freedoom" : "Steinregen") (im Spiel: Taste T)")
                     .font(.custom(Theme.blackletterFamily, size: 18))
                     .foregroundStyle(mundtot ? Theme.blood.color : Theme.boneDim.color)
             }
@@ -435,6 +456,8 @@ struct SettingsView: View {
                 .foregroundStyle(Theme.bone.color)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+            // Fokussierbar → mit ↑ ↓ durch die Sets (Auswahl wirkt sofort, Live-Vorschau);
+            // Karten bleiben zusätzlich anklickbar.
             ScrollView {
                 VStack(spacing: 14) {
                     ForEach(StoneSets.all) { set in
@@ -445,6 +468,9 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, 2)
             }
+            .focusable()
+            .onKeyPress(.upArrow)   { moveStone(-1); return .handled }
+            .onKeyPress(.downArrow) { moveStone(1);  return .handled }
 
             Button(action: onClose) {
                 Text("Fertig").font(.custom(Theme.blackletterBoldPostScript, size: 18)).frame(width: 200, height: 42)
@@ -466,17 +492,11 @@ struct StoneSetCard: View {
     let onSelect: () -> Void
 
     var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(set.name)
-                            .font(.custom(Theme.blackletterFamily, size: 22))
-                            .foregroundStyle(Theme.bone.color)
-                        Text(set.subtitle)
-                            .font(.custom(Theme.blackletterFamily, size: 18))
-                            .foregroundStyle(Theme.boneDim.color)
-                    }
+                    Text(set.name)
+                        .font(.custom(Theme.blackletterFamily, size: 22))
+                        .foregroundStyle(Theme.bone.color)
                     Spacer()
                     Image(systemName: selected ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 20))
@@ -499,8 +519,63 @@ struct StoneSetCard: View {
                     .stroke(selected ? Theme.oxblood.color : Color.white.opacity(0.10),
                             lineWidth: selected ? 2 : 1)
             )
+        .contentShape(Rectangle())
+        .onTapGesture { onSelect() }
+    }
+}
+
+/// Segmentierter Auswahl-Schalter in der Theme-Schrift (kein System-Picker → kein
+/// Stilbruch). Bedienbar per Maus (Klick) UND Tastatur: fokussieren (Tab), dann
+/// ← → bzw. Leertaste schalten die Auswahl. Generisch über String-Werte.
+struct ThemeSegmented: View {
+    let options: [(label: String, value: String)]
+    @Binding var selection: String
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(options, id: \.value) { opt in
+                segment(opt)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(5)
+        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .stroke(focused ? Theme.bone.color.opacity(0.7) : Color.white.opacity(0.08),
+                    lineWidth: focused ? 2 : 1))
+        .focusable()
+        .focused($focused)
+        .onKeyPress(.leftArrow)  { move(-1); return .handled }
+        .onKeyPress(.rightArrow) { move(1);  return .handled }
+        .onKeyPress(.space)      { move(1);  return .handled }
+    }
+
+    /// Ein Segment (typisierte Zwischen-Variablen, damit der Type-Checker schnell bleibt).
+    @ViewBuilder
+    private func segment(_ opt: (label: String, value: String)) -> some View {
+        let isSel = opt.value == selection
+        let fg: Color = isSel ? Theme.bone.color : Theme.boneDim.color
+        let bg: Color = isSel ? Theme.oxblood.color.opacity(0.35) : Color.white.opacity(0.05)
+        let ring: Color = isSel ? Theme.oxblood.color : Color.clear
+        Text(opt.label)
+            .font(.custom(Theme.blackletterFamily, size: 22))
+            .foregroundStyle(fg)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(bg, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(ring, lineWidth: 2))
+            .contentShape(Rectangle())
+            .onTapGesture { selection = opt.value }
+    }
+
+    /// Auswahl zyklisch um `direction` verschieben.
+    private func move(_ direction: Int) {
+        guard let i = options.firstIndex(where: { $0.value == selection }) else {
+            if let first = options.first { selection = first.value }
+            return
+        }
+        let n = options.count
+        selection = options[(i + direction + n) % n].value
     }
 }
 

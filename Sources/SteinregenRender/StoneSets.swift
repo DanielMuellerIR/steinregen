@@ -51,7 +51,7 @@ public enum StoneSets {
                                           draw: FreeDoomStones.draw)
 
     /// Reihenfolge im Auswahl-Dialog (Doom als Standard ganz oben). Neue Sets hier einsortieren.
-    public static let all: [StoneSet] = [doom, sigil, zaubersteine, g20, juwelen, freedoom]
+    public static let all: [StoneSet] = [doom, freedoom, sigil, zaubersteine, g20, juwelen]
 
     /// Set zu einer id (faellt auf das Standard-Set zurueck, falls unbekannt).
     public static func set(for id: String) -> StoneSet { all.first { $0.id == id } ?? doom }
