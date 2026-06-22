@@ -2,7 +2,7 @@
 # Baut die iPhone-App (Steinregen iOS) fuer den iOS-Simulator.
 #
 # SwiftPM allein kann kein iOS-App-Bundle erzeugen → wir generieren mit xcodegen aus project.yml
-# ein Xcode-Projekt (git-ignoriert, reproduzierbar) und bauen es mit xcodebuild. Headless/CI-tauglig.
+# ein Xcode-Projekt (git-ignoriert, reproduzierbar) und bauen es mit xcodebuild. Headless/CI-tauglich.
 #
 # Nutzung:
 #   bash tools/make-ios-app.sh           # nur bauen (Simulator-SDK)
@@ -42,6 +42,7 @@ if [ "${1:-}" = "run" ]; then
   UDID="$(xcrun simctl list devices available | grep -m1 "$SIM_NAME (" | sed -E 's/.*\(([0-9A-Fa-f-]+)\).*/\1/')"
   [ -n "$UDID" ] || { echo "FEHLER: Simulator '$SIM_NAME' nicht gefunden"; exit 1; }
   xcrun simctl boot "$UDID" 2>/dev/null || true
+  xcrun simctl bootstatus "$UDID" -b >/dev/null 2>&1   # warten bis voll gebootet (sonst Install-Race)
   xcrun simctl install "$UDID" "$APP"
   xcrun simctl launch "$UDID" "$BUNDLE_ID" || true
   echo "    UDID=$UDID  Bundle=$BUNDLE_ID"
