@@ -17,9 +17,10 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 
 - **6 Steine mit Sigillen** — umgekehrtes Pentagramm, inverses Kreuz, Tiwaz-Rune, Triquetra,
   Schädel, Mondsichel. Unterscheidung über die Form, dazu eine gedeckte Farb-Tönung als Zusatzhinweis.
-- **Wählbare Steine-Sets** — in den Einstellungen (mit Live-Vorschau) zwischen fünf Sets
-  umschalten: den Black-Metal-Sets „Sigille" und „Doom" sowie drei freundlicheren Edelstein-Sets
-  aus dem Schwester-Projekt *Zaubersteine* („Zaubersteine", „G20", „Juwelen"). Erweiterbar.
+- **Wählbare Steine-Sets** — in den Einstellungen (mit Live-Vorschau) zwischen sechs Sets
+  umschalten: den Black-Metal-Sets „Sigille" und „Doom", drei freundlicheren Edelstein-Sets
+  aus dem Schwester-Projekt *Zaubersteine* („Zaubersteine", „G20", „Juwelen") sowie einem
+  „FreeDoom"-Pixel-Set aus originalen Freedoom-Sprites. Erweiterbar.
 - **Friedhof (Bestenliste)** — beim Verrecken trägt man einen Namen ein (bis 16 Zeichen); jedes
   Grab zeigt Punkte und das Level, in dem man verreckt ist. Persistente Top 16, im Menü abrufbar.
 - **Soundeffekte** (aus Freedoom, BSD-3) — Aufsetzen, Auflösen, Drehen, Level und Game-Over.
@@ -82,7 +83,7 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_AUTOSTART=1` — startet sofort ein Spiel
 - `STEINREGEN_LEVEL=<1..10>` — Start-Tempo
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
-- `STEINREGEN_SET=<id>` — Steine-Set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen`)
+- `STEINREGEN_SET=<id>` — Steine-Set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen` / `freedoom`)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start den Friedhof (Bestenliste)
 
@@ -105,11 +106,12 @@ stammen aus dem Schwester-Projekt *Zaubersteine*.
 
 MIT — siehe [LICENSE](LICENSE).
 
-Titel-/HUD-Schrift: **Pirata One** von Rodrigo Fuenzalida & Nicolas Massi, lizenziert unter der
-[SIL Open Font License](Sources/SteinregenRender/Resources/PirataOne-OFL.txt).
+Titel-/HUD-Schrift: **Grenze Gotisch** von Omnibus-Type, lizenziert unter der
+[SIL Open Font License](Sources/SteinregenRender/Resources/GrenzeGotisch-OFL.txt).
 
-Soundeffekte aus dem [Freedoom](https://github.com/freedoom/freedoom)-Projekt (dessen eigene freie
-Aufnahmen, nicht die kommerziellen Original-Doom-Sounds), lizenziert unter
+Soundeffekte und die „FreeDoom"-Steine-Sprites stammen aus dem
+[Freedoom](https://github.com/freedoom/freedoom)-Projekt (dessen eigene freie Assets, nicht das
+kommerzielle Original-Doom-Material), lizenziert unter
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
 🤖 Gebaut mit [Claude Code](https://claude.com/claude-code).

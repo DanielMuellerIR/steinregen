@@ -17,9 +17,10 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
 
 - **6 stones, marked by sigils** — inverted pentagram, inverted cross, Tiwaz rune, triquetra,
   skull, crescent. Told apart by shape, with a muted color tint as a secondary cue.
-- **Selectable stone sets** — switch in Settings (with live preview) between five sets: the
-  engraved "Sigil" and grimy "Doom" black-metal sets, plus three friendlier gem sets adopted
-  from the sibling project *Zaubersteine* ("Zaubersteine", "G20", "Juwelen"). Built to add more.
+- **Selectable stone sets** — switch in Settings (with live preview) between six sets: the
+  engraved "Sigil" and grimy "Doom" black-metal sets, three friendlier gem sets adopted
+  from the sibling project *Zaubersteine* ("Zaubersteine", "G20", "Juwelen"), and a "FreeDoom"
+  pixel-art set built from original Freedoom sprites. Built to add more.
 - **Friedhof (graveyard high-score list)** — on death, enter a name (up to 16 chars); each grave
   shows the score and the level you died in. Persistent top 16, viewable from the menu.
 - **Sound effects** (from Freedoom, BSD-3) — landing, clearing, rotating, level-up and game-over
@@ -82,7 +83,7 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_AUTOSTART=1` — start a game immediately
 - `STEINREGEN_LEVEL=<1..10>` — starting speed
 - `STEINREGEN_SEED=<UInt64>` — fixed seed (otherwise random)
-- `STEINREGEN_SET=<id>` — stone set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen`)
+- `STEINREGEN_SET=<id>` — stone set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen` / `freedoom`)
 - `STEINREGEN_SETTINGS=1` — open the settings dialog on launch
 - `STEINREGEN_FRIEDHOF=1` — open the Friedhof (high-score list) on launch
 
@@ -105,11 +106,12 @@ from the sibling project *Zaubersteine*.
 
 MIT — see [LICENSE](LICENSE).
 
-Title/HUD typeface: **Pirata One** by Rodrigo Fuenzalida & Nicolas Massi, licensed under the
-[SIL Open Font License](Sources/SteinregenRender/Resources/PirataOne-OFL.txt).
+Title/HUD typeface: **Grenze Gotisch** by Omnibus-Type, licensed under the
+[SIL Open Font License](Sources/SteinregenRender/Resources/GrenzeGotisch-OFL.txt).
 
-Sound effects from the [Freedoom](https://github.com/freedoom/freedoom) project (its own free
-recordings, not the original commercial Doom sounds), licensed under
+Sound effects and the "FreeDoom" stone-set sprites come from the
+[Freedoom](https://github.com/freedoom/freedoom) project (its own free assets, not the original
+commercial Doom material), licensed under
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
 🤖 Built with [Claude Code](https://claude.com/claude-code).

@@ -271,9 +271,15 @@ Originale (nur umbenannt), der Zuschnitt passiert im Renderer.
   verifiziert + dokumentiert). Weitere Sets jederzeit möglich (Renderer + ein `StoneSets.all`-Eintrag).
 - **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
   eigenes Soundeffekt-Set erzeugen — Werkzeug wird ca. ab 2026-06-22 verfügbar sein.
-- **Veröffentlichbarkeit prüfen** — Rechtelage für **non-kommerzielle UND kommerzielle** Verbreitung
-  klären (eigener Code MIT; Drittmaterial: FreeDoom-WAVs BSD-3, Grenze Gotisch OFL, ggf. generierte
-  Assets).
+- **Veröffentlichbarkeit prüfen** — ✅ auditiert (Stand 2026-06-22), Bestandsaufnahme in
+  [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md). **Non-kommerziell ist sauber** (eigener Code MIT;
+  FreeDoom-WAVs **und** -Grafiken BSD-3, Grenze Gotisch OFL, Edelstein-Assets Eigenwerk, Logo aus
+  lokalem FLUX.1 [dev]). README-Doku-Bugs gefixt (Pirata One → Grenze Gotisch, FreeDoom-Grafiken in
+  der Attribution, „six sets", `freedoom`-ID). **Offene Blocker NUR für eine spätere kommerzielle
+  Verbreitung** (kein Hindernis für non-kommerziell): (1) `logo.png` aus FLUX.1 [dev] = nicht-
+  kommerzielle Lizenz → Output-Rechte prüfen oder Logo ersetzen; (2) Bethlehem-Zitat „Tod macht
+  Fliegen aus uns allen" (Album-/Songtitel 1994) ersetzen/freigeben; (3) Sega/Columns-Trademark-
+  Disclaimer prominent halten. Details + Checkliste in THIRD-PARTY-ASSETS.md.
 - **Git-History bereinigen vor Erstveröffentlichung** — History auf persönliche/private Daten
   durchsuchen, dann gezielt entfernen (history-rewrite) oder vor dem ersten Public-Push squashen.
 
