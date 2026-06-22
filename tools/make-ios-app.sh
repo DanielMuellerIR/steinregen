@@ -24,6 +24,20 @@ SIM_NAME="${STEINREGEN_SIM:-iPhone 17}"
 
 command -v xcodegen >/dev/null || { echo "FEHLER: xcodegen fehlt (brew install xcodegen)"; exit 1; }
 
+# Development-Team fuer Geraete-Signing: aus der Umgebung, sonst aus dem lokalen
+# "Apple Development"-Zertifikat ableiten (Team-ID = Klammerwert). Bleibt aus dem Repo raus
+# (kontoidentifizierend). Fuer reine Simulator-Builds nicht noetig (leer = ok).
+if [ -z "${DEVELOPMENT_TEAM:-}" ]; then
+  DEVELOPMENT_TEAM="$(security find-identity -v -p codesigning 2>/dev/null \
+    | grep -m1 'Apple Development' | grep -oE '\([A-Z0-9]{10}\)' | tr -d '()' || true)"
+fi
+export DEVELOPMENT_TEAM
+if [ -n "$DEVELOPMENT_TEAM" ]; then
+  echo "==> Development-Team aus Zertifikat/Umgebung übernommen (Geräte-Signing aktiv)."
+else
+  echo "==> Kein Development-Team gefunden — Simulator-Build ok, echtes Gerät braucht eins."
+fi
+
 echo "==> Xcode-Projekt aus project.yml erzeugen…"
 xcodegen generate >/dev/null
 

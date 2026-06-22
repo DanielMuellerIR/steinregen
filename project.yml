@@ -44,6 +44,12 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         TARGETED_DEVICE_FAMILY: "1"          # nur iPhone (vorerst)
+        # Signing fuer echte Geraete: automatisch verwaltet von Xcode. Die Team-ID kommt aus der
+        # Umgebungsvariable DEVELOPMENT_TEAM (kontoidentifizierend → NICHT ins Repo). Setzt sie
+        # tools/make-ios-app.sh bei Bedarf automatisch aus dem lokalen Apple-Development-Zertifikat.
+        # Fuer Simulator-Builds ist sie nicht noetig (leer = ok).
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
 
 schemes:
   Steinregen:
