@@ -304,7 +304,8 @@ volle Breite verteilt (◀ ganz links, ▶ ganz rechts, ↻/▼/⤓ gleichmäßi
 
 **v0.10.2/.3 — iOS-Signing + App-Icon:** Automatisches Geräte-Signing (`CODE_SIGN_STYLE=Automatic`,
 `DEVELOPMENT_TEAM` aus der Umgebung — `make-ios-app.sh` leitet die Team-ID aus dem lokalen
-Apple-Development-Zertifikat ab, nichts Kontoidentifizierendes im Repo). **iOS-App-Icon** (umgekehrtes
+Apple-Development-Zertifikat ab, nichts Kontoidentifizierendes im Repo; **Team-ID = OU des Zerts,
+NICHT die Klammer im CN** — die ist die Member-/Zert-ID und ergibt ein falsches Team). **iOS-App-Icon** (umgekehrtes
 Pentagramm, full-bleed/deckend) über denselben Composer wie macOS: `tools/icon-compose.swift … ios`
 erzeugt `iOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` (git-ignoriert, von
 `make-ios-app.sh` reproduzierbar; Asset-Catalog-Metadaten im Repo). Auf dem Simulator-Home-Screen

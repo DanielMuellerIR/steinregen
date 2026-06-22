@@ -25,11 +25,13 @@ SIM_NAME="${STEINREGEN_SIM:-iPhone 17}"
 command -v xcodegen >/dev/null || { echo "FEHLER: xcodegen fehlt (brew install xcodegen)"; exit 1; }
 
 # Development-Team fuer Geraete-Signing: aus der Umgebung, sonst aus dem lokalen
-# "Apple Development"-Zertifikat ableiten (Team-ID = Klammerwert). Bleibt aus dem Repo raus
-# (kontoidentifizierend). Fuer reine Simulator-Builds nicht noetig (leer = ok).
+# "Apple Development"-Zertifikat ableiten. WICHTIG: Die Team-ID ist die OU des Zertifikats,
+# NICHT die Klammer im CN ("Apple Development: Name (XXXXXXXXXX)" — das ist die Member-/Zert-ID).
+# Bleibt aus dem Repo raus (kontoidentifizierend). Fuer reine Simulator-Builds nicht noetig.
 if [ -z "${DEVELOPMENT_TEAM:-}" ]; then
-  DEVELOPMENT_TEAM="$(security find-identity -v -p codesigning 2>/dev/null \
-    | grep -m1 'Apple Development' | grep -oE '\([A-Z0-9]{10}\)' | tr -d '()' || true)"
+  DEVELOPMENT_TEAM="$(security find-certificate -c "Apple Development" -p 2>/dev/null \
+    | openssl x509 -noout -subject 2>/dev/null \
+    | grep -oE 'OU *= *[A-Z0-9]{10}' | grep -oE '[A-Z0-9]{10}' | head -1 || true)"
 fi
 export DEVELOPMENT_TEAM
 if [ -n "$DEVELOPMENT_TEAM" ]; then
