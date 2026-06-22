@@ -38,6 +38,14 @@ else
   echo "==> Kein Development-Team gefunden — Simulator-Build ok, echtes Gerät braucht eins."
 fi
 
+# iOS-App-Icon (Pentagramm, full-bleed/deckend) reproduzierbar erzeugen, falls noch nicht da
+# (git-ignoriert, wie tools/AppIcon.icns bei der macOS-App).
+ICON_PNG="iOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
+if [ ! -f "$ICON_PNG" ]; then
+  echo "==> iOS-App-Icon rendern…"
+  xcrun swift tools/icon-compose.swift "Sources/SteinregenRender/Resources" "$ICON_PNG" ios >/dev/null
+fi
+
 echo "==> Xcode-Projekt aus project.yml erzeugen…"
 xcodegen generate >/dev/null
 

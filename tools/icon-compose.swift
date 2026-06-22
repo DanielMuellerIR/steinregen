@@ -18,11 +18,15 @@ guard args.count >= 3 else {
     exit(2)
 }
 let outPath = args[2]
+// iOS-Modus (3. Argument "ios"): full-bleed + DECKEND (kein Alpha, keine eigene Rundung/Schatten —
+// iOS rundet die Ecken selbst). Ohne das Argument: klassische macOS-Squircle mit transparentem Rand.
+let iosMode = args.count >= 4 && args[3].lowercased() == "ios"
 
 let S = 1024
 let cs = CGColorSpaceCreateDeviceRGB()
+let bmInfo = iosMode ? CGImageAlphaInfo.noneSkipLast.rawValue : CGImageAlphaInfo.premultipliedLast.rawValue
 guard let ctx = CGContext(data: nil, width: S, height: S, bitsPerComponent: 8, bytesPerRow: 0,
-                          space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+                          space: cs, bitmapInfo: bmInfo) else {
     exit(1)
 }
 let size = CGFloat(S)
@@ -32,18 +36,21 @@ let bone = CGColor(red: 0.804, green: 0.780, blue: 0.729, alpha: 1)
 let oxblood = CGColor(red: 0.48, green: 0.10, blue: 0.10, alpha: 1)
 
 // MARK: - Squircle-Hintergrund (macOS-Big-Sur-Raster: 824er Rechteck, ~100 Rand)
-let inset: CGFloat = 100
+// macOS: Squircle mit Rand (transparenter Hintergrund). iOS: full-bleed, ganzflaechig deckend.
+let inset: CGFloat = iosMode ? 0 : 100
 let bgRect = CGRect(x: inset, y: inset, width: size - inset * 2, height: size - inset * 2)
-let corner: CGFloat = (size - inset * 2) * 0.225
+let corner: CGFloat = iosMode ? 0 : (size - inset * 2) * 0.225
 let bgPath = CGPath(roundedRect: bgRect, cornerWidth: corner, cornerHeight: corner, transform: nil)
 
-// Schlagschatten unter dem Icon.
-ctx.saveGState()
-ctx.setShadow(offset: CGSize(width: 0, height: -18), blur: 40, color: CGColor(gray: 0, alpha: 0.55))
-ctx.addPath(bgPath)
-ctx.setFillColor(CGColor(gray: 0, alpha: 1))
-ctx.fillPath()
-ctx.restoreGState()
+if !iosMode {
+    // Schlagschatten unter dem Icon — nur bei der macOS-Squircle (full-bleed braucht keinen).
+    ctx.saveGState()
+    ctx.setShadow(offset: CGSize(width: 0, height: -18), blur: 40, color: CGColor(gray: 0, alpha: 0.55))
+    ctx.addPath(bgPath)
+    ctx.setFillColor(CGColor(gray: 0, alpha: 1))
+    ctx.fillPath()
+    ctx.restoreGState()
+}
 
 // Rabenschwarzer Vertikalverlauf + Ochsenblut-Höllenschein hinter dem Pentagramm.
 ctx.saveGState()

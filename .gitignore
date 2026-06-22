@@ -35,6 +35,9 @@ dist/
 # Generiertes App-Icon (reproduzierbar via tools/make-icon.sh aus den Stein-PNGs)
 tools/AppIcon.icns
 
+# Generiertes iOS-App-Icon (reproduzierbar via tools/icon-compose.swift … ios; tools/make-ios-app.sh)
+iOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+
 # Analyse-Material (Videos/Frames vom Original – lokal, NIE ins Repo, urheberrechtlich)
 analyse/
 

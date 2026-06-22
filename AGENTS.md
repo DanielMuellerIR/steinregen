@@ -177,7 +177,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-22, v0.10.2)
+## 5. Status (Stand 2026-06-22, v0.10.3)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -290,7 +290,7 @@ sowie die **gesamte Touch-Steuerung** per `idb` (headless Touch-Injektion): Bewe
 Halten/Auto-Repeat, Rotieren (Knopf + Brett-Tippen), Hard-Drop (Knopf + Wisch nach unten),
 Wisch-Bewegen. Hinweis: ein 0-ms-Synthetik-Tap löst SwiftUIs `Button`/`onTapGesture` nicht aus
 (`DragGesture`-Knöpfe schon) — ein echter Finger mit ~100 ms greift, reines Test-Artefakt, kein
-App-Bug. **Noch offen:** iOS-App-Icon (Asset-Catalog fehlt → blankes Icon); Gerätesignatur; iPad-Layout.
+App-Bug. **Noch offen:** iPad-Layout; abschließender Test auf echtem Gerät.
 
 **v0.10.1 — iOS-Politur:** Im Spiel füllt das Steinregen-Logo den freien Raum über dem Brett
 (zwischen Menü-Knopf und Schacht) — rein dekorativ (`allowsHitTesting(false)`, Tippen dreht dort
@@ -301,10 +301,18 @@ Schacht zu ragen — Menü-Knopf liegt jetzt auf eigener `topLeading`-Ebene). St
 volle Breite verteilt (◀ ganz links, ▶ ganz rechts, ↻/▼/⤓ gleichmäßig dazwischen) und Knöpfe größer
 (54→64 pt). Nur iOS; macOS unverändert. Im iPhone-17-Simulator verifiziert (inkl. ✕ → Menü).
 
+**v0.10.2/.3 — iOS-Signing + App-Icon:** Automatisches Geräte-Signing (`CODE_SIGN_STYLE=Automatic`,
+`DEVELOPMENT_TEAM` aus der Umgebung — `make-ios-app.sh` leitet die Team-ID aus dem lokalen
+Apple-Development-Zertifikat ab, nichts Kontoidentifizierendes im Repo). **iOS-App-Icon** (umgekehrtes
+Pentagramm, full-bleed/deckend) über denselben Composer wie macOS: `tools/icon-compose.swift … ios`
+erzeugt `iOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` (git-ignoriert, von
+`make-ios-app.sh` reproduzierbar; Asset-Catalog-Metadaten im Repo). Auf dem Simulator-Home-Screen
+verifiziert.
+
 **Beauftragte TODOs (Stand 2026-06-22):**
 - **iOS-App (iPhone):** ✅ Grundgerüst + Touch-Steuerung erledigt und im Simulator verifiziert
-  (v0.10.0, siehe oben); teilt Core+Render mit macOS. **Rest:** iOS-App-Icon, Gerätesignatur,
-  ggf. iPad-Layout + Test auf echtem Gerät.
+  (v0.10.0, siehe oben); teilt Core+Render mit macOS. App-Icon + automatisches Geräte-Signing
+  erledigt (v0.10.2/.3). **Rest:** ggf. iPad-Layout + abschließender Test auf echtem Gerät.
 - **Weitere Steine-Sets generieren** — ✅ erledigt für FreeDoom (Set „FreeDoom", v0.9.0; Lizenz
   verifiziert + dokumentiert). Weitere Sets jederzeit möglich (Renderer + ein `StoneSets.all`-Eintrag).
 - **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
