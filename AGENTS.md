@@ -178,7 +178,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-22, v0.11.0)
+## 5. Status (Stand 2026-06-22, v0.11.1)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -317,7 +317,9 @@ Knöpfe bilden eine **zentrierte Gruppe** mit festen Abständen (statt der volle
 iPhone — sonst stünden sie unerreichbar an den Rändern). Wichtig gelernt: Im `ZStack(.topLeading)`
 muss die Inhalts-`VStack` `maxWidth: .infinity` haben, sonst schrumpft sie auf ihr breitestes Kind und
 rutscht nach links (fiel auf iPhone nicht auf, weil die Spacer-Leiste die VStack ohnehin füllt). Auf
-iPad-Air-11-Simulator verifiziert; iPhone-Layout unverändert.
+iPad-Air-11-Simulator verifiziert; iPhone-Layout unverändert. **v0.11.1:** Einzug oben/unten
+vergrößert (240/188 pt), damit das Brett spürbar kleiner ist und Logo bzw. Steuerleiste klar
+freistehen (vorher saßen sie direkt an der Brett-Kante) — auf iPad weiterhin gut spielbar groß.
 
 **Beauftragte TODOs (Stand 2026-06-22):**
 - **iOS-App (iPhone + iPad):** ✅ Grundgerüst + Touch-Steuerung, App-Icon, automatisches

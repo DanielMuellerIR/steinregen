@@ -38,7 +38,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.steinregen.app
-        MARKETING_VERSION: "0.11.0"          # wird von tools/make-ios-app.sh aus VERSION überschrieben
+        MARKETING_VERSION: "0.11.1"          # wird von tools/make-ios-app.sh aus VERSION überschrieben
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
         GENERATE_INFOPLIST_FILE: YES

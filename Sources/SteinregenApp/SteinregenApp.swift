@@ -509,8 +509,8 @@ struct GameplayView: View {
             // iPad: Brett vertikal einrücken, damit über dem Schacht Platz fürs Logo und darunter
             // für die Steuerleiste bleibt (iPhone füllt wie gehabt — kein Einzug).
             GameBoardView(scene: scene)
-                .padding(.top, isPad ? 196 : 0)
-                .padding(.bottom, isPad ? 150 : 0)
+                .padding(.top, isPad ? 240 : 0)
+                .padding(.bottom, isPad ? 188 : 0)
             // Touch-Steuerung (Gesten über dem Brett + dezente Knopfleiste + Menü-Knopf), nur im Spiel.
             if !model.isGameOver {
                 TouchControlsOverlay(scene: scene, onExit: onExit, isPad: isPad)
@@ -940,11 +940,11 @@ private struct TouchControlsOverlay: View {
                 if let logo = Theme.logoImage() {
                     Image(decorative: logo, scale: 1)
                         .resizable().interpolation(.high).scaledToFit()
-                        .frame(maxWidth: isPad ? 520 : 380, maxHeight: isPad ? 168 : 140)
+                        .frame(maxWidth: isPad ? 540 : 380, maxHeight: isPad ? 150 : 140)
                         .opacity(0.95)
                         .shadow(color: .black.opacity(0.6), radius: 6, y: 2)
                         .allowsHitTesting(false)
-                        .padding(.top, isPad ? 14 : 6)
+                        .padding(.top, isPad ? 44 : 6)
                 }
                 Spacer()
                 controlBar
@@ -1018,7 +1018,7 @@ private struct TouchControlsOverlay: View {
             }
         }
         .padding(.horizontal, 14)
-        .padding(.bottom, isPad ? 24 : 12)
+        .padding(.bottom, isPad ? 40 : 12)
     }
 }
 
