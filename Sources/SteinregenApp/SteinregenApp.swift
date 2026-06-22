@@ -931,6 +931,16 @@ private struct TouchControlsOverlay: View {
                     .buttonStyle(.plain)
                     Spacer()
                 }
+                // Das Black-Metal-Logo füllt den freien Raum über dem Brett (rein dekorativ →
+                // allowsHitTesting(false), damit ein Tippen dort weiterhin das Brett dreht).
+                if let logo = Theme.logoImage() {
+                    Image(decorative: logo, scale: 1)
+                        .resizable().interpolation(.high).scaledToFit()
+                        .frame(maxWidth: 260, maxHeight: 88)
+                        .opacity(0.92)
+                        .shadow(color: .black.opacity(0.6), radius: 5, y: 2)
+                        .allowsHitTesting(false)
+                }
                 Spacer()
                 controlBar
             }
