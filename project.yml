@@ -38,13 +38,14 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.steinregen.app
-        MARKETING_VERSION: "0.10.3"          # wird von tools/make-ios-app.sh aus VERSION überschrieben
+        MARKETING_VERSION: "0.11.0"          # wird von tools/make-ios-app.sh aus VERSION überschrieben
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        TARGETED_DEVICE_FAMILY: "1"          # nur iPhone (vorerst)
+        INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad: UIInterfaceOrientationPortrait
+        TARGETED_DEVICE_FAMILY: "1,2"        # iPhone + iPad (beide nur Hochformat — Design ist portrait)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon   # App-Icon aus iOS/Assets.xcassets
         # Signing fuer echte Geraete: automatisch verwaltet von Xcode. Die Team-ID kommt aus der
         # Umgebungsvariable DEVELOPMENT_TEAM (kontoidentifizierend → NICHT ins Repo). Setzt sie

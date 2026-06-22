@@ -49,9 +49,10 @@ steinregen/                   (SwiftPM-Workspace)
 ## 3. Technik
 
 - **Sprache**: Swift 6
-- **Plattform**: macOS 15+ (Desktop) UND **iOS 17+** (iPhone, ab v0.10.0). `SteinregenCore` +
-  `SteinregenRender` sind plattformneutral und werden geteilt; nur die App-Schicht trennt per
-  `#if os(...)` (macOS = Tastatur/NSEvent + Fenster, iOS = Touch + Vollbild).
+- **Plattform**: macOS 15+ (Desktop) UND **iOS 17+** (iPhone ab v0.10.0, iPad ab v0.11.0 — beide nur
+  Hochformat). `SteinregenCore` + `SteinregenRender` sind plattformneutral und werden geteilt; nur die
+  App-Schicht trennt per `#if os(...)` (macOS = Tastatur/NSEvent + Fenster, iOS = Touch + Vollbild).
+  Innerhalb iOS unterscheidet `UIDevice.userInterfaceIdiom == .pad` das Touch-Layout (iPhone vs. iPad).
 - **UI**: SwiftUI · **Engine**: SpriteKit (via `SpriteView`) · **Build**: Swift Package Manager
 - **Look (ab v0.2.0)**: Black-Metal-Ästhetik — rabenschwarz, knochenweiß, ein Ochsenblut-Akzent,
   räudiges Korn, **animierter Nebel** im Hintergrund (zwei gegenläufig driftende Wolken-Schichten,
@@ -177,7 +178,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-22, v0.10.3)
+## 5. Status (Stand 2026-06-22, v0.11.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -290,7 +291,7 @@ sowie die **gesamte Touch-Steuerung** per `idb` (headless Touch-Injektion): Bewe
 Halten/Auto-Repeat, Rotieren (Knopf + Brett-Tippen), Hard-Drop (Knopf + Wisch nach unten),
 Wisch-Bewegen. Hinweis: ein 0-ms-Synthetik-Tap löst SwiftUIs `Button`/`onTapGesture` nicht aus
 (`DragGesture`-Knöpfe schon) — ein echter Finger mit ~100 ms greift, reines Test-Artefakt, kein
-App-Bug. **Noch offen:** iPad-Layout; abschließender Test auf echtem Gerät.
+App-Bug. **Noch offen:** abschließender Test auf echtem Gerät.
 
 **v0.10.1 — iOS-Politur:** Im Spiel füllt das Steinregen-Logo den freien Raum über dem Brett
 (zwischen Menü-Knopf und Schacht) — rein dekorativ (`allowsHitTesting(false)`, Tippen dreht dort
@@ -309,12 +310,27 @@ erzeugt `iOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` (git-ignoriert
 `make-ios-app.sh` reproduzierbar; Asset-Catalog-Metadaten im Repo). Auf dem Simulator-Home-Screen
 verifiziert.
 
+**v0.11.0 — iPad-Support:** `TARGETED_DEVICE_FAMILY = "1,2"` (iPhone + iPad, beide Hochformat). Das
+Touch-Layout passt sich per `UIDevice.userInterfaceIdiom == .pad` an: auf iPad wird das Brett
+vertikal eingerückt (Platz für Logo oben / Steuerleiste unten), das Logo ist größer, und die fünf
+Knöpfe bilden eine **zentrierte Gruppe** mit festen Abständen (statt der vollen Breite wie auf dem
+iPhone — sonst stünden sie unerreichbar an den Rändern). Wichtig gelernt: Im `ZStack(.topLeading)`
+muss die Inhalts-`VStack` `maxWidth: .infinity` haben, sonst schrumpft sie auf ihr breitestes Kind und
+rutscht nach links (fiel auf iPhone nicht auf, weil die Spacer-Leiste die VStack ohnehin füllt). Auf
+iPad-Air-11-Simulator verifiziert; iPhone-Layout unverändert.
+
 **Beauftragte TODOs (Stand 2026-06-22):**
-- **iOS-App (iPhone):** ✅ Grundgerüst + Touch-Steuerung erledigt und im Simulator verifiziert
-  (v0.10.0, siehe oben); teilt Core+Render mit macOS. App-Icon + automatisches Geräte-Signing
-  erledigt (v0.10.2/.3). **Rest:** ggf. iPad-Layout + abschließender Test auf echtem Gerät.
+- **iOS-App (iPhone + iPad):** ✅ Grundgerüst + Touch-Steuerung, App-Icon, automatisches
+  Geräte-Signing und iPad-Layout erledigt (v0.10.0–v0.11.0, siehe oben); teilt Core+Render mit macOS.
+  Im iPhone- und iPad-Simulator verifiziert. **Rest:** abschließender Test auf echtem Gerät.
 - **Weitere Steine-Sets generieren** — ✅ erledigt für FreeDoom (Set „FreeDoom", v0.9.0; Lizenz
   verifiziert + dokumentiert). Weitere Sets jederzeit möglich (Renderer + ein `StoneSets.all`-Eintrag).
+- **Zaubersteine-Set-Assets aktualisieren** (für später, noch offen) — das Set
+  „Zaubersteine"/„G20"/„Juwelen" zeigte weiße Säume an den Stein-Kanten. Im Schwester-Projekt
+  `~/git/zaubersteine` wurde das korrigiert; die aktualisierten Bilddateien von dort neu nach
+  `Sources/SteinregenRender/Resources/` holen und ersetzen — betrifft die Edelstein-PNGs
+  (`ruby/sapphire/emerald/topaz/amethyst/diamond.png`) und die SVG-Steine (`svg_*.png`). Reiner
+  Asset-Tausch (bessere Kantenqualität), keine Code-Änderung.
 - **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
   eigenes Soundeffekt-Set erzeugen — Werkzeug wird ca. ab 2026-06-22 verfügbar sein.
 - **Veröffentlichbarkeit prüfen** — ✅ auditiert (Stand 2026-06-22), Bestandsaufnahme in

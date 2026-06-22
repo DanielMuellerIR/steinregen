@@ -10,6 +10,9 @@ import SpriteKit
 #if os(macOS)
 import AppKit   // nur macOS: NSEvent-Tastatur, NSWindow-Konfiguration, NSApplication
 #endif
+#if os(iOS)
+import UIKit    // nur iOS: UIDevice (eindeutige iPad-Erkennung fürs Touch-Layout)
+#endif
 import SteinregenCore
 import SteinregenRender
 
@@ -494,17 +497,26 @@ struct GameplayView: View {
     #if os(macOS)
     @State private var keyMonitor: Any?
     #endif
+    #if os(iOS)
+    // iPad bekommt ein angepasstes Touch-Layout (größeres Logo, zentrierte Knopfgruppe, Brett-Einzug);
+    // iPhone bleibt unverändert. Idiom ist eindeutig (anders als die Size-Class in manchen Kontexten).
+    private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+    #endif
 
     var body: some View {
         ZStack {
-            GameBoardView(scene: scene)
-
             #if os(iOS)
-            // iOS: Touch-Steuerung (Gesten über dem Brett + dezente Knopfleiste + Menü-Knopf),
-            // nur während gespielt wird — beim Game-Over übernimmt das Overlay.
+            // iPad: Brett vertikal einrücken, damit über dem Schacht Platz fürs Logo und darunter
+            // für die Steuerleiste bleibt (iPhone füllt wie gehabt — kein Einzug).
+            GameBoardView(scene: scene)
+                .padding(.top, isPad ? 196 : 0)
+                .padding(.bottom, isPad ? 150 : 0)
+            // Touch-Steuerung (Gesten über dem Brett + dezente Knopfleiste + Menü-Knopf), nur im Spiel.
             if !model.isGameOver {
-                TouchControlsOverlay(scene: scene, onExit: onExit)
+                TouchControlsOverlay(scene: scene, onExit: onExit, isPad: isPad)
             }
+            #else
+            GameBoardView(scene: scene)
             #endif
 
             if model.isGameOver {
@@ -916,6 +928,7 @@ struct RulesSheet: View {
 private struct TouchControlsOverlay: View {
     let scene: GameScene
     let onExit: () -> Void
+    var isPad: Bool = false   // iPad: größeres Logo, Steuerleiste auf Maximalbreite begrenzt
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -927,15 +940,18 @@ private struct TouchControlsOverlay: View {
                 if let logo = Theme.logoImage() {
                     Image(decorative: logo, scale: 1)
                         .resizable().interpolation(.high).scaledToFit()
-                        .frame(maxWidth: 380, maxHeight: 140)
+                        .frame(maxWidth: isPad ? 520 : 380, maxHeight: isPad ? 168 : 140)
                         .opacity(0.95)
                         .shadow(color: .black.opacity(0.6), radius: 6, y: 2)
                         .allowsHitTesting(false)
-                        .padding(.top, 6)
+                        .padding(.top, isPad ? 14 : 6)
                 }
                 Spacer()
                 controlBar
             }
+            // Volle Breite/Höhe — sonst schrumpft die VStack auf ihr breitestes Kind und landet
+            // (ZStack .topLeading) am linken Rand; so zentrieren sich Logo und Knopfgruppe.
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             // Menü-Knopf oben links — eigene Ebene, klein in der Ecke; überlagert das zentrierte
             // Logo praktisch nicht und lässt ihm so den vollen oberen Freiraum.
             Button(action: onExit) {
@@ -968,24 +984,41 @@ private struct TouchControlsOverlay: View {
     }
 
     private var controlBar: some View {
-        // Volle Breite ausnutzen: ◀ ganz links, ▶ ganz rechts, Drehen/Softdrop/Hard-Drop gleichmäßig
-        // dazwischen verteilt (Spacer zwischen allen) — gut für die Daumen, viel Abstand.
-        HStack(spacing: 0) {
-            HoldButton(symbol: "arrowtriangle.left.fill",
-                       onPress: { scene.startMove(-1) }, onRelease: { scene.stopMove(-1) })
-            Spacer()
-            TapControlButton(symbol: "arrow.clockwise") { scene.inputRotate() }
-            Spacer()
-            HoldButton(symbol: "arrowtriangle.down.fill",
-                       onPress: { scene.setSoftDrop(true) }, onRelease: { scene.setSoftDrop(false) })
-            Spacer()
-            TapControlButton(symbol: "arrow.down.to.line") { scene.inputHardDrop() }
-            Spacer()
-            HoldButton(symbol: "arrowtriangle.right.fill",
-                       onPress: { scene.startMove(1) }, onRelease: { scene.stopMove(1) })
+        let btn: CGFloat = isPad ? 78 : 64
+        return Group {
+            if isPad {
+                // iPad: zentrierte Knopfgruppe mit festen, angenehmen Abständen — NICHT über die
+                // ganze (breite) Fläche, sonst stehen die Knöpfe unerreichbar an den Rändern.
+                HStack(spacing: 30) {
+                    HoldButton(symbol: "arrowtriangle.left.fill", size: btn,
+                               onPress: { scene.startMove(-1) }, onRelease: { scene.stopMove(-1) })
+                    TapControlButton(symbol: "arrow.clockwise", size: btn) { scene.inputRotate() }
+                    HoldButton(symbol: "arrowtriangle.down.fill", size: btn,
+                               onPress: { scene.setSoftDrop(true) }, onRelease: { scene.setSoftDrop(false) })
+                    TapControlButton(symbol: "arrow.down.to.line", size: btn) { scene.inputHardDrop() }
+                    HoldButton(symbol: "arrowtriangle.right.fill", size: btn,
+                               onPress: { scene.startMove(1) }, onRelease: { scene.stopMove(1) })
+                }
+            } else {
+                // iPhone: volle Breite — ◀ ganz links, ▶ ganz rechts, Rest gleichmäßig dazwischen.
+                HStack(spacing: 0) {
+                    HoldButton(symbol: "arrowtriangle.left.fill", size: btn,
+                               onPress: { scene.startMove(-1) }, onRelease: { scene.stopMove(-1) })
+                    Spacer()
+                    TapControlButton(symbol: "arrow.clockwise", size: btn) { scene.inputRotate() }
+                    Spacer()
+                    HoldButton(symbol: "arrowtriangle.down.fill", size: btn,
+                               onPress: { scene.setSoftDrop(true) }, onRelease: { scene.setSoftDrop(false) })
+                    Spacer()
+                    TapControlButton(symbol: "arrow.down.to.line", size: btn) { scene.inputHardDrop() }
+                    Spacer()
+                    HoldButton(symbol: "arrowtriangle.right.fill", size: btn,
+                               onPress: { scene.startMove(1) }, onRelease: { scene.stopMove(1) })
+                }
+            }
         }
         .padding(.horizontal, 14)
-        .padding(.bottom, 12)
+        .padding(.bottom, isPad ? 24 : 12)
     }
 }
 
@@ -993,15 +1026,16 @@ private struct TouchControlsOverlay: View {
 /// der szeneneigene Auto-Repeat (DAS/ARR) wie bei einer gehaltenen Taste.
 private struct HoldButton: View {
     let symbol: String
+    var size: CGFloat = 64
     let onPress: () -> Void
     let onRelease: () -> Void
     @State private var pressed = false
 
     var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: 30, weight: .bold))
+            .font(.system(size: size * 0.47, weight: .bold))
             .foregroundStyle(Theme.bone.color)
-            .frame(width: 64, height: 64)
+            .frame(width: size, height: size)
             .background(Circle().fill(pressed ? Theme.oxblood.color.opacity(0.85)
                                               : Color.white.opacity(0.10)))
             .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
@@ -1016,14 +1050,15 @@ private struct HoldButton: View {
 /// Einfacher Tipp-Knopf (Drehen, Hard-Drop) im selben dezenten Stil.
 private struct TapControlButton: View {
     let symbol: String
+    var size: CGFloat = 64
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: size * 0.47, weight: .bold))
                 .foregroundStyle(Theme.bone.color)
-                .frame(width: 64, height: 64)
+                .frame(width: size, height: size)
                 .background(Circle().fill(Color.white.opacity(0.10)))
                 .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
         }
