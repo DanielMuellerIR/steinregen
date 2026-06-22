@@ -177,7 +177,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-22, v0.10.1)
+## 5. Status (Stand 2026-06-22, v0.10.2)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -295,6 +295,11 @@ App-Bug. **Noch offen:** iOS-App-Icon (Asset-Catalog fehlt → blankes Icon); Ge
 **v0.10.1 — iOS-Politur:** Im Spiel füllt das Steinregen-Logo den freien Raum über dem Brett
 (zwischen Menü-Knopf und Schacht) — rein dekorativ (`allowsHitTesting(false)`, Tippen dreht dort
 weiter), nur iOS (`TouchControlsOverlay`). macOS unverändert.
+
+**v0.10.2 — iOS-Touch-Layout:** Logo deutlich größer (nutzt den oberen Freiraum voll, ohne in den
+Schacht zu ragen — Menü-Knopf liegt jetzt auf eigener `topLeading`-Ebene). Steuerleiste über die
+volle Breite verteilt (◀ ganz links, ▶ ganz rechts, ↻/▼/⤓ gleichmäßig dazwischen) und Knöpfe größer
+(54→64 pt). Nur iOS; macOS unverändert. Im iPhone-17-Simulator verifiziert (inkl. ✕ → Menü).
 
 **Beauftragte TODOs (Stand 2026-06-22):**
 - **iOS-App (iPhone):** ✅ Grundgerüst + Touch-Steuerung erledigt und im Simulator verifiziert

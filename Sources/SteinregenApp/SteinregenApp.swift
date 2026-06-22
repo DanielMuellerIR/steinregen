@@ -918,32 +918,33 @@ private struct TouchControlsOverlay: View {
     let onExit: () -> Void
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             gestureCatcher
             VStack(spacing: 0) {
-                HStack {
-                    Button(action: onExit) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 30))
-                            .foregroundStyle(Theme.bone.color.opacity(0.75))
-                            .padding(12)
-                    }
-                    .buttonStyle(.plain)
-                    Spacer()
-                }
-                // Das Black-Metal-Logo füllt den freien Raum über dem Brett (rein dekorativ →
-                // allowsHitTesting(false), damit ein Tippen dort weiterhin das Brett dreht).
+                // Das Black-Metal-Logo füllt den freien Raum ÜBER dem Brett (groß; rein dekorativ →
+                // allowsHitTesting(false), damit ein Tippen dort weiterhin das Brett dreht). Liegt
+                // ganz oben, damit es nach unten nicht in den Schacht/Einwurf ragt.
                 if let logo = Theme.logoImage() {
                     Image(decorative: logo, scale: 1)
                         .resizable().interpolation(.high).scaledToFit()
-                        .frame(maxWidth: 260, maxHeight: 88)
-                        .opacity(0.92)
-                        .shadow(color: .black.opacity(0.6), radius: 5, y: 2)
+                        .frame(maxWidth: 380, maxHeight: 140)
+                        .opacity(0.95)
+                        .shadow(color: .black.opacity(0.6), radius: 6, y: 2)
                         .allowsHitTesting(false)
+                        .padding(.top, 6)
                 }
                 Spacer()
                 controlBar
             }
+            // Menü-Knopf oben links — eigene Ebene, klein in der Ecke; überlagert das zentrierte
+            // Logo praktisch nicht und lässt ihm so den vollen oberen Freiraum.
+            Button(action: onExit) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 30))
+                    .foregroundStyle(Theme.bone.color.opacity(0.75))
+                    .padding(12)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -967,18 +968,24 @@ private struct TouchControlsOverlay: View {
     }
 
     private var controlBar: some View {
-        HStack(spacing: 10) {
+        // Volle Breite ausnutzen: ◀ ganz links, ▶ ganz rechts, Drehen/Softdrop/Hard-Drop gleichmäßig
+        // dazwischen verteilt (Spacer zwischen allen) — gut für die Daumen, viel Abstand.
+        HStack(spacing: 0) {
             HoldButton(symbol: "arrowtriangle.left.fill",
                        onPress: { scene.startMove(-1) }, onRelease: { scene.stopMove(-1) })
-            HoldButton(symbol: "arrowtriangle.right.fill",
-                       onPress: { scene.startMove(1) }, onRelease: { scene.stopMove(1) })
+            Spacer()
             TapControlButton(symbol: "arrow.clockwise") { scene.inputRotate() }
+            Spacer()
             HoldButton(symbol: "arrowtriangle.down.fill",
                        onPress: { scene.setSoftDrop(true) }, onRelease: { scene.setSoftDrop(false) })
+            Spacer()
             TapControlButton(symbol: "arrow.down.to.line") { scene.inputHardDrop() }
+            Spacer()
+            HoldButton(symbol: "arrowtriangle.right.fill",
+                       onPress: { scene.startMove(1) }, onRelease: { scene.stopMove(1) })
         }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 18)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 12)
     }
 }
 
@@ -992,9 +999,9 @@ private struct HoldButton: View {
 
     var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: 24, weight: .bold))
+            .font(.system(size: 30, weight: .bold))
             .foregroundStyle(Theme.bone.color)
-            .frame(width: 54, height: 54)
+            .frame(width: 64, height: 64)
             .background(Circle().fill(pressed ? Theme.oxblood.color.opacity(0.85)
                                               : Color.white.opacity(0.10)))
             .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
@@ -1014,9 +1021,9 @@ private struct TapControlButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: 30, weight: .bold))
                 .foregroundStyle(Theme.bone.color)
-                .frame(width: 54, height: 54)
+                .frame(width: 64, height: 64)
                 .background(Circle().fill(Color.white.opacity(0.10)))
                 .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
         }
