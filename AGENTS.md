@@ -324,6 +324,10 @@ freistehen (vorher saßen sie direkt an der Brett-Kante) — auf iPad weiterhin 
 Logo auf iPad spürbar vergrößert — im Menü (`StartView`, 660×320 statt 480×210) und im Spiel
 (620×210 statt 540×150, Brett-Einzug oben entsprechend auf 290).
 
+**Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
+Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag
+zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Simulator bestätigt.
+
 **Beauftragte TODOs (Stand 2026-06-22):**
 - **iOS-App (iPhone + iPad):** ✅ Grundgerüst + Touch-Steuerung, App-Icon, automatisches
   Geräte-Signing und iPad-Layout erledigt (v0.10.0–v0.11.0, siehe oben); teilt Core+Render mit macOS.
