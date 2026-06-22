@@ -4,8 +4,10 @@ import PackageDescription
 let package = Package(
     name: "Steinregen",
     platforms: [
-        // macOS 15+ (iOS-Port bewusst spaeter; Core ist plattformneutral gehalten)
-        .macOS(.v15)
+        // macOS 15+ fuer die Desktop-App; iOS 17+ fuer die iPhone-App (teilt Core+Render,
+        // eigene Touch-App-Schicht ueber dasselbe SteinregenApp-Quellverzeichnis).
+        .macOS(.v15),
+        .iOS(.v17)
     ],
     products: [
         .library(name: "SteinregenCore", targets: ["SteinregenCore"]),

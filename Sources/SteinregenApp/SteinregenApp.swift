@@ -7,7 +7,9 @@
 
 import SwiftUI
 import SpriteKit
-import AppKit
+#if os(macOS)
+import AppKit   // nur macOS: NSEvent-Tastatur, NSWindow-Konfiguration, NSApplication
+#endif
 import SteinregenCore
 import SteinregenRender
 
@@ -16,21 +18,44 @@ private extension Theme.RGB {
     var color: Color { Color(red: r, green: g, blue: b) }
 }
 
+private extension View {
+    /// Dialog-Maße: auf macOS ein festes Sheet-Format, auf iOS bildschirmfüllend (das iPhone
+    /// gibt die Größe vor). Hält die drei Dialoge (Einstellungen/Friedhof/Spielregeln) konsistent.
+    @ViewBuilder func dialogFrame(width: CGFloat, height: CGFloat) -> some View {
+        #if os(macOS)
+        self.frame(width: width, height: height)
+        #else
+        self.frame(maxWidth: .infinity, maxHeight: .infinity)
+        #endif
+    }
+}
+
 @main
 struct SteinregenApp: App {
     init() {
         // Blackletter-Schrift einmalig registrieren, BEVOR die erste View gezeichnet wird.
         Theme.registerFonts()
+        #if os(macOS)
+        // macOS: App als regulaeres, fokussiertes Fenster nach vorn holen.
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
+        #endif
     }
 
     var body: some Scene {
+        #if os(macOS)
+        // macOS: klassisches Titelleisten-Fenster mit festem Wunschmaß (Brett mittig, Seiten-Panels).
         WindowGroup("Steinregen") {
             RootView()
         }
         .windowStyle(.titleBar)
-        .defaultSize(width: 670, height: 900)   // breiter: Brett mittig, Seiten-Panels für HUD/Vorschau
+        .defaultSize(width: 670, height: 900)
+        #else
+        // iOS: bildschirmfüllende Szene, kein Fenster-Konzept.
+        WindowGroup("Steinregen") {
+            RootView()
+        }
+        #endif
     }
 }
 
@@ -39,6 +64,7 @@ private enum Screen {
     case playing
 }
 
+#if os(macOS)
 /// Sperrt das Fenster auf ein festes Seitenverhältnis (nur proportional vergrößer-/verkleinerbar,
 /// damit die Steine nie verzerren) und setzt eine Mindestgröße. Beim ersten Erscheinen wird die
 /// Fenstergröße auf das Verhältnis eingerastet — falls macOS einen abweichenden Frame wiederherstellt.
@@ -68,6 +94,7 @@ private struct WindowConfigurator: NSViewRepresentable {
         }
     }
 }
+#endif
 
 /// Welches modale Sheet im Menue offen ist (Einstellungen oder Friedhof).
 private enum ActiveSheet: Int, Identifiable {
@@ -106,9 +133,12 @@ struct RootView: View {
                              onRetryNewSeed: { startGame(seed: Self.randomSeed()) })
             }
         }
-        .frame(minWidth: 580, minHeight: 779)   // Mindestgröße im neuen Seitenverhältnis
+        #if os(macOS)
+        // macOS: Mindestgröße + Seitenverhältnis-Sperre (verhindert verzerrte Steine).
+        .frame(minWidth: 580, minHeight: 779)
         .background(WindowConfigurator(aspectW: 670, aspectH: 900, minWidth: 580))
-        .preferredColorScheme(.dark)   // Fenster ist immer finster — unabhaengig vom System-Modus
+        #endif
+        .preferredColorScheme(.dark)   // immer finster — unabhaengig vom System-Modus
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .settings: SettingsView(onClose: { activeSheet = nil })
@@ -161,9 +191,11 @@ struct StartView: View {
     let onRules: () -> Void
     let onStart: () -> Void
 
+    #if os(macOS)
     // Fokus-unabhängiger Tastatur-Monitor fürs Menü: ← → wählen das Start-Tempo (wie im Spiel,
     // bewährtes NSEvent-Muster). Return startet über den Standard-Knopf (`.defaultAction`).
     @State private var keyMonitor: Any?
+    #endif
 
     var body: some View {
         VStack(spacing: 20) {
@@ -218,25 +250,17 @@ struct StartView: View {
             .tint(Theme.oxblood.color)
             .keyboardShortcut(.defaultAction)
 
-            HStack(spacing: 8) {
-                Button(action: onSettings) {
-                    Label("Einstellungen", systemImage: "gearshape")
-                        .font(.custom(Theme.blackletterFamily, size: 22))
-                        .frame(width: 168, height: 48)
-                }
-                Button(action: onRules) {
-                    Label("Spielregeln", systemImage: "book")
-                        .font(.custom(Theme.blackletterFamily, size: 22))
-                        .frame(width: 168, height: 48)
-                }
-                Button(action: onFriedhof) {
-                    Label("Friedhof", systemImage: "list.number")
-                        .font(.custom(Theme.blackletterFamily, size: 22))
-                        .frame(width: 168, height: 48)
-                }
-            }
-            .buttonStyle(.bordered)
-            .tint(Theme.boneDim.color)
+            // Die drei Menü-Knöpfe: auf macOS eine Zeile (breites Fenster), auf iPhone gestapelt
+            // (sonst läuft die Zeile über den schmalen Bildschirm hinaus).
+            #if os(macOS)
+            HStack(spacing: 8) { menuButtons }
+                .buttonStyle(.bordered)
+                .tint(Theme.boneDim.color)
+            #else
+            VStack(spacing: 10) { menuButtons }
+                .buttonStyle(.bordered)
+                .tint(Theme.boneDim.color)
+            #endif
 
             ControlsLegend()
 
@@ -250,7 +274,9 @@ struct StartView: View {
 
     // ← → ändern das Start-Tempo, ohne dass ein Knopf den Fokus braucht. Andere Tasten (u.a.
     // Return) reicht der Monitor unverändert weiter → der Start-Knopf fängt Return per defaultAction.
+    // Nur macOS — auf iOS bedienen Taps die ◀ ▶-Knöpfe direkt.
     private func installKeyMonitor() {
+        #if os(macOS)
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
             switch event.keyCode {
@@ -259,10 +285,32 @@ struct StartView: View {
             default:  return event
             }
         }
+        #endif
     }
 
     private func removeKeyMonitor() {
+        #if os(macOS)
         if let m = keyMonitor { NSEvent.removeMonitor(m); keyMonitor = nil }
+        #endif
+    }
+
+    /// Die drei Menü-Knöpfe (Einstellungen/Spielregeln/Friedhof) — Inhalt für beide Plattform-Layouts.
+    @ViewBuilder private var menuButtons: some View {
+        Button(action: onSettings) {
+            Label("Einstellungen", systemImage: "gearshape")
+                .font(.custom(Theme.blackletterFamily, size: 22))
+                .frame(width: 168, height: 48)
+        }
+        Button(action: onRules) {
+            Label("Spielregeln", systemImage: "book")
+                .font(.custom(Theme.blackletterFamily, size: 22))
+                .frame(width: 168, height: 48)
+        }
+        Button(action: onFriedhof) {
+            Label("Friedhof", systemImage: "list.number")
+                .font(.custom(Theme.blackletterFamily, size: 22))
+                .frame(width: 168, height: 48)
+        }
     }
 
     private var tempoHint: String {
@@ -293,10 +341,17 @@ struct StartView: View {
 struct ControlsLegend: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
+            #if os(macOS)
             legend("← →  ·  A D", "Säule bewegen")
             legend("↑  ·  W", "Säule drehen (Steine durchtauschen)")
             legend("↓  ·  S", "schneller fallen lassen")
             legend("Leertaste", "sofort fallen lassen")
+            #else
+            legend("◀ ▶", "Säule bewegen (Knöpfe halten)")
+            legend("Tippen", "Säule drehen")
+            legend("▼", "schneller fallen lassen")
+            legend("⤓", "sofort fallen lassen")
+            #endif
         }
         .font(.custom(Theme.blackletterFamily, size: 19))
         .padding(18)
@@ -376,7 +431,7 @@ struct SettingsView: View {
             .keyboardShortcut(.defaultAction)
         }
         .padding(24)
-        .frame(width: 480, height: 820)
+        .dialogFrame(width: 480, height: 820)
         .background(Color(red: 0.02, green: 0.02, blue: 0.03))
         .preferredColorScheme(.dark)
     }
@@ -436,11 +491,21 @@ struct GameplayView: View {
     let onRetrySameSeed: () -> Void
     let onRetryNewSeed: () -> Void
 
+    #if os(macOS)
     @State private var keyMonitor: Any?
+    #endif
 
     var body: some View {
         ZStack {
             GameBoardView(scene: scene)
+
+            #if os(iOS)
+            // iOS: Touch-Steuerung (Gesten über dem Brett + dezente Knopfleiste + Menü-Knopf),
+            // nur während gespielt wird — beim Game-Over übernimmt das Overlay.
+            if !model.isGameOver {
+                TouchControlsOverlay(scene: scene, onExit: onExit)
+            }
+            #endif
 
             if model.isGameOver {
                 GameOverOverlay(score: model.finalScore,
@@ -450,13 +515,16 @@ struct GameplayView: View {
                                 onExit: onExit)
             }
         }
+        #if os(macOS)
         // Tastatur fokus-unabhaengig: ein lokaler NSEvent-Monitor empfaengt Tasten, sobald das
         // Fenster aktiv ist — kein Warten auf SwiftUI-Fokus (das war die Ursache, dass die Steuerung
         // anfangs ein paar Sekunden tot war). Installiert solange diese Ansicht sichtbar ist.
         .onAppear { installKeyMonitor() }
         .onDisappear { removeKeyMonitor() }
+        #endif
     }
 
+    #if os(macOS)
     private func installKeyMonitor() {
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { event in
@@ -501,6 +569,7 @@ struct GameplayView: View {
         default:  return false
         }
     }
+    #endif
 }
 
 // MARK: - Game-Over-Overlay
@@ -519,7 +588,9 @@ struct GameOverOverlay: View {
     @FocusState private var nameFocused: Bool
     /// Im Listen-Schritt per Cursortasten gewählter Knopf (0 = Nochmal, 1 = Neues Spiel, 2 = Menü).
     @State private var selectedButton = 0
+    #if os(macOS)
     @State private var keyMonitor: Any?
+    #endif
 
     var body: some View {
         ZStack {
@@ -574,11 +645,16 @@ struct GameOverOverlay: View {
             } else {
                 step = .list
             }
+            #if os(macOS)
             installKeyMonitor()
+            #endif
         }
+        #if os(macOS)
         .onDisappear { removeKeyMonitor() }
+        #endif
     }
 
+    #if os(macOS)
     // Im Listen-Schritt steuern die Cursortasten die Auswahl der drei Knöpfe, Return löst sie aus
     // (fokus-unabhängiges NSEvent-Muster wie im Menü). Im Eingabe-Schritt gehört die Tastatur dem
     // Namensfeld (Pfeile = Textcursor, Return = abschicken) — dann reicht der Monitor alles durch.
@@ -606,6 +682,7 @@ struct GameOverOverlay: View {
         default: onExit()
         }
     }
+    #endif
 
     private var entryView: some View {
         VStack(spacing: 10) {
@@ -746,7 +823,7 @@ struct FriedhofSheet: View {
             .keyboardShortcut(.defaultAction)
         }
         .padding(24)
-        .frame(width: 480, height: 640)
+        .dialogFrame(width: 480, height: 640)
         .background(Color(red: 0.02, green: 0.02, blue: 0.03))
         .preferredColorScheme(.dark)
     }
@@ -808,7 +885,7 @@ struct RulesSheet: View {
             .keyboardShortcut(.defaultAction)
         }
         .padding(24)
-        .frame(width: 520, height: 720)
+        .dialogFrame(width: 520, height: 720)
         .background(Color(red: 0.02, green: 0.02, blue: 0.03))
         .preferredColorScheme(.dark)
     }
@@ -827,3 +904,113 @@ struct RulesSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+// MARK: - iOS-Touch-Steuerung
+
+#if os(iOS)
+/// Touch-Steuerung fürs iPhone (es gibt keine Tastatur): Über dem Brett fängt eine durchsichtige
+/// Fläche Gesten ab — Tippen dreht die Säule, Wischen schiebt sie (links/rechts je einen Schritt)
+/// bzw. wirft sie ab (nach unten). Unten liegt eine dezente Knopfleiste, oben links ein Menü-Knopf.
+/// Die Links/Rechts-Knöpfe nutzen `startMove`/`stopMove` → szeneneigener Auto-Repeat wie bei der
+/// gehaltenen Taste am Mac.
+private struct TouchControlsOverlay: View {
+    let scene: GameScene
+    let onExit: () -> Void
+
+    var body: some View {
+        ZStack {
+            gestureCatcher
+            VStack(spacing: 0) {
+                HStack {
+                    Button(action: onExit) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Theme.bone.color.opacity(0.75))
+                            .padding(12)
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+                Spacer()
+                controlBar
+            }
+        }
+    }
+
+    /// Durchsichtige Fläche über dem ganzen Brett: Tippen dreht, Wischen schiebt/wirft.
+    private var gestureCatcher: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onTapGesture { scene.inputRotate() }
+            .gesture(
+                DragGesture(minimumDistance: 24)
+                    .onEnded { v in
+                        let dx = v.translation.width, dy = v.translation.height
+                        if abs(dx) > abs(dy) {
+                            if dx < 0 { scene.inputLeft() } else { scene.inputRight() }
+                        } else if dy > 0 {
+                            scene.inputHardDrop()          // nach unten wischen = Hard-Drop
+                        }
+                        // nach oben wischen: bewusst ohne Wirkung (Tippen dreht bereits)
+                    }
+            )
+    }
+
+    private var controlBar: some View {
+        HStack(spacing: 10) {
+            HoldButton(symbol: "arrowtriangle.left.fill",
+                       onPress: { scene.startMove(-1) }, onRelease: { scene.stopMove(-1) })
+            HoldButton(symbol: "arrowtriangle.right.fill",
+                       onPress: { scene.startMove(1) }, onRelease: { scene.stopMove(1) })
+            TapControlButton(symbol: "arrow.clockwise") { scene.inputRotate() }
+            HoldButton(symbol: "arrowtriangle.down.fill",
+                       onPress: { scene.setSoftDrop(true) }, onRelease: { scene.setSoftDrop(false) })
+            TapControlButton(symbol: "arrow.down.to.line") { scene.inputHardDrop() }
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 18)
+    }
+}
+
+/// Knopf mit Halte-Verhalten: `onPress` beim ersten Berühren, `onRelease` beim Loslassen — so greift
+/// der szeneneigene Auto-Repeat (DAS/ARR) wie bei einer gehaltenen Taste.
+private struct HoldButton: View {
+    let symbol: String
+    let onPress: () -> Void
+    let onRelease: () -> Void
+    @State private var pressed = false
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 24, weight: .bold))
+            .foregroundStyle(Theme.bone.color)
+            .frame(width: 54, height: 54)
+            .background(Circle().fill(pressed ? Theme.oxblood.color.opacity(0.85)
+                                              : Color.white.opacity(0.10)))
+            .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in if !pressed { pressed = true; onPress() } }
+                    .onEnded { _ in pressed = false; onRelease() }
+            )
+    }
+}
+
+/// Einfacher Tipp-Knopf (Drehen, Hard-Drop) im selben dezenten Stil.
+private struct TapControlButton: View {
+    let symbol: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 24, weight: .bold))
+                .foregroundStyle(Theme.bone.color)
+                .frame(width: 54, height: 54)
+                .background(Circle().fill(Color.white.opacity(0.10)))
+                .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
+#endif

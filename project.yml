@@ -1,0 +1,54 @@
+# xcodegen-Spezifikation der iPhone-App (Steinregen iOS).
+#
+# Warum: Swift Package Manager allein kann KEIN lauffähiges iOS-App-Bundle erzeugen
+# (executable-Targets sind auf iOS keine Apps). Daraus erzeugt `xcodegen generate` ein
+# Xcode-Projekt. Das .xcodeproj selbst ist git-ignoriert und wird reproduzierbar aus DIESER
+# Datei + dem Quellbaum neu erzeugt (genau wie tools/AppIcon.icns bei der macOS-App).
+#
+# Bauen/Starten: `bash tools/make-ios-app.sh [run]`
+#
+# Die App teilt sich SteinregenCore + SteinregenRender mit der macOS-App (als lokale
+# SwiftPM-Pakete eingebunden) und kompiliert dasselbe Sources/SteinregenApp-Verzeichnis —
+# die plattformabhängigen Teile (Touch statt Tastatur usw.) trennt `#if os(iOS)` im Code.
+name: Steinregen
+options:
+  bundleIdPrefix: com.steinregen
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+
+# Lokales SwiftPM-Paket (dieses Repo) — liefert die geteilten Bibliotheken.
+packages:
+  SteinregenPackage:
+    path: .
+
+targets:
+  Steinregen:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Sources/SteinregenApp
+    dependencies:
+      - package: SteinregenPackage
+        product: SteinregenCore
+      - package: SteinregenPackage
+        product: SteinregenRender
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.steinregen.app
+        MARKETING_VERSION: "0.10.0"          # wird von tools/make-ios-app.sh aus VERSION überschrieben
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        TARGETED_DEVICE_FAMILY: "1"          # nur iPhone (vorerst)
+
+schemes:
+  Steinregen:
+    build:
+      targets:
+        Steinregen: all
+    run:
+      config: Debug

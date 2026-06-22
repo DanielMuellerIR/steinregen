@@ -29,14 +29,17 @@ steinregen/                   (SwiftPM-Workspace)
 ├── README.md                 (englisch)
 ├── README.de.md              (deutsch)
 ├── VERSION                   (synchron zu `steinregenVersion` in Core halten)
+├── project.yml               (xcodegen-Spec der iOS-App; .xcodeproj wird daraus erzeugt, git-ignoriert)
 ├── Sources/
-│   ├── SteinregenCore/       (reine, deterministische Spiellogik + PRNG + Modelle)
+│   ├── SteinregenCore/       (reine, deterministische Spiellogik + PRNG + Modelle — plattformneutral)
 │   ├── SteinregenRender/     (SpriteKit-Szene, Spielloop, Theme = Palette/Fonts/Korn/Nebel,
 │   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones
 │   │                          + ZaubersteineStones (svg/procedural/png), GemTextures =
-│   │                          set-bewusste Textur-Fabrik, SoundFX = Soundeffekte, Magic-Animation)
-│   └── SteinregenApp/        (SwiftUI-Shell: Startbildschirm, Einstellungen, Spielregeln,
-│                              Friedhof = Bestenliste/Persistenz, Steuerung, Game-Over)
+│   │                          set-bewusste Textur-Fabrik, SoundFX = Soundeffekte, Magic-Animation
+│   │                          — cross-platform: nur SKColor, keine AppKit/UIKit-Typen)
+│   └── SteinregenApp/        (SwiftUI-Shell für macOS UND iOS: Startbildschirm, Einstellungen,
+│                              Spielregeln, Friedhof, Game-Over; Steuerung per `#if os(...)` —
+│                              macOS = Tastatur (NSEvent), iOS = Touch (Gesten + Knopfleiste))
 └── Tests/
     └── SteinregenCoreTests/  (Determinismus, Treffer h/v/diagonal, Kaskade, Magic, Game-Over)
 ```
@@ -46,7 +49,9 @@ steinregen/                   (SwiftPM-Workspace)
 ## 3. Technik
 
 - **Sprache**: Swift 6
-- **Plattform**: macOS 15+ (Core plattformneutral gehalten; iOS-Port als späterer Schritt denkbar)
+- **Plattform**: macOS 15+ (Desktop) UND **iOS 17+** (iPhone, ab v0.10.0). `SteinregenCore` +
+  `SteinregenRender` sind plattformneutral und werden geteilt; nur die App-Schicht trennt per
+  `#if os(...)` (macOS = Tastatur/NSEvent + Fenster, iOS = Touch + Vollbild).
 - **UI**: SwiftUI · **Engine**: SpriteKit (via `SpriteView`) · **Build**: Swift Package Manager
 - **Look (ab v0.2.0)**: Black-Metal-Ästhetik — rabenschwarz, knochenweiß, ein Ochsenblut-Akzent,
   räudiges Korn, **animierter Nebel** im Hintergrund (zwei gegenläufig driftende Wolken-Schichten,
@@ -103,6 +108,13 @@ steinregen/                   (SwiftPM-Workspace)
   Bedarf von `tools/make-icon.sh` **prozedural** erzeugt (Composer: `tools/icon-compose.swift`,
   Motiv: umgekehrtes Pentagramm im Kreis, satanisch). `dist/` und `tools/AppIcon.icns` sind
   git-ignoriert (reproduzierbar).
+- **iOS-App (iPhone)**: SwiftPM kann kein iOS-App-Bundle erzeugen → `bash tools/make-ios-app.sh`
+  erzeugt per **xcodegen** aus `project.yml` ein Xcode-Projekt (`Steinregen.xcodeproj`, git-ignoriert)
+  und baut die App fürs iOS-Simulator-SDK. `bash tools/make-ios-app.sh run` installiert + startet sie
+  zusätzlich headless im Simulator (`STEINREGEN_SIM` wählt das Gerät, Default „iPhone 17");
+  Screenshot ohne Fokus-Klau: `xcrun simctl io <udid> screenshot out.png`. Voraussetzung: volles
+  Xcode (nicht nur CommandLineTools) + `xcodegen` (`brew install xcodegen`). Die env-Vars unten
+  (`STEINREGEN_*`) gelten auch auf iOS — beim `simctl launch` als `SIMCTL_CHILD_<VAR>` voranstellen.
 
 ### Automations-/Headless-Naht
 
@@ -165,7 +177,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-22, v0.9.0)
+## 5. Status (Stand 2026-06-22, v0.10.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -263,10 +275,24 @@ Grafiken; kommerziell ok, Attribution nötig). Kuratierung über `tools/freedoom
 (Kontaktbögen roh/gequetscht/farbsortiert mit Empfehlungs-Markierung). Die fd_*.png sind unveränderte
 Originale (nur umbenannt), der Zuschnitt passiert im Renderer.
 
-**Beauftragte TODOs (Stand 2026-06-21):**
-- **iOS-App (iPhone):** zweite App mit möglichst identischem Funktionsumfang. `SteinregenCore` ist
-  plattformneutral und wird wiederverwendet; Render-/App-Schicht für iOS neu. **Steuerung
-  (Touch/Gesten) noch zu planen.**
+**v0.10.0 — iOS-App (iPhone):** zweite App mit identischem Funktionsumfang auf demselben Code.
+`SteinregenCore` + `SteinregenRender` sind unverändert geteilt (waren bereits plattformneutral: nur
+`SKColor`, keine AppKit/UIKit-Typen). Die App-Schicht `SteinregenApp.swift` ist jetzt plattform-
+conditional (`#if os(macOS)` / `#if os(iOS)`) — **macOS bleibt byte-identisch** (NSEvent-Tastatur,
+NSWindow-Seitenverhältnis), iOS bekommt **Touch-Steuerung**: Gesten über dem Brett (Tippen = drehen,
+links/rechts wischen = ein Schritt, runter wischen = Hard-Drop) plus eine dezente Knopfleiste unten
+(◀ ▶ halten = Auto-Repeat via `startMove`/`stopMove`, Drehen, Softdrop halten, Hard-Drop) und einen
+Menü-Knopf oben links; die Dialoge laufen über `dialogFrame` bildschirmfüllend statt im festen
+Sheet-Maß. Das Brett rendert dank `scaleMode = .resizeFill` + adaptivem `layout()` unverzerrt
+(quadratische Kacheln, zentriert). Build/Run: `tools/make-ios-app.sh` (xcodegen → Xcode-Projekt →
+Simulator). Im iPhone-17-Simulator verifiziert: Menü, Gameplay (Brett + Touch-Leiste), Einstellungen.
+**Noch offen:** interaktiver Touch-Test auf echtem Gerät / per Hand (headless gibt es keine
+Touch-Injektion); iOS-App-Icon (Asset-Catalog fehlt → blankes Icon); Gerätesignatur; iPad-Layout.
+
+**Beauftragte TODOs (Stand 2026-06-22):**
+- **iOS-App (iPhone):** ✅ Grundgerüst erledigt (v0.10.0, siehe oben) — im Simulator spielbar mit
+  Touch-Steuerung, teilt Core+Render mit macOS. **Rest:** interaktiver Touch-Test auf echtem Gerät,
+  iOS-App-Icon, Gerätesignatur, ggf. iPad-Layout + Touch-Feinschliff.
 - **Weitere Steine-Sets generieren** — ✅ erledigt für FreeDoom (Set „FreeDoom", v0.9.0; Lizenz
   verifiziert + dokumentiert). Weitere Sets jederzeit möglich (Renderer + ein `StoneSets.all`-Eintrag).
 - **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
