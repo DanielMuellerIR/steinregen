@@ -44,8 +44,14 @@ public enum StoneSets {
                                          subtitle: "Detailreiche Foto-Kristalle",
                                          draw: { gem, _ in ZaubersteineStones.draw(gem, style: .png) })
 
+    // Bild-basiertes Set aus originalen FreeDoom-Pickup-Sprites (BSD-3-Clause). Pixeliger Retro-Look:
+    // Doom-Emblem auf farbig getoentem Tile. Siehe FreeDoomStones + Resources/FREEDOOM-LICENSE.txt.
+    public static let freedoom = StoneSet(id: "freedoom", name: "FreeDoom",
+                                          subtitle: "Gequetschte FreeDoom-Pixelkunst (Dämonen, Flamme, Marine)",
+                                          draw: FreeDoomStones.draw)
+
     /// Reihenfolge im Auswahl-Dialog (Doom als Standard ganz oben). Neue Sets hier einsortieren.
-    public static let all: [StoneSet] = [doom, sigil, zaubersteine, g20, juwelen]
+    public static let all: [StoneSet] = [doom, sigil, zaubersteine, g20, juwelen, freedoom]
 
     /// Set zu einer id (faellt auf das Standard-Set zurueck, falls unbekannt).
     public static func set(for id: String) -> StoneSet { all.first { $0.id == id } ?? doom }

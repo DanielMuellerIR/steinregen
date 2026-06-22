@@ -53,13 +53,17 @@ steinregen/                   (SwiftPM-Workspace)
   `GemTextures.fog()`). Die Steine werden **prozedural** gezeichnet, alle alten Edelstein-PNGs
   werden NICHT mehr ins Spiel geladen.
 - **Steine-Sets (wählbar, erweiterbar)**: Jedes Set ist ein `StoneSet` (id + Name + Zeichen-Funktion)
-  in der `StoneSets`-Registry. Aktuell fünf:
+  in der `StoneSets`-Registry. Aktuell sechs:
   - **„Sigille"** (`SigilStones`) — fein geritzte Zeichen, gedeckte Tönung (Black Metal).
   - **„Doom"** (`DoomStones`) — vollflächig gefüllt, kräftige Farben, Grunge/Blut/Kratzer.
   - **„Zaubersteine" / „G20" / „Juwelen"** (`ZaubersteineStones`) — komplett aus dem Schwester-Projekt
     *Zaubersteine* übernommen (svg = glänzende SVG-Steine, procedural = flache Tasten-Steine,
     png = Foto-Kristalle). Die freundliche Alternative zur Finsternis. 6 von dort 11 Farben gemappt
     (ruby/topaz/emerald/sapphire/amethyst + turquoise→`diamond`-Slot).
+  - **„FreeDoom"** (`FreeDoomStones`) — sechs originale FreeDoom-Pixel-Sprites (BSD-3-Clause), zur
+    Laufzeit BRUTAL ins Tile gequetscht (Bounding-Box-Crop + Cover + Oben-Anker + Nearest-Neighbor)
+    auf dunklem Tile: rotes Gibs, Flamme, Marine, Cyberdemon, God-Gesicht, Pain-Fratze. Kuratiert
+    mit `tools/freedoom-contact.swift`.
   - Auswahl im Einstellungsdialog (mit Live-Vorschau), persistiert via UserDefaults
     (`StoneSets.selectedID`), beim Spielstart in `GemTextures.activeSetID` übernommen.
     **Standard-Set: Doom** (steht im Dialog ganz oben).
@@ -107,7 +111,7 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_AUTOSTART=1` — startet sofort ein Spiel (überspringt das Menü)
 - `STEINREGEN_LEVEL=<1..10>` — Start-Tempostufe
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
-- `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`)
+- `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`/`freedoom`)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start direkt den Friedhof (Bestenliste)
 
@@ -161,7 +165,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-22, v0.8.0)
+## 5. Status (Stand 2026-06-22, v0.9.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -248,13 +252,23 @@ Durchgehend etwas größere Schriften.
   (`FriedhofView.scroll`-Schalter; das eigene Friedhof-Fenster bleibt scrollbar). Name weiterhin
   bis 16 Zeichen, in der Zeile bei Bedarf mit „…" gekürzt.
 
+**v0.9.0 — Steine-Set „FreeDoom":** sechstes, bild-basiertes Set aus originalen FreeDoom-Grafiken
+(BSD-3-Clause): rotes Gibs (`col5`), Flamme (`fcan`), Marine (`play`), Cyberdemon (`cybr`),
+God-Gesicht (`stfgod`, aus `graphics/`), Pain-Elemental-Fratze (`pain`). Die Sprites sind winzig
+(Doom-Auflösung) und werden zur Laufzeit BRUTAL ins Tile gequetscht: auf die sichtbaren Pixel
+zugeschnitten (Bounding-Box), füllend (cover), mit Oben-Anker (unten anschneiden → Köpfe/Gesichter
+bleiben) + Pro-Stein-Feinjustage (zoom/ybias), harte Pixelkanten (Nearest-Neighbor) auf dunklem Tile
+(`FreeDoomStones`). Lizenz verifiziert + in `FREEDOOM-LICENSE.txt` dokumentiert (deckt Sounds UND
+Grafiken; kommerziell ok, Attribution nötig). Kuratierung über `tools/freedoom-contact.swift`
+(Kontaktbögen roh/gequetscht/farbsortiert mit Empfehlungs-Markierung). Die fd_*.png sind unveränderte
+Originale (nur umbenannt), der Zuschnitt passiert im Renderer.
+
 **Beauftragte TODOs (Stand 2026-06-21):**
 - **iOS-App (iPhone):** zweite App mit möglichst identischem Funktionsumfang. `SteinregenCore` ist
   plattformneutral und wird wiederverwendet; Render-/App-Schicht für iOS neu. **Steuerung
   (Touch/Gesten) noch zu planen.**
-- **Weitere Steine-Sets generieren** — erster Versuch: aus den FreeDoom-Grafiken ein Steine-Set
-  bauen (Lizenz dürfte unkritisch sein). **Vorher Lizenz verifizieren und dokumentieren**, falls
-  noch nicht geschehen.
+- **Weitere Steine-Sets generieren** — ✅ erledigt für FreeDoom (Set „FreeDoom", v0.9.0; Lizenz
+  verifiziert + dokumentiert). Weitere Sets jederzeit möglich (Renderer + ein `StoneSets.all`-Eintrag).
 - **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
   eigenes Soundeffekt-Set erzeugen — Werkzeug wird ca. ab 2026-06-22 verfügbar sein.
 - **Veröffentlichbarkeit prüfen** — Rechtelage für **non-kommerzielle UND kommerzielle** Verbreitung

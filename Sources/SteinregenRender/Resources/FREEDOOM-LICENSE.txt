@@ -1,7 +1,19 @@
-Die im Spiel verwendeten Soundeffekte (ds*.wav in diesem Ordner) stammen aus dem
-Freedoom-Projekt (https://github.com/freedoom/freedoom, Ordner sounds/) und stehen
-unter der folgenden BSD-3-Clause-Lizenz. Die vollständige Mitwirkenden-Liste (CREDITS)
-findet sich im Freedoom-Repository.
+Die im Spiel verwendeten Soundeffekte (ds*.wav) UND die Grafiken des Steine-Sets
+„FreeDoom" (fd_*.png in diesem Ordner) stammen aus dem Freedoom-Projekt
+(https://github.com/freedoom/freedoom, Ordner sounds/ bzw. sprites/) und stehen unter
+der folgenden BSD-3-Clause-Lizenz (sie deckt das gesamte Freedoom-Projekt; kommerzielle
+Nutzung ist erlaubt, Bedingung ist die Beibehaltung dieses Lizenz-/Copyright-Hinweises).
+
+Die fd_*.png sind UNVERÄNDERTE Freedoom-Grafiken (nur umbenannt; Zuschnitt/Skalierung
+passieren zur Laufzeit, die mitgelieferte Datei ist das Original):
+  fd_ruby     = col5a0   (Fleisch-/Gibs-Säule,        sprites/)
+  fd_topaz    = fcana0   (Flamme,                      sprites/)
+  fd_emerald  = playa1   (Spieler-Marine,              sprites/)
+  fd_sapphire = cybra1   (Cyberdemon,                  sprites/)
+  fd_diamond  = stfgod0  (Spieler-Gesicht „God-Mode",  graphics/)
+  fd_amethyst = paina1   (Pain Elemental,              sprites/)
+
+Die vollständige Mitwirkenden-Liste (CREDITS) findet sich im Freedoom-Repository.
 --------------------------------------------------------------------------------
 
 Copyright © 2001-2024
