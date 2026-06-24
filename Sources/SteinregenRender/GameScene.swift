@@ -26,9 +26,13 @@ public final class GameScene: SKScene {
     /// Ganz hinten: das statische Hintergrundbild (Nebel bei Nacht). Früher prozeduraler Nebel.
     private let backdropLayer = SKNode()
     /// Index des für die LAUFENDE Partie gewählten Hintergrundbildes in `Theme.backdropImages()`.
-    /// Wird in `start()` einmal zufällig festgelegt und bleibt über alle Layout-Durchläufe
-    /// (z.B. Fenster-Resize) stabil — sonst wechselte das Bild bei jeder Größenänderung.
+    /// Wird in `start()` festgelegt und bleibt über alle Layout-Durchläufe (z.B. Fenster-Resize)
+    /// stabil — sonst wechselte das Bild bei jeder Größenänderung. Default 0 ⇒ sicher renderbar,
+    /// auch bevor die erste Partie gestartet wurde.
     private var backdropIndex = 0
+    /// Zuletzt gezeigtes Hintergrundbild — damit `start()` pro Partie ein NEUES wählt (nie direkt
+    /// dasselbe zweimal hintereinander). −1 = noch keines gezeigt (erste Wahl ohne Einschränkung).
+    private var lastBackdropIndex = -1
     private let backgroundLayer = SKNode()
     private let boardLayer = SKNode()
     private let pieceLayer = SKNode()
@@ -141,9 +145,20 @@ public final class GameScene: SKScene {
         GemTextures.activeSetID = StoneSets.selectedID
         constantTempo = endless
         startTempoLevel = max(1, startLevel)
-        // Pro Partie zufällig eines der mitgelieferten Hintergrundbilder wählen (Variation).
+        // Pro Partie ein NEUES Hintergrundbild wählen — zufällig, aber nie direkt dasselbe wie in
+        // der vorigen Partie (so wechselt das Motiv bei jedem Spielstart sichtbar, ganz ohne App-
+        // Neustart). Bei nur einem Bild bleibt es zwangsläufig dabei.
         let backdropCount = Theme.backdropImages().count
-        backdropIndex = backdropCount > 0 ? Int.random(in: 0..<backdropCount) : 0
+        if backdropCount > 0 {
+            var next = Int.random(in: 0..<backdropCount)
+            var guardCount = 0
+            while backdropCount > 1 && next == lastBackdropIndex && guardCount < 8 {
+                next = Int.random(in: 0..<backdropCount)
+                guardCount += 1
+            }
+            backdropIndex = next
+            lastBackdropIndex = next
+        }
         switch mode {
         case .saeulen:
             engine = Engine(seed: seed, startLevel: startLevel,

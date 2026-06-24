@@ -31,7 +31,8 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
   start of a level, not in the menu; toggled independently of the sound effects in Settings or
   with **M** in-game.
 - **Backgrounds** — a set of AI-generated foggy-night motifs (graveyard, dead winter forest,
-  ruined cathedral, foggy moor, blood-red moon); one is picked at random for each game.
+  ruined cathedral, foggy moor, blood-red moon); a different one is picked for each game (never the
+  same twice in a row), no restart needed.
 - **Matches in all directions** — horizontal, vertical, and both diagonals.
 - **Chain reactions** — cascading clears are rewarded (score = stones × 10 × chain step).
 - **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes

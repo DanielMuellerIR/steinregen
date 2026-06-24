@@ -210,7 +210,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-24, v0.21.0)
+## 5. Status (Stand 2026-06-24, v0.22.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -488,6 +488,18 @@ ist unberührt.
   macOS-Build + Lauf ohne Crash, alle drei mp3 via `AVAudioPlayer` ladbar (120/240/240 s, Stereo);
   iOS-Build + Simulator-Screenshots (Einstellungs-Karte „Musik" passt aufs iPhone, Gameplay-
   Hintergrund im Hochformat). Reine Render-/App-Schicht, Core unberührt, 32 Core-Tests grün.
+
+**v0.22.0 — Level-Sound ersetzt + Hintergrund wechselt garantiert pro Partie:**
+- **Neuer Level-Geschafft-Klang:** der alte `level.m4a` (laut Daniel schlecht) ist durch einen
+  **dunklen Ritual-Gong** ersetzt — lokal mit **Stable Audio 3** (sfxgen) erzeugt, von Daniel aus
+  5 Konzepten × 2 Varianten (Glocke/Sarg/Gong/Handglocke/Röhrenglocke) in Number One per ⭐
+  ausgewählt. Gewählt wegen voller, durchsetzungsfähiger Klangfarbe, die **neben der Musik**
+  durchkommt. **Reiner Asset-Tausch:** `Resources/level.m4a` (mono AAC, 3 s) ausgetauscht, das
+  SoundFX-Mapping (`eigene` → `levelUp: "level"`) bleibt unverändert.
+- **Hintergrund garantiert neu pro Partie:** `GameScene.start()` wählt jetzt nie direkt dasselbe
+  Bild wie in der Vorpartie (`lastBackdropIndex`, no-immediate-repeat wie beim SoundFX-Pool) — bei
+  jedem Spielstart erscheint ein sichtbar **neues** Motiv, **ohne App-Neustart**. (v0.21.0 wählte
+  bereits pro Partie zufällig, konnte aber dasselbe zweimal hintereinander erwischen.)
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

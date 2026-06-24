@@ -31,7 +31,8 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
   Levelbeginn (nicht im Menü); getrennt von den Soundeffekten ausschaltbar — in den Einstellungen
   oder im Spiel mit **M**.
 - **Hintergründe** — mehrere KI-generierte Nebel-bei-Nacht-Motive (Friedhof, toter Winterwald,
-  Kathedralenruine, Nebelmoor, blutroter Mond); pro Partie wird eines zufällig gewählt.
+  Kathedralenruine, Nebelmoor, blutroter Mond); pro Partie wird ein neues gewählt (nie dasselbe
+  zweimal hintereinander), ganz ohne App-Neustart.
 - **Treffer in alle Richtungen** — horizontal, vertikal und beide Diagonalen.
 - **Kettenreaktionen** — Kaskaden werden belohnt (Punkte = Steine × 10 × Kettenstufe).
 - **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
