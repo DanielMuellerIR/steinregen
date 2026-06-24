@@ -52,9 +52,12 @@ situation is auditable before any (re)distribution.
 
 ## Game design
 
-- Steinregen is an independent clone of the gameplay of Sega's *Columns* (1990). Game mechanics
-  and rules are not copyrightable; *Columns* and *Sega* are trademarks of their respective owners.
-  Steinregen is not affiliated with or endorsed by Sega.
+- Steinregen has two modes: **Steinschlag** (a clone of the gameplay of Sega's *Columns*, 1990)
+  and **Eingemauert** (a falling-tetromino, fill-and-clear-rows mode in the long tradition of that
+  genre). Game mechanics and rules are not copyrightable. *Columns* and *Sega* are trademarks of
+  their respective owners; the falling-block genre's best-known name is likewise a registered
+  trademark of its owner. Steinregen uses none of those names for itself and is not affiliated with
+  or endorsed by anyone. The code deliberately uses the generic term "Tetromino".
 
 ## In-game text
 
@@ -75,5 +78,12 @@ blockers for that. They must be resolved before any commercial distribution:
    single short line is a weak claim, but the safe route for paid distribution is to remove it.
 3. **Sega/Columns trademark** — keep the "independent clone, not affiliated with Sega" disclaimer
    prominent (already stated above and in the README).
-4. **FreeDoom & Grenze Gotisch attribution** — already license-clean; for a polished commercial
+4. **Tetromino mode (Eingemauert)** — the falling-block genre's market leader is aggressively
+   enforced: the name is a registered trademark, and courts have found that closely reproducing the
+   original's specific *expression* (playfield proportions, the seven standard pieces, the
+   next-piece display, the 100/300/500/800 line-clear scoring) can infringe **copyright** even
+   under a different name. Non-issue for a non-commercial hobby release; before any paid
+   distribution, differentiate the mode visibly or take legal advice. Never use the trademarked
+   name in the app, store text, or marketing.
+5. **FreeDoom & Grenze Gotisch attribution** — already license-clean; for a polished commercial
    build, surface the attributions in an in-app "About" screen as well.

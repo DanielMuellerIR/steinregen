@@ -1,16 +1,31 @@
 # Steinregen
 
-Ein nativer macOS-Klon des Sega-Klassikers *Columns* (1990), geschrieben in Swift mit
-SwiftUI und SpriteKit.
+Ein natives macOS- und iOS-Spiel in roher Black-Metal-Ästhetik — zwei Fallstein-Modi auf einer
+deterministischen Engine. Geschrieben in Swift mit SwiftUI und SpriteKit.
 
 *(English version: [README.md](README.md))*
 
-Es fallen Dreier-Säulen aus Steinen; **drei oder mehr gleiche** in einer Linie —
-waagerecht, senkrecht oder diagonal — werden geräumt. Geräumte Steine lassen die darüber
-liegenden nachrutschen, was Kettenreaktionen mit Bonuspunkten auslösen kann.
+<p align="center">
+  <img src="assets/sc0.jpg" width="32%" alt="Startbildschirm: Modus und Start-Tempo wählen">
+  <img src="assets/sc1.jpg" width="32%" alt="Spiel auf einem Nacht-Hintergrund">
+  <img src="assets/sc2.jpg" width="32%" alt="Einstellungen: Ton, Musik, Brettgröße, Steine-Sets">
+</p>
 
-Eine rohe **Black-Metal-Ästhetik**: pechschwarz, knochenweiß, ein einziger Ochsenblut-Akzent,
-ziehender Nebel, Korn-Textur und ein zackiges Black-Metal-Logo. Die sechs Steine unterscheiden
+## Modi
+
+- **Steinschlag** (Columns-Art) — es fallen Dreier-Säulen aus Steinen. **Drei oder mehr gleiche**
+  in einer Linie — waagerecht, senkrecht oder diagonal — werden geräumt; geräumte Steine lassen
+  die darüber liegenden nachrutschen, was Kettenreaktionen mit Bonuspunkten auslösen kann.
+- **Eingemauert** (Stapeln) — es fallen Vierlinge (Vier-Block-Formen). Eine ganze Reihe füllen
+  räumt sie. Sieben Formen, ein deterministischer 7-Beutel, einfache Wall-Kicks.
+
+Beide Modi laufen auf demselben deterministischen Kern und teilen sich Optik, Ton, Musik und
+Bestenliste. Modus (und Brettgröße) wählt man im Startbildschirm.
+
+## Optik
+
+Pechschwarz, knochenweiß, ein einziger Ochsenblut-Akzent, Korn-Textur, ein zackiges, von Hand
+getuschtes Logo und KI-generierte Nebel-bei-Nacht-Hintergründe. Die sechs Steine unterscheiden
 sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-Tönung.
 
 ## Funktionen
@@ -18,9 +33,13 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 - **6 Steine mit Sigillen** — umgekehrtes Pentagramm, inverses Kreuz, Tiwaz-Rune, Triquetra,
   Schädel, Mondsichel. Unterscheidung über die Form, dazu eine gedeckte Farb-Tönung als Zusatzhinweis.
 - **Wählbare Steine-Sets** — in den Einstellungen (mit Live-Vorschau) zwischen sechs Sets
-  umschalten: den Black-Metal-Sets „Sigille" und „Doom", drei freundlicheren Edelstein-Sets
-  aus dem Schwester-Projekt *Zaubersteine* („Zaubersteine", „G20", „Juwelen") sowie einem
-  „FreeDoom"-Pixel-Set aus originalen Freedoom-Sprites. Erweiterbar.
+  umschalten: den Black-Metal-Sets „Sigille" und „Doom", drei freundlicheren Edelstein-Sets aus
+  dem Schwester-Projekt *Zaubersteine* („Zaubersteine", „G20", „Juwelen") sowie einem
+  „FreeDoom"-Pixel-Set aus originalen Freedoom-Sprites. Ein weiteres Set = ein Renderer plus ein
+  Registry-Eintrag.
+- **Einstellbare Brettgröße** je Modus, in den Einstellungen.
+- **Wählbares Start-Tempo** (Stufen 1–10), das mit den geräumten Steinen steigt — oder ein
+  konstantes „Endlos"-Tempo, das auf der Start-Stufe bleibt.
 - **Friedhof (Bestenliste)** — beim Verrecken trägt man einen Namen ein (bis 16 Zeichen); jedes
   Grab zeigt Punkte und das Level, in dem man verreckt ist. Persistente Top 16, im Menü abrufbar.
 - **Soundeffekte** (lokal erzeugt) — Aufsetzen, Auflösen, Drehen, Level und Game-Over, mit
@@ -30,22 +49,23 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
   in Schleife laufen, pro Partie mit zufälligem Anfangsstück. Standardmäßig an, aber erst ab
   Levelbeginn (nicht im Menü); getrennt von den Soundeffekten ausschaltbar — in den Einstellungen
   oder im Spiel mit **M**.
-- **Hintergründe** — mehrere KI-generierte Nebel-bei-Nacht-Motive (Friedhof, toter Winterwald,
-  Kathedralenruine, Nebelmoor, blutroter Mond); pro Partie wird ein neues gewählt (nie dasselbe
-  zweimal hintereinander), ganz ohne App-Neustart.
-- **Treffer in alle Richtungen** — horizontal, vertikal und beide Diagonalen.
-- **Kettenreaktionen** — Kaskaden werden belohnt (Punkte = Steine × 10 × Kettenstufe).
+- **Hintergründe** — KI-generierte Nebel-bei-Nacht-Motive (Friedhof, toter Winterwald,
+  Kathedralenruine, Nebelmoor, blutroter Mond); pro Partie ein anderes, nie dasselbe zweimal
+  hintereinander.
 - **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
   aufsetzt, räumt sie brettweit die Sorte der Zelle direkt darunter weg.
-- **Wählbares Start-Tempo** (Stufen 1–10); das Tempo steigt mit der Zahl geräumter Steine.
 - **Deterministisch, seed-getrieben** — gleicher Seed spielt exakt dieselbe Partie nach.
+- **Läuft auf macOS** (Tastatur) **und iOS / iPad** (Touch), mit demselben Kern und Renderer.
 
 ## Steuerung
 
+Auf iOS wird per Touch gespielt (Tippen = drehen, Wischen = bewegen/fallen, dazu Knöpfe am
+unteren Rand). Auf macOS per Tastatur:
+
 | Taste | Aktion |
 |-------|--------|
-| ← → · A D | Säule bewegen |
-| ↑ · W | drehen (die drei Steine durchtauschen) |
+| ← → · A D | Stein bewegen |
+| ↑ · W | drehen |
 | ↓ · S | schneller fallen (Softdrop) |
 | Leertaste | sofort fallen lassen |
 | T | Soundeffekte an/aus (aus = „mundtot") |
@@ -69,7 +89,18 @@ bash tools/make-app.sh
 
 Baut `dist/Steinregen.app` (ad-hoc-signiert, mit einem prozedural erzeugten Dock-Icon —
 umgekehrtes Pentagramm) plus ein weitergebbares `dist/Steinregen-<version>.zip`. Die `.app` im
-Finder doppelklicken oder nach `/Programme` ziehen.
+Finder doppelklicken oder nach `/Programme` ziehen. Für einen notarisierten, Gatekeeper-tauglichen
+Build: `bash tools/make-notarized.sh` (braucht ein Developer-ID-Zertifikat und ein
+notarytool-Schlüsselbund-Profil).
+
+### iOS-App
+
+```bash
+bash tools/make-ios-app.sh run
+```
+
+Erzeugt per xcodegen aus `project.yml` ein Xcode-Projekt und baut + startet die App im
+iOS-Simulator (braucht volles Xcode und `xcodegen`).
 
 ### Tests
 
@@ -93,6 +124,9 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_LEVEL=<1..10>` — Start-Tempo
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen` / `freedoom`)
+- `STEINREGEN_MODE=<saeulen|verschuettet>` — Modus (Steinschlag / Eingemauert)
+- `STEINREGEN_ENDLESS=1` — konstantes Tempo
+- `STEINREGEN_MUSIC=<0|1>` — Musik aus / an erzwingen
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start den Friedhof (Bestenliste)
 
@@ -100,16 +134,26 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 
 Drei Swift-Package-Manager-Module plus Tests:
 
-- **`SteinregenCore`** — reine, deterministische Spiellogik (Brett, fallende Säule,
-  Treffer-Erkennung, Kaskaden, Magic Jewel, Punkte). Kein globaler Zufall, keine Wanduhr;
-  aller Zufall läuft über einen injizierten, seed-bestimmten PRNG.
-- **`SteinregenRender`** — SpriteKit-Szene: Darstellung, Schwerkraft-/Animations-Loop,
-  die prozedural gezeichneten Sigil-Steine, das Theme (Palette/Fonts/Korn), Magic-Jewel-Animation.
-- **`SteinregenApp`** — SwiftUI-Shell: Startbildschirm, Tastatursteuerung, Game-Over-Overlay.
+- **`SteinregenCore`** — reine, deterministische Spiellogik. Zwei Engines (`Engine` für
+  Steinschlag, `TetrominoEngine` für Eingemauert), Brett, Treffer-Erkennung, Kaskaden, Magic
+  Jewel, Punkte. Kein globaler Zufall, keine Wanduhr; aller Zufall läuft über einen injizierten,
+  seed-bestimmten PRNG.
+- **`SteinregenRender`** — SpriteKit-Szene, die beide Modi über ein `PlayEngine`-Protokoll treibt:
+  Darstellung, Schwerkraft-/Animations-Loop, die prozedural gezeichneten Steine-Sets, das Theme
+  (Palette/Fonts/Korn), Soundeffekte, der Musik-Player und die Magic-Jewel-Animation.
+- **`SteinregenApp`** — SwiftUI-Shell für macOS und iOS: Menüs, Einstellungen, Spielregeln,
+  Friedhof, Game-Over-Overlay. Tastatur auf macOS, Touch auf iOS.
 
 Mehrere wiederverwendete Bausteine (der deterministische PRNG, der robuste Ressourcen-Loader,
 das Drei-Modul-Layout) sowie die drei freundlichen Edelstein-Sets (Zaubersteine / G20 / Juwelen)
 stammen aus dem Schwester-Projekt *Zaubersteine*.
+
+## Markenrechte
+
+Steinregen ist ein eigenständiges Projekt und steht in keiner Verbindung zu Dritten. Seine zwei
+Modi sind von klassischen Fallstein-Spielen inspiriert; *Columns* ist eine Marke von Sega, und die
+Namen weiterer Spiele des Genres sind Marken der jeweiligen Inhaber. Spielregeln sind nicht
+urheberrechtlich schützbar, die Namen aber schon — Steinregen verwendet keinen davon für sich.
 
 ## Lizenz
 
