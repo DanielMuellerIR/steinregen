@@ -23,8 +23,8 @@ public final class GameScene: SKScene {
     private var boardHeight = Board.defaultHeight
 
     // MARK: Layer + Knoten
-    /// Ganz hinten: animierter, ziehender Nebel.
-    private let fogLayer = SKNode()
+    /// Ganz hinten: das statische Hintergrundbild (Nebel bei Nacht). Früher prozeduraler Nebel.
+    private let backdropLayer = SKNode()
     private let backgroundLayer = SKNode()
     private let boardLayer = SKNode()
     private let pieceLayer = SKNode()
@@ -104,14 +104,14 @@ public final class GameScene: SKScene {
         Theme.registerFonts()
         backgroundColor = Theme.canvas.sk
         if backgroundLayer.parent == nil {
-            addChild(fogLayer)
+            addChild(backdropLayer)
             addChild(backgroundLayer)
             addChild(boardLayer)
             addChild(pieceLayer)
             addChild(overlayLayer)
             addChild(hudLayer)
-            // Zeichenreihenfolge: Nebel ganz hinten, Korn ueber den Steinen, HUD oben (bleibt scharf).
-            fogLayer.zPosition = -1
+            // Zeichenreihenfolge: Hintergrundbild ganz hinten, Korn ueber den Steinen, HUD oben (bleibt scharf).
+            backdropLayer.zPosition = -1
             overlayLayer.zPosition = 50
             hudLayer.zPosition = 100
         }
@@ -192,35 +192,29 @@ public final class GameScene: SKScene {
         boardOriginX = (size.width - boardW) / 2          // mittig → gleicher Rand links/rechts
         boardOriginY = (size.height - boardH) / 2          // senkrecht zentriert
         gemSize = CGSize(width: tile * 0.94, height: tile * 0.94)
-        buildFog()
+        buildBackdrop()
         buildBackground(boardW: boardW, boardH: boardH)
         buildHUD(boardW: boardW, boardH: boardH)
         buildGrain()
     }
 
-    /// Baut zwei gegenlaeufig driftende, leicht pulsierende Nebelschichten — der animierte Hintergrund.
-    private func buildFog() {
-        fogLayer.removeAllChildren()
+    /// Legt das statische Hintergrundbild (Nebel bei Nacht) ganz nach hinten und skaliert es
+    /// formatfuellend (Cover): Es deckt die Szene immer komplett, ueberstehende Raender werden
+    /// beschnitten — egal ob hohes iPhone-Hochformat oder breiteres macOS-Fenster.
+    private func buildBackdrop() {
+        backdropLayer.removeAllChildren()
         guard size.width > 0, size.height > 0 else { return }
-        let tex = GemTextures.fog()
-
-        func makeFog(scale: CGFloat, alpha: CGFloat, dx: CGFloat, dy: CGFloat, dur: TimeInterval, offset: CGPoint) {
-            let node = SKSpriteNode(texture: tex)
-            // Deutlich groesser als die Szene, damit beim Driften nie ein Rand sichtbar wird.
-            node.size = CGSize(width: size.width * 1.7, height: size.height * 1.5)
-            node.setScale(scale)
-            node.position = CGPoint(x: size.width / 2 + offset.x, y: size.height / 2 + offset.y)
-            node.alpha = alpha
-            fogLayer.addChild(node)
-            let move = SKAction.sequence([SKAction.moveBy(x: dx, y: dy, duration: dur),
-                                          SKAction.moveBy(x: -dx, y: -dy, duration: dur)])
-            move.timingMode = .easeInEaseOut
-            let pulse = SKAction.sequence([SKAction.scale(to: scale * 1.08, duration: dur * 0.85),
-                                           SKAction.scale(to: scale, duration: dur * 0.85)])
-            node.run(SKAction.repeatForever(SKAction.group([move, pulse])))
-        }
-        makeFog(scale: 1.00, alpha: 0.28, dx:  46, dy:  14, dur: 17, offset: CGPoint(x: -20, y: 0))
-        makeFog(scale: 1.35, alpha: 0.18, dx: -60, dy: -10, dur: 23, offset: CGPoint(x:  30, y: 20))
+        // Bild aus dem Bundle holen; fehlt es, bleibt nur die schwarze Grundflaeche (Theme.canvas).
+        guard let cg = Theme.backdropImage() else { return }
+        let tex = SKTexture(cgImage: cg)
+        let texSize = tex.size()
+        guard texSize.width > 0, texSize.height > 0 else { return }
+        let node = SKSpriteNode(texture: tex)
+        // Cover-Skalierung: die groessere der beiden Achsen-Skalen fuellt die Szene vollstaendig.
+        let scale = max(size.width / texSize.width, size.height / texSize.height)
+        node.size = CGSize(width: texSize.width * scale, height: texSize.height * scale)
+        node.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        backdropLayer.addChild(node)
     }
 
     /// Legt das statische Korn als ganzflaechigen Schleier ueber die Szene (raeudiger Lo-Fi-Look).

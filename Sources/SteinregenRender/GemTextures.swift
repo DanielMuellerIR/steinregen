@@ -18,7 +18,6 @@ public enum GemTextures {
     private static var magicCache: [String: [SKTexture]] = [:]      // [setID: sigil-frames]
     private static var previewCache: [String: CGImage] = [:]        // ["setID|gemRaw": image]
     private static var grainCache: SKTexture?
-    private static var fogCache: SKTexture?
 
     // MARK: - Stein-Texturen (aktives Set)
 
@@ -97,55 +96,4 @@ public enum GemTextures {
     }
 
     // MARK: - Nebel (animierter Hintergrund)
-
-    /// Weiche, kalt-graue Nebelschwaden als gekacheltes Wolken-Rauschen (Value Noise). Die Szene
-    /// legt zwei dieser Texturen uebereinander und laesst sie langsam driften/pulsieren — das ergibt
-    /// den ziehenden Nebel. Zum Rand hin blendet die Textur auf 0 aus, damit beim Driften keine
-    /// harten Kanten auftauchen. Einmal erzeugt und gecacht.
-    public static func fog() -> SKTexture {
-        if let f = fogCache { return f }
-        let w = 256, h = 160
-        let fr = 0.58, fg = 0.61, fb = 0.67                     // kalt-grauer Nebel
-
-        func lattice(_ cols: Int, _ rows: Int) -> [Double] {
-            (0..<(cols * rows)).map { _ in Double(arc4random_uniform(1000)) / 1000.0 }
-        }
-        func sample(_ grid: [Double], _ cols: Int, _ rows: Int, _ u: Double, _ v: Double) -> Double {
-            let x = u * Double(cols - 1), y = v * Double(rows - 1)
-            let x0 = Int(x), y0 = Int(y)
-            let x1 = min(x0 + 1, cols - 1), y1 = min(y0 + 1, rows - 1)
-            let fx = x - Double(x0), fy = y - Double(y0)
-            let sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy)
-            let top = grid[y0 * cols + x0] + (grid[y0 * cols + x1] - grid[y0 * cols + x0]) * sx
-            let bot = grid[y1 * cols + x0] + (grid[y1 * cols + x1] - grid[y1 * cols + x0]) * sx
-            return top + (bot - top) * sy
-        }
-        let g1 = lattice(7, 5), g2 = lattice(15, 9), g3 = lattice(29, 17)
-
-        var data = [UInt8](repeating: 0, count: w * h * 4)
-        for y in 0..<h {
-            for x in 0..<w {
-                let u = Double(x) / Double(w - 1), v = Double(y) / Double(h - 1)
-                var n = sample(g1, 7, 5, u, v) * 0.6 + sample(g2, 15, 9, u, v) * 0.3 + sample(g3, 29, 17, u, v) * 0.1
-                n = max(0, min(1, (n - 0.42) * 1.9))           // Kontrast: dichtere Stellen = Schwaden
-                let edge = min(min(u, 1 - u), min(v, 1 - v)) / 0.12
-                let win = max(0, min(1, edge))                 // Randabblendung (keine Kante beim Driften)
-                let a = n * win * 0.85
-                let i = (y * w + x) * 4
-                data[i + 0] = UInt8(fr * 255 * a)
-                data[i + 1] = UInt8(fg * 255 * a)
-                data[i + 2] = UInt8(fb * 255 * a)
-                data[i + 3] = UInt8(a * 255)
-            }
-        }
-        let cs = CGColorSpaceCreateDeviceRGB()
-        let provider = CGDataProvider(data: Data(data) as CFData)!
-        let img = CGImage(width: w, height: h, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: w * 4,
-                          space: cs, bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
-                          provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)!
-        let t = SKTexture(cgImage: img)
-        t.filteringMode = .linear
-        fogCache = t
-        return t
-    }
 }

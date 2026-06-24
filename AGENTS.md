@@ -58,9 +58,11 @@ steinregen/                   (SwiftPM-Workspace)
   Innerhalb iOS unterscheidet `UIDevice.userInterfaceIdiom == .pad` das Touch-Layout (iPhone vs. iPad).
 - **UI**: SwiftUI · **Engine**: SpriteKit (via `SpriteView`) · **Build**: Swift Package Manager
 - **Look (ab v0.2.0)**: Black-Metal-Ästhetik — rabenschwarz, knochenweiß, ein Ochsenblut-Akzent,
-  räudiges Korn, **animierter Nebel** im Hintergrund (zwei gegenläufig driftende Wolken-Schichten,
-  `GemTextures.fog()`). Die Steine werden **prozedural** gezeichnet, alle alten Edelstein-PNGs
-  werden NICHT mehr ins Spiel geladen.
+  räudiges Korn. **Hintergrundbild (ab v0.20.0)**: ein KI-generiertes Nebel-bei-Nacht-Motiv
+  (`hintergrund.png`, Qwen-Image, kommerziell unbedenklich) liegt formatfüllend (Cover) ganz hinten
+  hinter dem Brett (`GameScene.buildBackdrop()`, `Theme.backdropImage()`) — **ersetzt** den früheren
+  prozeduralen, animiert driftenden Nebel (`GemTextures.fog()` entfernt). Die Steine werden
+  **prozedural** gezeichnet, alle alten Edelstein-PNGs werden NICHT mehr ins Spiel geladen.
 - **Steine-Sets (wählbar, erweiterbar)**: Jedes Set ist ein `StoneSet` (id + Name + Zeichen-Funktion)
   in der `StoneSets`-Registry. Aktuell sechs:
   - **„Sigille"** (`SigilStones`) — fein geritzte Zeichen, gedeckte Tönung (Black Metal).
@@ -427,6 +429,19 @@ Screenshot bestätigt. **Phase 4 (UI) ist damit komplett: Modus-Wahl + Brettgrö
 der Vierling-Modus). Reine Anzeige-Änderung in `GameMode.title` — die internen case-Namen
 (`saeulen`/`verschuettet`), die `STEINREGEN_MODE`-Naht und die UserDefaults-Schlüssel bleiben
 unverändert (Persistenz/Headless-Naht). macOS-Menü per Screenshot bestätigt.
+
+**v0.20.0 — Hintergrundbild statt prozeduralem Nebel:** der früher prozedural erzeugte, animiert
+driftende Nebel (sah laut Daniel „überhaupt nicht gut" aus) ist durch ein **statisches
+KI-Hintergrundbild** ersetzt — ein Nebel-bei-Nacht-Friedhof (Mond, schmiedeeisernes Kreuz,
+Grabsteine, Ochsenblut-Schimmer), passend zur Black-Metal-Ästhetik. Lokal auf dem M5 mit
+**Qwen-Image** generiert (hohe Qualität **und** kommerziell unbedenklich — anders als FLUX, das wie
+schon `logo.png` einen Non-Commercial-Blocker hinzufügen würde) über die Number-One-Bildgen-Pipeline,
+ausgewählt aus 10 Kandidaten (5 Prompts × 2 Seeds). Liegt als `Resources/hintergrund.png` (896×1280)
+im Bundle, wird über `Theme.backdropImage()` geladen und in `GameScene.buildBackdrop()` formatfüllend
+(Cover, zentriert) ganz nach hinten gelegt — funktioniert auf macOS-Fenster wie iOS-Hochformat (Ränder
+werden beschnitten). Der verwaiste `GemTextures.fog()` + `fogCache` sind entfernt. macOS per
+Screenshot bestätigt (Brett/HUD bleiben klar lesbar). Nur das Gameplay; der SwiftUI-Startbildschirm
+ist unberührt.
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

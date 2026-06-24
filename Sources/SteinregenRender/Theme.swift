@@ -82,6 +82,25 @@ public enum Theme {
         return logoCached
     }
 
+    // MARK: - Hintergrundbild
+
+    private static var triedBackdrop = false
+    private static var backdropCached: CGImage?
+
+    /// Lädt das Spielfeld-Hintergrundbild (`hintergrund.png`, ein KI-generiertes Nebel-bei-Nacht-
+    /// Motiv) aus dem Bundle — oder nil, falls nicht vorhanden (dann bleibt nur die schwarze
+    /// Grundfläche). Ersetzt den früheren prozeduralen Nebel.
+    public static func backdropImage() -> CGImage? {
+        if triedBackdrop { return backdropCached }
+        triedBackdrop = true
+        if let url = resourceBundle.url(forResource: "hintergrund", withExtension: "png"),
+           let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+           let img = CGImageSourceCreateImageAtIndex(src, 0, nil) {
+            backdropCached = img
+        }
+        return backdropCached
+    }
+
     private static var fontsRegistered = false
 
     /// Registriert die mitgelieferte gotische Schrift (Regular + Bold) einmalig fuer diesen Prozess.
