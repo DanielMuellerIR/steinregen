@@ -155,10 +155,11 @@ final class EngineTests: XCTestCase {
     // MARK: - Game Over
 
     func testGameOverWhenSpawnColumnFull() {
-        // Einwurf-Spalte komplett (ohne Treffer) fuellen.
+        // Einwurf-Spalte komplett (ohne Treffer) fuellen. Einwurfspalte = Brettbreite / 2.
         let b = board { b in
-            for r in 0..<Board.height {
-                b[Engine.spawnColumn, r] = Gem.colors[r % Gem.colors.count]
+            let spawn = b.width / 2
+            for r in 0..<b.height {
+                b[spawn, r] = Gem.colors[r % Gem.colors.count]
             }
         }
         // Harmlose Saeule in col0 aufsetzen, um in die Phase .resolving zu kommen.
@@ -235,5 +236,45 @@ final class EngineTests: XCTestCase {
             differs = true
         }
         XCTAssertTrue(differs)
+    }
+
+    // MARK: - Konfigurierbare Brettgroesse
+
+    func testCustomBoardDimensions() {
+        // „Verschuettet"-Standard: 10 breit, 18 hoch. Die Engine uebernimmt die Maße ans Brett
+        // und leitet Einwurfspalte/-reihe daraus ab (Breite/2 bzw. Hoehe-1).
+        let engine = Engine(seed: 1, startLevel: 0, width: 10, height: 18)
+        XCTAssertEqual(engine.board.width, 10)
+        XCTAssertEqual(engine.board.height, 18)
+        XCTAssertEqual(engine.spawnColumn, 5)
+        XCTAssertEqual(engine.spawnRow, 17)
+        XCTAssertEqual(engine.current.col, 5)
+        XCTAssertEqual(engine.current.row, 17)
+    }
+
+    func testMatchOnWideBoardFarColumns() {
+        // Horizontaler Drilling ganz rechts auf einem breiten Brett — auf 6 Spalten unmoeglich.
+        var b = Board(width: 10, height: 14)
+        b[7, 0] = .ruby; b[8, 0] = .ruby; b[9, 0] = .ruby
+        XCTAssertEqual(Set(findMatches(b)),
+                       [Cell(col: 7, row: 0), Cell(col: 8, row: 0), Cell(col: 9, row: 0)])
+    }
+
+    func testSettleRespectsCustomHeight() {
+        // Nachrutschen muss die volle (groessere) Hoehe nutzen.
+        var b = Board(width: 8, height: 20)
+        b[0, 19] = .emerald          // schwebt ganz oben
+        settle(&b)
+        XCTAssertEqual(b[0, 0], .emerald)
+        XCTAssertNil(b[0, 19])
+    }
+
+    func testDeterminismCustomSize() {
+        // Gleicher Seed + gleiche Maße ⇒ identischer Startzustand.
+        let a = Engine(seed: 0xBEEF, startLevel: 0, width: 12, height: 22)
+        let b = Engine(seed: 0xBEEF, startLevel: 0, width: 12, height: 22)
+        XCTAssertEqual(a.board, b.board)
+        XCTAssertEqual(a.nextGems, b.nextGems)
+        XCTAssertEqual(a.current, b.current)
     }
 }

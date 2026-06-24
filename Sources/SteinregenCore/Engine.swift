@@ -16,17 +16,19 @@ public struct Engine: Sendable {
 
     // MARK: Konstanten
 
-    /// Mittlere Spalte, in der jede neue Saeule erscheint.
-    public static let spawnColumn = Board.width / 2
-    /// Reihe des untersten Steins beim Einwurf. Die Saeule schwebt von oben ein: nur der unterste
-    /// Stein steht anfangs in der obersten Brettreihe, die beiden oberen Segmente liegen noch
-    /// UEBER dem Brett (Reihen >= Board.height, dort als frei behandelt) und werden von der
-    /// Render-Schicht ausgeblendet, bis sie beim Fallen Reihe fuer Reihe ins Feld rutschen.
-    public static let spawnRow = Board.height - 1
     /// So viele geraeumte Steine heben das Level um eins.
     public static let gemsPerLevel = 30
     /// Magic-Jewel-Haeufigkeit: im Schnitt 1 von `magicOdds` gezogenen Saeulen.
     public static let magicOdds: UInt64 = 40
+
+    /// Mittlere Spalte, in der jede neue Saeule erscheint — haengt von der Brettbreite ab.
+    public var spawnColumn: Int { board.width / 2 }
+    /// Reihe des untersten Steins beim Einwurf (oberste Brettreihe). Die Saeule schwebt von oben
+    /// ein: nur der unterste Stein steht anfangs in der obersten Brettreihe, die beiden oberen
+    /// Segmente liegen noch UEBER dem Brett (Reihen >= board.height, dort als frei behandelt) und
+    /// werden von der Render-Schicht ausgeblendet, bis sie beim Fallen Reihe fuer Reihe ins Feld
+    /// rutschen.
+    public var spawnRow: Int { board.height - 1 }
 
     // MARK: Zustand (von aussen nur lesbar)
 
@@ -47,10 +49,11 @@ public struct Engine: Sendable {
 
     // MARK: Initialisierung
 
-    public init(seed: UInt64, startLevel: Int = 0) {
+    public init(seed: UInt64, startLevel: Int = 0,
+                width: Int = Board.defaultWidth, height: Int = Board.defaultHeight) {
         self.seed = seed
         self.startLevel = max(0, startLevel)
-        self.board = Board()
+        self.board = Board(width: width, height: height)
         self.score = 0
         self.gemsCleared = 0
         self.phase = .falling
@@ -61,7 +64,9 @@ public struct Engine: Sendable {
         let first = Engine.drawColors(&r)
         self.nextGems = Engine.drawColumn(&r)
         self.rng = r
-        self.current = Piece(gems: first, col: Engine.spawnColumn, row: Engine.spawnRow)
+        // spawnColumn/spawnRow sind berechnete Eigenschaften (brauchen `board`); hier direkt aus
+        // den Brettmaßen, weil im Initializer noch nicht alle gespeicherten Felder gesetzt sind.
+        self.current = Piece(gems: first, col: width / 2, row: height - 1)
     }
 
     /// Test-Initialisierer: setzt Brett und Saeulen direkt (nur via `@testable import`).
@@ -87,11 +92,11 @@ public struct Engine: Sendable {
 
     private mutating func move(to newCol: Int) -> Bool {
         guard phase == .falling else { return false }
-        guard newCol >= 0, newCol < Board.width else { return false }
+        guard newCol >= 0, newCol < board.width else { return false }
         // Alle drei Zielzellen muessen frei sein (oberhalb des Bretts gilt als frei).
         for i in 0..<3 {
             let r = current.row + i
-            if r < Board.height, board[newCol, r] != nil { return false }
+            if r < board.height, board[newCol, r] != nil { return false }
         }
         current.col = newCol
         return true
@@ -154,7 +159,7 @@ public struct Engine: Sendable {
             // Normale Saeule ins Brett schreiben.
             for i in 0..<3 {
                 let r = landed.row + i
-                if r < Board.height { board[landed.col, r] = landed.gems[i] }
+                if r < board.height { board[landed.col, r] = landed.gems[i] }
             }
             boardBefore = board
         }
@@ -185,14 +190,14 @@ public struct Engine: Sendable {
 
         // Einwurf blockiert? (mittlere Spalte oben belegt)
         for i in 0..<3 {
-            let r = Engine.spawnRow + i
-            if r < Board.height, board[Engine.spawnColumn, r] != nil {
+            let r = spawnRow + i
+            if r < board.height, board[spawnColumn, r] != nil {
                 phase = .gameOver
                 return false
             }
         }
 
-        current = Piece(gems: nextGems, col: Engine.spawnColumn, row: Engine.spawnRow)
+        current = Piece(gems: nextGems, col: spawnColumn, row: spawnRow)
         nextGems = Engine.drawColumn(&rng)
         phase = .falling
         return true

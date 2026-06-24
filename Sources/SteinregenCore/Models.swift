@@ -37,36 +37,46 @@ public struct Cell: Hashable, Sendable {
 
 // MARK: - Spielfeld
 
-/// Das Spielraster (6 Spalten × 13 Reihen, wie im Columns-Original). `nil` = leere Zelle.
-/// Magic-Steine landen NIE hier — das Brett enthaelt ausschliesslich normale Farben.
+/// Das Spielraster. Die Maße sind frei waehlbar (pro Partie/Modus): `width` Spalten × `height`
+/// Reihen. Standard ist 6 × 13 wie im Columns-Original — der „Verschuettet"-Modus und frei
+/// eingestellte Brettgroessen geben eigene Maße an. `nil` = leere Zelle. Magic-Steine landen NIE
+/// hier — das Brett enthaelt ausschliesslich normale Farben.
 public struct Board: Sendable, Equatable {
-    public static let width = 6
-    public static let height = 13
+    /// Standard-Brettmaße (Columns-/„Saeulen"-Klassik). Dienen nur als Default fuer `init` —
+    /// die echte Groesse eines Bretts steht in den Instanz-Eigenschaften `width`/`height`.
+    public static let defaultWidth = 6
+    public static let defaultHeight = 13
+
+    /// Tatsaechliche Maße DIESES Bretts (nach `init` unveraenderlich).
+    public let width: Int
+    public let height: Int
 
     // Speicher zeilenweise: index = row * width + col.
     private var cells: [Gem?]
 
-    public init() {
-        cells = Array(repeating: nil, count: Board.width * Board.height)
+    public init(width: Int = Board.defaultWidth, height: Int = Board.defaultHeight) {
+        self.width = width
+        self.height = height
+        cells = Array(repeating: nil, count: width * height)
     }
 
-    /// Liegt (col, row) innerhalb des Bretts?
-    public static func inBounds(col: Int, row: Int) -> Bool {
+    /// Liegt (col, row) innerhalb DIESES Bretts? (Instanz-Methode — kennt die echten Maße.)
+    public func inBounds(col: Int, row: Int) -> Bool {
         col >= 0 && col < width && row >= 0 && row < height
     }
 
     /// Zugriff auf eine Zelle. Get ist oeffentlich (Render liest das Brett); Set ist oeffentlich,
     /// betrifft aber nur die jeweilige Kopie — die Engine schuetzt ihr eigenes Brett via `private(set)`.
     public subscript(_ col: Int, _ row: Int) -> Gem? {
-        get { cells[row * Board.width + col] }
-        set { cells[row * Board.width + col] = newValue }
+        get { cells[row * width + col] }
+        set { cells[row * width + col] = newValue }
     }
 
     /// Alle Zellen einer bestimmten Farbe (fuer den Magic-Jewel-Effekt).
     public func cells(of gem: Gem) -> [Cell] {
         var result: [Cell] = []
-        for row in 0..<Board.height {
-            for col in 0..<Board.width where self[col, row] == gem {
+        for row in 0..<height {
+            for col in 0..<width where self[col, row] == gem {
                 result.append(Cell(col: col, row: row))
             }
         }

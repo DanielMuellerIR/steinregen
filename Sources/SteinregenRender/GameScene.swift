@@ -28,7 +28,7 @@ public final class GameScene: SKScene {
 
     /// Brett-Knoten, indiziert [col][row]; nil = leere Zelle.
     private var gemNodes: [[SKSpriteNode?]] =
-        Array(repeating: Array(repeating: nil, count: Board.height), count: Board.width)
+        Array(repeating: Array(repeating: nil, count: Board.defaultHeight), count: Board.defaultWidth)
     /// Die drei Knoten der aktiven Saeule.
     private var pieceNodes: [SKSpriteNode] = []
 
@@ -148,10 +148,10 @@ public final class GameScene: SKScene {
         guard availW > 0, availH > 0 else { return }
         // Brett fuellt die Hoehe; die Kachelgroesse wird zusaetzlich so gedeckelt, dass links und
         // rechts je ein Seiten-Panel frei bleibt (Punkte/Level bzw. Vorschau).
-        tile = floor(min(availH / CGFloat(Board.height),
-                         availW / (CGFloat(Board.width) + sideTilesTotal)))
-        let boardW = tile * CGFloat(Board.width)
-        let boardH = tile * CGFloat(Board.height)
+        tile = floor(min(availH / CGFloat(Board.defaultHeight),
+                         availW / (CGFloat(Board.defaultWidth) + sideTilesTotal)))
+        let boardW = tile * CGFloat(Board.defaultWidth)
+        let boardH = tile * CGFloat(Board.defaultHeight)
         boardOriginX = (size.width - boardW) / 2          // mittig → gleicher Rand links/rechts
         boardOriginY = (size.height - boardH) / 2          // senkrecht zentriert
         gemSize = CGSize(width: tile * 0.94, height: tile * 0.94)
@@ -215,12 +215,12 @@ public final class GameScene: SKScene {
         // Feines Raster.
         let grid = SKShapeNode()
         let path = CGMutablePath()
-        for c in 0...Board.width {
+        for c in 0...Board.defaultWidth {
             let x = boardOriginX + CGFloat(c) * tile
             path.move(to: CGPoint(x: x, y: boardOriginY))
             path.addLine(to: CGPoint(x: x, y: boardOriginY + boardH))
         }
-        for r in 0...Board.height {
+        for r in 0...Board.defaultHeight {
             let y = boardOriginY + CGFloat(r) * tile
             path.move(to: CGPoint(x: boardOriginX, y: y))
             path.addLine(to: CGPoint(x: boardOriginX + boardW, y: y))
@@ -302,8 +302,8 @@ public final class GameScene: SKScene {
     /// Setzt das ganze Brett ohne Animation neu (initial + Resync nach Kaskade).
     private func renderBoardInstant(_ board: Board) {
         boardLayer.removeAllChildren()
-        for col in 0..<Board.width {
-            for row in 0..<Board.height {
+        for col in 0..<Board.defaultWidth {
+            for row in 0..<Board.defaultHeight {
                 gemNodes[col][row] = nil
                 if let gem = board[col, row] {
                     let node = makeGemNode(gem)
@@ -328,7 +328,7 @@ public final class GameScene: SKScene {
             // Die Saeule schwebt von oben ein: Segmente oberhalb der obersten Brettreihe sind noch
             // nicht im Spielfeld und bleiben unsichtbar, bis sie eine Reihe tiefer rutschen.
             let row = engine.current.row + i
-            let onBoard = row < Board.height
+            let onBoard = row < Board.defaultHeight
             node.isHidden = !falling || !onBoard
             let gem = engine.current.gems[i]
             if gem.isMagic {
@@ -528,9 +528,9 @@ public final class GameScene: SKScene {
     /// Laesst die uebrigen Steine spaltenweise nach unten nachrutschen (analog zu `settle`).
     private func compactColumnsAnimated(completion: @escaping () -> Void) {
         var maxDuration: TimeInterval = 0
-        for col in 0..<Board.width {
+        for col in 0..<Board.defaultWidth {
             var writeRow = 0
-            for row in 0..<Board.height {
+            for row in 0..<Board.defaultHeight {
                 if let node = gemNodes[col][row] {
                     if writeRow != row {
                         gemNodes[col][writeRow] = node
