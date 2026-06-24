@@ -14,7 +14,13 @@ public final class GameScene: SKScene {
     public weak var model: GameModel?
 
     // MARK: Spielzustand
-    private var engine: Engine?
+    /// Die aktive Engine — modusneutral hinter `PlayEngine` (Saeulen oder Verschuettet).
+    private var engine: (any PlayEngine)?
+    /// Brettmaße der laufenden Partie. Werden in `start()` aus der Engine uebernommen; alle Layout-
+    /// und Render-Schleifen laufen ueber DIESE Werte (nicht ueber die Board-Defaults), damit
+    /// beliebige Brettgroessen (Verschuettet, frei eingestellte Maße) sauber gezeichnet werden.
+    private var boardWidth = Board.defaultWidth
+    private var boardHeight = Board.defaultHeight
 
     // MARK: Layer + Knoten
     /// Ganz hinten: animierter, ziehender Nebel.
@@ -36,6 +42,11 @@ public final class GameScene: SKScene {
     private var levelLabel = SKLabelNode()
     private var nextLabel = SKLabelNode()
     private var previewNodes: [SKSpriteNode] = []
+    /// Geometrie des Vorschau-Bereichs im rechten Panel (in `buildHUD` gesetzt) — der
+    /// Verschuettet-Vorschau-Pfad in `updateHUD` baut die Vierling-Form anhand dieser Werte auf.
+    private var previewCenterX: CGFloat = 0
+    private var previewAreaTopY: CGFloat = 0
+    private var previewPanelWidth: CGFloat = 0
 
     // MARK: Layout (in layout() berechnet)
     private var tile: CGFloat = 40
@@ -111,11 +122,30 @@ public final class GameScene: SKScene {
 
     // MARK: - Spielstart
 
-    /// Startet (oder restartet) eine Partie mit gegebenem Seed und Start-Tempostufe.
-    public func start(seed: UInt64, startLevel: Int) {
+    /// Startet (oder restartet) eine Partie mit gegebenem Seed, Start-Tempostufe und Modus.
+    /// `width`/`height` setzen die Brettmaße; nil ⇒ der Modus-Standard (Saeulen 6×13,
+    /// Verschuettet 10×18). Default-Modus ist „Saeulen", damit bestehende Aufrufer unveraendert
+    /// den Columns-Modus bekommen.
+    public func start(seed: UInt64, startLevel: Int, mode: GameMode = .saeulen,
+                      width: Int? = nil, height: Int? = nil) {
         // Gewaehltes Steine-Set aus den Einstellungen uebernehmen (gilt ab dieser Partie).
         GemTextures.activeSetID = StoneSets.selectedID
-        engine = Engine(seed: seed, startLevel: startLevel)
+        switch mode {
+        case .saeulen:
+            engine = Engine(seed: seed, startLevel: startLevel,
+                            width: width ?? Board.defaultWidth,
+                            height: height ?? Board.defaultHeight)
+        case .verschuettet:
+            engine = TetrominoEngine(seed: seed, startLevel: startLevel,
+                                     width: width ?? TetrominoEngine.defaultWidth,
+                                     height: height ?? TetrominoEngine.defaultHeight)
+        }
+        // Brettmaße + Knoten-Raster an die tatsaechliche Brettgroesse anpassen.
+        boardWidth = engine!.board.width
+        boardHeight = engine!.board.height
+        gemNodes = Array(repeating: Array(repeating: nil, count: boardHeight), count: boardWidth)
+        pieceLayer.removeAllChildren()     // alte Saeulen-/Vierling-Knoten (evtl. andere Anzahl) verwerfen
+        pieceNodes.removeAll()
         lastLevel = engine!.level          // kein „Level geschafft" beim Start
         isResolving = false
         fallAccumulator = 0
@@ -148,10 +178,10 @@ public final class GameScene: SKScene {
         guard availW > 0, availH > 0 else { return }
         // Brett fuellt die Hoehe; die Kachelgroesse wird zusaetzlich so gedeckelt, dass links und
         // rechts je ein Seiten-Panel frei bleibt (Punkte/Level bzw. Vorschau).
-        tile = floor(min(availH / CGFloat(Board.defaultHeight),
-                         availW / (CGFloat(Board.defaultWidth) + sideTilesTotal)))
-        let boardW = tile * CGFloat(Board.defaultWidth)
-        let boardH = tile * CGFloat(Board.defaultHeight)
+        tile = floor(min(availH / CGFloat(boardHeight),
+                         availW / (CGFloat(boardWidth) + sideTilesTotal)))
+        let boardW = tile * CGFloat(boardWidth)
+        let boardH = tile * CGFloat(boardHeight)
         boardOriginX = (size.width - boardW) / 2          // mittig → gleicher Rand links/rechts
         boardOriginY = (size.height - boardH) / 2          // senkrecht zentriert
         gemSize = CGSize(width: tile * 0.94, height: tile * 0.94)
@@ -215,12 +245,12 @@ public final class GameScene: SKScene {
         // Feines Raster.
         let grid = SKShapeNode()
         let path = CGMutablePath()
-        for c in 0...Board.defaultWidth {
+        for c in 0...boardWidth {
             let x = boardOriginX + CGFloat(c) * tile
             path.move(to: CGPoint(x: x, y: boardOriginY))
             path.addLine(to: CGPoint(x: x, y: boardOriginY + boardH))
         }
-        for r in 0...Board.defaultHeight {
+        for r in 0...boardHeight {
             let y = boardOriginY + CGFloat(r) * tile
             path.move(to: CGPoint(x: boardOriginX, y: y))
             path.addLine(to: CGPoint(x: boardOriginX + boardW, y: y))
@@ -270,10 +300,23 @@ public final class GameScene: SKScene {
         nextLabel.position = CGPoint(x: rightCenterX, y: topY - 24)
         hudLayer.addChild(nextLabel)
 
+        // Geometrie des Vorschau-Bereichs merken (beide Modi nutzen sie; Verschuettet baut seine
+        // Form daraus in updateHUD auf).
+        previewCenterX = rightCenterX
+        previewAreaTopY = topY - 56
+        previewPanelWidth = size.width - (boardOriginX + boardW) - outerPad
+
+        // Saeulen-Vorschau: drei feste Knoten senkrecht (Index 0 = unten). Pixelgleich zu frueher,
+        // damit der Saeulen-Modus optisch unveraendert bleibt. Verschuettet baut seine Form dagegen
+        // pro Stein frisch in updateHUD auf (die Form wechselt) → hier keine festen Knoten anlegen.
+        let isTetromino: Bool
+        if case .tetromino = engine?.preview { isTetromino = true } else { isTetromino = false }
+        guard !isTetromino else { return }
+
         // Drei Steine senkrecht gestapelt: Index 0 = unterster Stein der Säule → unten, Index 2 → oben.
-        let pSize = min(tile * 0.86, (size.width - (boardOriginX + boardW) - outerPad) * 0.78)
+        let pSize = min(tile * 0.86, previewPanelWidth * 0.78)
         let gap: CGFloat = 6
-        let firstY = topY - 56 - pSize / 2          // Mitte des obersten Vorschau-Steins
+        let firstY = previewAreaTopY - pSize / 2     // Mitte des obersten Vorschau-Steins
         for i in 0..<3 {
             let n = SKSpriteNode(color: .clear, size: CGSize(width: pSize, height: pSize))
             n.position = CGPoint(x: rightCenterX, y: firstY - CGFloat(2 - i) * (pSize + gap))
@@ -302,8 +345,8 @@ public final class GameScene: SKScene {
     /// Setzt das ganze Brett ohne Animation neu (initial + Resync nach Kaskade).
     private func renderBoardInstant(_ board: Board) {
         boardLayer.removeAllChildren()
-        for col in 0..<Board.defaultWidth {
-            for row in 0..<Board.defaultHeight {
+        for col in 0..<boardWidth {
+            for row in 0..<boardHeight {
                 gemNodes[col][row] = nil
                 if let gem = board[col, row] {
                     let node = makeGemNode(gem)
@@ -315,22 +358,25 @@ public final class GameScene: SKScene {
         }
     }
 
-    /// Positioniert/texturiert die drei Knoten der aktiven Saeule.
+    /// Positioniert/texturiert die Knoten des aktiven Steins (Saeule = 3 Zellen, Vierling = 4).
     private func renderPiece(animated: Bool = false) {
         guard let engine else { return }
-        while pieceNodes.count < 3 {
+        let cells = engine.activeCells
+        while pieceNodes.count < cells.count {
             let n = SKSpriteNode(); pieceLayer.addChild(n); pieceNodes.append(n)
         }
+        // Ueberzaehlige Knoten (z.B. nach Modus-/Brettwechsel von 4 auf 3 Zellen) ausblenden.
+        for i in cells.count..<pieceNodes.count { pieceNodes[i].isHidden = true }
+
         let falling = (engine.phase == .falling)
-        for i in 0..<3 {
+        for i in 0..<cells.count {
             let node = pieceNodes[i]
             node.size = gemSize
-            // Die Saeule schwebt von oben ein: Segmente oberhalb der obersten Brettreihe sind noch
-            // nicht im Spielfeld und bleiben unsichtbar, bis sie eine Reihe tiefer rutschen.
-            let row = engine.current.row + i
-            let onBoard = row < Board.defaultHeight
+            let (cell, gem) = cells[i]
+            // Steine schweben von oben ein: Zellen oberhalb der obersten Brettreihe sind noch nicht
+            // im Spielfeld und bleiben unsichtbar, bis sie eine Reihe tiefer rutschen.
+            let onBoard = cell.row < boardHeight
             node.isHidden = !falling || !onBoard
-            let gem = engine.current.gems[i]
             if gem.isMagic {
                 node.texture = GemTextures.magicTextures.first
                 applyMagicAnimation(to: node)
@@ -339,9 +385,9 @@ public final class GameScene: SKScene {
                 node.setScale(1)
                 node.texture = GemTextures.texture(for: gem)
             }
-            let target = cellCenter(col: engine.current.col, row: row)
-            // Nur im Brett animieren; ein noch unsichtbares Segment wird direkt an seine Position
-            // ueber dem Brett geparkt — taucht es eine Reihe tiefer auf, gleitet es von dort herein.
+            let target = cellCenter(col: cell.col, row: cell.row)
+            // Nur im Brett animieren; eine noch unsichtbare Zelle wird direkt an ihre Position ueber
+            // dem Brett geparkt — taucht sie eine Reihe tiefer auf, gleitet sie von dort herein.
             if animated && onBoard {
                 node.run(SKAction.move(to: target, duration: 0.06))
             } else {
@@ -402,7 +448,7 @@ public final class GameScene: SKScene {
             let limit = hardDropped ? hardDropLockDelay : lockDelay
             if lockDelayAccumulator >= limit {
                 lockDelayAccumulator = 0
-                stepGravity()          // canFall() ist false → gravityTick() setzt jetzt auf
+                stepGravity()          // canFall() ist false → step() setzt jetzt auf
             }
         }
     }
@@ -415,11 +461,11 @@ public final class GameScene: SKScene {
 
     private func stepGravity() {
         guard engine != nil else { return }
-        switch engine!.gravityTick() {
+        switch engine!.step() {
         case .moved:
             renderPiece(animated: true)
-        case .locked(let result):
-            beginResolution(result)
+        case .locked(let before, let steps, let magicLanding):
+            beginResolution(before: before, steps: steps, magicLanding: magicLanding)
         }
     }
 
@@ -453,9 +499,9 @@ public final class GameScene: SKScene {
     /// geschoben/gedreht werden kann. Wer gar nichts mehr tut, rastet nach 0,21 s ein.
     public func inputHardDrop() {
         guard canInput() else { return }
-        // Nur fallen lassen, solange Luft ist (jeder Tick liefert .moved). Den lock-ausloesenden
-        // Tick (canFall == false) bewusst NICHT ausfuehren — das uebernimmt erst das Lock-Delay.
-        while engine!.canFall() { _ = engine!.gravityTick() }
+        // Nur fallen lassen, solange Luft ist (jeder Schritt liefert .moved). Den lock-ausloesenden
+        // Schritt (canFall == false) bewusst NICHT ausfuehren — das uebernimmt erst das Lock-Delay.
+        while engine!.canFall() { _ = engine!.step() }
         hardDropped = true
         lockDelayAccumulator = 0
         renderPiece()          // sofort an die Aufsetz-Position (knackiger Slam)
@@ -475,23 +521,26 @@ public final class GameScene: SKScene {
 
     // MARK: - Kaskaden-Animation
 
-    private func beginResolution(_ result: LockResult) {
+    private func beginResolution(before: Board, steps: [ClearStep], magicLanding: (col: Int, row: Int)?) {
         isResolving = true
-        SoundFX.land()                 // Säule ist aufgesetzt (Stein berührt Stein/Boden)
+        SoundFX.land()                 // Stein ist aufgesetzt (berührt Stein/Boden)
         for node in pieceNodes { node.isHidden = true }
-        animateLock(result) { [weak self] in self?.endResolution() }
+        animateLock(before: before, steps: steps, magicLanding: magicLanding) { [weak self] in
+            self?.endResolution()
+        }
     }
 
-    private func animateLock(_ result: LockResult, completion: @escaping () -> Void) {
-        renderBoardInstant(result.boardBefore)
+    private func animateLock(before: Board, steps: [ClearStep], magicLanding: (col: Int, row: Int)?,
+                             completion: @escaping () -> Void) {
+        renderBoardInstant(before)
 
         func runSteps(_ index: Int) {
-            guard index < result.steps.count else {
+            guard index < steps.count else {
                 updateHUD()            // Punktestand nach der Welle nachziehen
                 completion()
                 return
             }
-            let step = result.steps[index]
+            let step = steps[index]
             showCombo(chain: step.chain, count: step.cells.count)
             flashAndRemove(step.cells) { [weak self] in
                 self?.compactColumnsAnimated {
@@ -501,8 +550,8 @@ public final class GameScene: SKScene {
             }
         }
 
-        if result.wasMagic {
-            showMagicLanding(result.landed) { runSteps(0) }
+        if let landing = magicLanding {
+            showMagicLanding(col: landing.col, row: landing.row) { runSteps(0) }
         } else {
             runSteps(0)
         }
@@ -528,9 +577,9 @@ public final class GameScene: SKScene {
     /// Laesst die uebrigen Steine spaltenweise nach unten nachrutschen (analog zu `settle`).
     private func compactColumnsAnimated(completion: @escaping () -> Void) {
         var maxDuration: TimeInterval = 0
-        for col in 0..<Board.defaultWidth {
+        for col in 0..<boardWidth {
             var writeRow = 0
-            for row in 0..<Board.defaultHeight {
+            for row in 0..<boardHeight {
                 if let node = gemNodes[col][row] {
                     if writeRow != row {
                         gemNodes[col][writeRow] = node
@@ -553,12 +602,13 @@ public final class GameScene: SKScene {
         }
     }
 
-    /// Zeigt die aufsetzende Magic-Saeule kurz an ihrer Landeposition und laesst sie aufploppen.
-    private func showMagicLanding(_ landed: Piece, completion: @escaping () -> Void) {
+    /// Zeigt die aufsetzende Magic-Saeule kurz an ihrer Landeposition (Spalte/Reihe) und laesst sie
+    /// aufploppen. Nur Saeulen-Modus (Verschuettet hat keine Magic-Steine).
+    private func showMagicLanding(col: Int, row: Int, completion: @escaping () -> Void) {
         var nodes: [SKSpriteNode] = []
         for i in 0..<3 {
             let node = SKSpriteNode(texture: GemTextures.magicTextures.first, size: gemSize)
-            node.position = cellCenter(col: landed.col, row: landed.row + i)
+            node.position = cellCenter(col: col, row: row + i)
             node.zPosition = 6
             applyMagicAnimation(to: node)
             boardLayer.addChild(node)
@@ -690,11 +740,20 @@ public final class GameScene: SKScene {
         if engine.level > lastLevel { SoundFX.levelUp() }   // Level gestiegen
         lastLevel = engine.level
 
+        switch engine.preview {
+        case .columns(let gems):       renderColumnsPreview(gems)
+        case .tetromino(let cells, let gem): renderTetrominoPreview(cells: cells, gem: gem)
+        }
+    }
+
+    /// Saeulen-Vorschau: die drei festen Knoten (aus buildHUD) texturieren — Index 0 = unten.
+    /// Unveraendert zu frueher (Magic-Saeule pulsiert).
+    private func renderColumnsPreview(_ gems: [Gem]) {
         let pSize = previewNodes.first?.size ?? gemSize
-        let isMagicPreview = engine.nextGems.allSatisfy { $0.isMagic }
-        for (i, node) in previewNodes.enumerated() {
+        let isMagicPreview = gems.allSatisfy { $0.isMagic }
+        for (i, node) in previewNodes.enumerated() where i < gems.count {
             node.size = pSize
-            let gem = engine.nextGems[i]
+            let gem = gems[i]
             if isMagicPreview {
                 node.texture = GemTextures.magicTextures.first
                 applyMagicAnimation(to: node)
@@ -703,6 +762,32 @@ public final class GameScene: SKScene {
                 node.setScale(1)
                 node.texture = GemTextures.texture(for: gem)
             }
+        }
+    }
+
+    /// Verschuettet-Vorschau: die naechste Vierling-Form in einer kleinen Box zeichnen. Die Form
+    /// wechselt je Stein, darum werden die Knoten hier frisch aufgebaut (Zellen in Brett-Koordinaten:
+    /// row 0 = unten). Zentriert im rechten Panel unter dem „als Naechstes"-Label.
+    private func renderTetrominoPreview(cells: [Cell], gem: Gem) {
+        for n in previewNodes { n.removeFromParent() }
+        previewNodes.removeAll()
+        guard !cells.isEmpty else { return }
+
+        let cols = (cells.map(\.col).max() ?? 0) + 1
+        let rows = (cells.map(\.row).max() ?? 0) + 1
+        // Kachel so, dass die breiteste Form (4 Zellen) bequem ins Panel passt.
+        let t = min(tile * 0.72, previewPanelWidth * 0.9 / 4)
+        let totalW = CGFloat(cols) * t
+        let leftCenterX = previewCenterX - totalW / 2 + t / 2     // Mitte der linken Zellspalte
+        let topCenterY = previewAreaTopY - t / 2                  // Mitte der obersten Zellreihe
+        let node0 = CGSize(width: t * 0.94, height: t * 0.94)
+        for cell in cells {
+            let n = SKSpriteNode(texture: GemTextures.texture(for: gem), size: node0)
+            // row waechst nach oben → groesste row liegt ganz oben.
+            n.position = CGPoint(x: leftCenterX + CGFloat(cell.col) * t,
+                                 y: topCenterY - CGFloat(rows - 1 - cell.row) * t)
+            previewNodes.append(n)
+            hudLayer.addChild(n)
         }
     }
 }

@@ -31,8 +31,11 @@ steinregen/                   (SwiftPM-Workspace)
 ├── VERSION                   (synchron zu `steinregenVersion` in Core halten)
 ├── project.yml               (xcodegen-Spec der iOS-App; .xcodeproj wird daraus erzeugt, git-ignoriert)
 ├── Sources/
-│   ├── SteinregenCore/       (reine, deterministische Spiellogik + PRNG + Modelle — plattformneutral)
+│   ├── SteinregenCore/       (reine, deterministische Spiellogik + PRNG + Modelle — plattformneutral;
+│   │                          ZWEI Engines: Engine = Säulen/Columns, TetrominoEngine = Verschüttet)
 │   ├── SteinregenRender/     (SpriteKit-Szene, Spielloop, Theme = Palette/Fonts/Korn/Nebel,
+│   │                          PlayEngine = modusneutrales Protokoll über beide Engines (GameScene
+│   │                          treibt Säulen + Verschüttet mit einem Code-Pfad),
 │   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones
 │   │                          + ZaubersteineStones (svg/procedural/png), GemTextures =
 │   │                          set-bewusste Textur-Fabrik, SoundFX = Soundeffekte, Magic-Animation
@@ -125,6 +128,7 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_LEVEL=<1..10>` — Start-Tempostufe
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`/`freedoom`)
+- `STEINREGEN_MODE=<modus>` — Spielmodus (`saeulen` = Columns, `verschuettet` = Vierlinge; Default `saeulen`)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start direkt den Friedhof (Bestenliste)
 
@@ -178,7 +182,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-24, v0.13.0)
+## 5. Status (Stand 2026-06-24, v0.16.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -344,6 +348,33 @@ der Git-Historie **zurückgeholt** und als kleine Mono-AAC (`.m4a`, 2–22 KB) w
 beide Sets verfügbar sind. Außerdem Einstellungs-Politur: die Steine-Liste ist jetzt per ↑ ↓
 navigierbar, die Steine-Karten zeigen nur noch Name/Vorschau/Marker (ohne Beschreibung), und das
 Steine-Set „FreeDoom" rückt auf Platz 2.
+
+**v0.14.0 — frei konfigurierbare Brettgröße (Core):** die Brettmaße sind jetzt Instanz-Werte
+(`Board.width`/`height`) statt feste Konstanten — `Engine(seed:startLevel:width:height:)`, Default
+weiterhin 6×13. Matching/Settle/Spawn rechnen über die echten Maße. Vorbereitung für den zweiten
+Modus und frei einstellbare Bretter. Spiellogik bei 6×13 unverändert, Core-Tests grün.
+
+**v0.15.0 — zweite Engine „Verschüttet" (Core):** eigene, parallele Spiel-Engine für den
+Vierling-Modus (`TetrominoEngine` + `Tetromino`): sieben klassische Formen, CW-Drehung in der N×N-Box,
+deterministischer 7-bag (jede Form einmal pro Beutel, seed-gemischt), volle Reihen räumen + Blöcke
+nachrutschen (keine Kette), Punkte 100/300/500/800 × Level, Game-Over, einfache Wall-Kicks. Default
+10×18, einstellbar. Die Columns-Engine bleibt **völlig unberührt** — beide teilen nur `Board`/`Gem`/
+`Phase`/`ClearStep`/PRNG. +13 Core-Tests. Bewusst markenfrei („Tetromino" = geometrischer Gattungs-
+begriff).
+
+**v0.16.0 — Render treibt BEIDE Modi (Phase 3):** neues schmales Protokoll **`PlayEngine`**
+(in der Render-Schicht) mit retroaktiver Conformance für `Engine` UND `TetrominoEngine`; `GameScene`
+spricht nur noch dieses Protokoll und treibt damit Säulen **und** Verschüttet mit EINEM Code-Pfad.
+Modusneutrale Typen: `StepResult` (`.moved`/`.locked(before:steps:magicLanding:)`), `activeCells`
+(aktive Stein-Zellen in Brett-Koordinaten, inkl. der über dem Brett schwebenden Säulen-Segmente, die
+der Renderer ausblendet) und `PreviewShape` (`.columns`/`.tetromino`). **Variable Brettmaße im
+Renderer:** Layout, Raster, Brett-Render und Nachrutsch-Animation laufen über `engine.board.width/height`
+statt feste Konstanten; `gemNodes`/`pieceNodes` sind dynamisch dimensioniert. Die HUD-Vorschau hat
+zwei Pfade — Säulen (drei gestapelte Steine, **pixelgleich** zu vorher) und Verschüttet (die nächste
+Form als Mini-Shape). Modus vorerst nur über die Test-Naht `STEINREGEN_MODE=saeulen|verschuettet`
+wählbar (UI-Modus-Wahl folgt). Säulen 6×13 per Vorher/Nachher-Screenshot als **optisch unverändert**
+verifiziert (nur das ohnehin zufällige Korn-Overlay flackert), Verschüttet headless gesichtet.
+Die beiden Modi heißen **Säulen** (bestehender Columns-Modus) und **Verschüttet** (neuer Vierling-Modus).
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

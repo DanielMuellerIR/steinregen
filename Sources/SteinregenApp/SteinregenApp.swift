@@ -112,6 +112,9 @@ struct RootView: View {
     @State private var startLevel: Int = 1          // 1-basiert (kein „Level 0")
     @State private var currentSeed: UInt64 = 1
     @State private var activeSheet: ActiveSheet?
+    /// Gewaehlter Spielmodus. Vorerst nur ueber die Test-Naht (env STEINREGEN_MODE) umschaltbar —
+    /// die UI-Modus-Wahl im Startbildschirm folgt in einem spaeteren Schritt (Phase 4).
+    @State private var gameMode: GameMode = .saeulen
 
     var body: some View {
         ZStack {
@@ -158,6 +161,7 @@ struct RootView: View {
             // direkt den jeweiligen Dialog.
             let env = ProcessInfo.processInfo.environment
             if let setID = env["STEINREGEN_SET"] { StoneSets.selectedID = setID }
+            if let m = env["STEINREGEN_MODE"] { gameMode = (m == "verschuettet") ? .verschuettet : .saeulen }
             if env["STEINREGEN_SETTINGS"] != nil { activeSheet = .settings }
             if env["STEINREGEN_FRIEDHOF"] != nil { activeSheet = .friedhof }
             if env["STEINREGEN_AUTOSTART"] != nil {
@@ -176,7 +180,7 @@ struct RootView: View {
 
     private func startGame(seed: UInt64) {
         currentSeed = seed
-        scene.start(seed: seed, startLevel: startLevel)
+        scene.start(seed: seed, startLevel: startLevel, mode: gameMode)
         screen = .playing
     }
 
