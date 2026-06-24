@@ -10,6 +10,7 @@
 // es in die Render-Schicht. Die Conformance ist „retroaktiv" (Typ aus dem Core-Modul, Protokoll
 // aus diesem Modul); das ist erlaubt, weil das Protokoll im selben Modul wie die Extension liegt.
 
+import Foundation
 import SteinregenCore
 
 // MARK: - Spielmodus
@@ -35,6 +36,42 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
         case .saeulen:      return "fallende Dreier-Säulen · 3 gleiche in Linie räumen"
         case .verschuettet: return "fallende Vierlinge · volle Reihen räumen"
         }
+    }
+
+    /// Standard-Brettmaße des Modus (Säulen 6×13 wie Columns, Verschüttet 10×18).
+    public var defaultWidth: Int  { self == .saeulen ? Board.defaultWidth  : TetrominoEngine.defaultWidth }
+    public var defaultHeight: Int { self == .saeulen ? Board.defaultHeight : TetrominoEngine.defaultHeight }
+
+    /// Erlaubte Spanne der einstellbaren Brettmaße (von Daniel bestätigt, Stand 2026-06-24).
+    public var widthRange: ClosedRange<Int>  { self == .saeulen ? 5...12 : 8...14 }
+    public var heightRange: ClosedRange<Int> { self == .saeulen ? 10...24 : 14...24 }
+}
+
+// MARK: - Brettgroessen-Persistenz
+
+/// Zentrale Stelle fuer die pro Modus eingestellten Brettmaße (UserDefaults). Sowohl der
+/// Einstellungsdialog (schreibt) als auch der Spielstart (liest) gehen hierueber, damit die Schluessel
+/// nicht auseinanderlaufen. Ungesetzt (UserDefaults liefert 0) ⇒ der Modus-Standard; gespeicherte
+/// Werte werden zusaetzlich auf die erlaubte Spanne geklemmt (robust gegen alte/kaputte Werte).
+@MainActor
+public enum BoardConfig {
+    public static let saeulenWidthKey      = "steinregen.dim.saeulen.w"
+    public static let saeulenHeightKey     = "steinregen.dim.saeulen.h"
+    public static let verschuettetWidthKey  = "steinregen.dim.verschuettet.w"
+    public static let verschuettetHeightKey = "steinregen.dim.verschuettet.h"
+
+    public static func widthKey(_ m: GameMode) -> String  { m == .saeulen ? saeulenWidthKey  : verschuettetWidthKey }
+    public static func heightKey(_ m: GameMode) -> String { m == .saeulen ? saeulenHeightKey : verschuettetHeightKey }
+
+    public static func width(_ m: GameMode) -> Int {
+        clamp(UserDefaults.standard.integer(forKey: widthKey(m)), m.widthRange, m.defaultWidth)
+    }
+    public static func height(_ m: GameMode) -> Int {
+        clamp(UserDefaults.standard.integer(forKey: heightKey(m)), m.heightRange, m.defaultHeight)
+    }
+
+    private static func clamp(_ v: Int, _ range: ClosedRange<Int>, _ def: Int) -> Int {
+        v == 0 ? def : Swift.min(Swift.max(v, range.lowerBound), range.upperBound)
     }
 }
 

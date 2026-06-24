@@ -182,7 +182,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-24, v0.17.0)
+## 5. Status (Stand 2026-06-24, v0.18.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -395,6 +395,18 @@ iPhone). Die Modus-Chips sind breiten-adaptiv (macOS exakt 190 pt wie zuvor, sch
 schrumpfen mit), der Hinweistext bricht um statt rechts abzuschneiden. Auf macOS, iPhone- und
 iPad-Simulator verifiziert (Menü beide Modi + Verschüttet-Spiel auf iOS headless gesichtet).
 Noch offen in Phase 4: Dimensions-Einstellungen + Endlos-Toggle.
+
+**v0.18.0 — einstellbare Brettgröße je Modus (Phase 4, Teil 2):** im Einstellungsdialog eine neue
+Karte „Brettgröße — <Modus>" mit zwei Steppern (Breite/Höhe, ◀ N ▶), begrenzt auf die je Modus
+erlaubte Spanne. **Bestätigte Grenzen (Daniel, 2026-06-24):** Säulen Breite 5–12 / Höhe 10–24
+(Default 6×13), Verschüttet Breite 8–14 / Höhe 14–24 (Default 10×18). Persistenz zentral über
+`BoardConfig` (Render): dieselben UserDefaults-Schlüssel, die der Einstellungsdialog schreibt und
+`startGame` beim Spielstart liest (ungesetzt ⇒ Modus-Standard, gespeicherte Werte auf die Spanne
+geklemmt). Der Dialog zeigt die Maße des aktuell gewählten Modus (im Menü gewählt, durchgereicht).
+Wirkt ab der nächsten Partie. Variables Brett rendert dank Phase 3 sauber — mit Säulen 11×20
+headless gegengeprüft (mehr Spalten/Reihen, Einwurf mittig), iOS-Dialog im Simulator bestätigt.
+Die Modus-Grenzen liegen als `GameMode.widthRange`/`heightRange`/`defaultWidth`/`defaultHeight`.
+**Damit ist Phase 4 fast komplett — offen bleibt nur der Endlos-Toggle (= Phase 2).**
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

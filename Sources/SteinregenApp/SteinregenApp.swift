@@ -148,7 +148,7 @@ struct RootView: View {
         .preferredColorScheme(.dark)   // immer finster — unabhaengig vom System-Modus
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
-            case .settings: SettingsView(onClose: { activeSheet = nil })
+            case .settings: SettingsView(mode: gameMode, onClose: { activeSheet = nil })
             case .friedhof: FriedhofSheet(onClose: { activeSheet = nil })
             case .rules:    RulesSheet(onClose: { activeSheet = nil })
             }
@@ -181,7 +181,8 @@ struct RootView: View {
 
     private func startGame(seed: UInt64) {
         currentSeed = seed
-        scene.start(seed: seed, startLevel: startLevel, mode: gameMode)
+        scene.start(seed: seed, startLevel: startLevel, mode: gameMode,
+                    width: BoardConfig.width(gameMode), height: BoardConfig.height(gameMode))
         screen = .playing
     }
 
@@ -476,10 +477,25 @@ struct ControlsLegend: View {
 /// liest — beim naechsten Spielstart gilt das gewaehlte Set. Neue Sets erscheinen hier
 /// automatisch, sobald sie in `StoneSets.all` stehen.
 struct SettingsView: View {
+    /// Modus, dessen Brettmaße hier eingestellt werden (im Menü gewählt, vom Aufrufer durchgereicht).
+    var mode: GameMode = .saeulen
     @AppStorage(StoneSets.defaultsKey) private var selectedSet = "doom"   // Standard-Set
     @AppStorage(SoundFX.mutedKey) private var mundtot = false             // true = Ton aus
     @AppStorage(SoundFX.setKey) private var soundSetRaw = SoundFX.SoundSet.eigene.rawValue  // Klang-Set
+    // Brettmaße je Modus (gleiche Schlüssel wie BoardConfig — dort liest der Spielstart sie). 0 =
+    // ungesetzt; die Stepper-Bindings unten setzen beim ersten Antippen den Modus-Standard ein.
+    @AppStorage(BoardConfig.saeulenWidthKey)       private var saeulenW = 0
+    @AppStorage(BoardConfig.saeulenHeightKey)      private var saeulenH = 0
+    @AppStorage(BoardConfig.verschuettetWidthKey)  private var verschuettetW = 0
+    @AppStorage(BoardConfig.verschuettetHeightKey) private var verschuettetH = 0
     let onClose: () -> Void
+
+    // Aktuelle (geklemmte) Maße des gewählten Modus + Schreib-Bindings, die den Modus-Standard
+    // einsetzen, falls noch nichts gespeichert ist.
+    private var curWidth: Int  { BoardConfig.width(mode) }
+    private var curHeight: Int { BoardConfig.height(mode) }
+    private func setWidth(_ v: Int)  { if mode == .saeulen { saeulenW = v } else { verschuettetW = v } }
+    private func setHeight(_ v: Int) { if mode == .saeulen { saeulenH = v } else { verschuettetH = v } }
 
     /// Steine-Set per Tastatur durchschalten (↑ ↓): verschiebt die Auswahl zyklisch
     /// durch `StoneSets.all`. Die Auswahl wirkt sofort (Live-Vorschau in den Karten).
@@ -491,6 +507,38 @@ struct SettingsView: View {
         }
         let n = all.count
         selectedSet = all[(i + direction + n) % n].id
+    }
+
+    /// Eine Stepper-Zeile für ein Brettmaß (Beschriftung · ◀ Wert ▶ · Spanne), auf `range` begrenzt.
+    private func dimRow(_ label: String, value: Int, range: ClosedRange<Int>,
+                        set: @escaping (Int) -> Void) -> some View {
+        HStack(spacing: 14) {
+            Text(label)
+                .font(.custom(Theme.blackletterFamily, size: 20))
+                .foregroundStyle(Theme.boneDim.color)
+                .frame(width: 64, alignment: .leading)
+            dimArrow("chevron.left.circle.fill", enabled: value > range.lowerBound) {
+                set(max(range.lowerBound, value - 1))
+            }
+            Text("\(value)")
+                .font(.custom(Theme.blackletterBoldPostScript, size: 26))
+                .foregroundStyle(Theme.bone.color)
+                .frame(minWidth: 44)
+            dimArrow("chevron.right.circle.fill", enabled: value < range.upperBound) {
+                set(min(range.upperBound, value + 1))
+            }
+            Text("(\(range.lowerBound)–\(range.upperBound))")
+                .font(.custom(Theme.blackletterFamily, size: 16))
+                .foregroundStyle(Theme.boneDim.color.opacity(0.7))
+        }
+    }
+
+    private func dimArrow(_ symbol: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 26))
+                .foregroundStyle(enabled ? Theme.blood.color : Theme.boneDim.color.opacity(0.35))
+        }
+        .buttonStyle(.plain).focusable(false).disabled(!enabled)
     }
 
     var body: some View {
@@ -522,6 +570,22 @@ struct SettingsView: View {
                      : "Soundeffekte an, Set \(soundSetRaw == "freedoom" ? "Freedoom" : "Steinregen") (im Spiel: Taste T)")
                     .font(.custom(Theme.blackletterFamily, size: 18))
                     .foregroundStyle(mundtot ? Theme.blood.color : Theme.boneDim.color)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+
+            // Brettgröße des gewählten Modus — zwei Stepper (Breite/Höhe), auf die erlaubte Spanne
+            // begrenzt. Wirkt ab der nächsten Partie (Maße werden beim Spielstart gelesen).
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Brettgröße — \(mode.title)")
+                    .font(.custom(Theme.blackletterFamily, size: 22))
+                    .foregroundStyle(Theme.bone.color)
+                dimRow("Breite", value: curWidth, range: mode.widthRange, set: setWidth)
+                dimRow("Höhe",   value: curHeight, range: mode.heightRange, set: setHeight)
+                Text("Standard \(mode.defaultWidth)×\(mode.defaultHeight) · gilt ab der nächsten Partie")
+                    .font(.custom(Theme.blackletterFamily, size: 18))
+                    .foregroundStyle(Theme.boneDim.color)
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
