@@ -376,6 +376,12 @@ wählbar (UI-Modus-Wahl folgt). Säulen 6×13 per Vorher/Nachher-Screenshot als 
 verifiziert (nur das ohnehin zufällige Korn-Overlay flackert), Verschüttet headless gesichtet.
 Die beiden Modi heißen **Säulen** (bestehender Columns-Modus) und **Verschüttet** (neuer Vierling-Modus).
 
+**v0.16.1 — Mipmaps für die glatten Steine-Sets:** `GemTextures.makeTexture` aktiviert für die
+gemalten/foto-artigen Sets `usesMipmaps` → sauberes (statt flimmerndes) Verkleinern auf kleinen
+Kacheln großer Bretter (Verschüttet 10×18, frei eingestellte Maße). Das pixelige Set **FreeDoom
+bleibt ohne Mipmaps** (harte Retro-Kanten bleiben erhalten). Säulen 6×13 dadurch optisch unverändert
+(große Kacheln → kein sichtbarer Effekt), per Screenshot bestätigt.
+
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag
 zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Simulator bestätigt.

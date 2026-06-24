@@ -26,19 +26,23 @@ public enum GemTextures {
     public static func texture(for gem: Gem) -> SKTexture { texture(for: gem, set: activeSetID) }
 
     public static func texture(for gem: Gem, set id: String) -> SKTexture {
-        if gem.isMagic { return magicTextures(set: id).first ?? makeTexture(StoneSets.set(for: id).draw(.ruby, true)) }
+        if gem.isMagic { return magicTextures(set: id).first ?? makeTexture(StoneSets.set(for: id).draw(.ruby, true), smooth: smooth(id)) }
         if let cached = cache[id]?[gem] { return cached }
-        let t = makeTexture(StoneSets.set(for: id).draw(gem, false))
+        let t = makeTexture(StoneSets.set(for: id).draw(gem, false), smooth: smooth(id))
         cache[id, default: [:]][gem] = t
         return t
     }
+
+    /// Ist das Set „glatt" (gemalte/foto-artige Steine) und profitiert von Mipmaps beim Verkleinern?
+    /// Das pixelige FreeDoom-Set bleibt bewusst ohne Mipmaps (Retro-Pixelkanten sollen erhalten bleiben).
+    private static func smooth(_ id: String) -> Bool { id != "freedoom" }
 
     /// Die sechs Sigil-Frames des aktiven Sets im Magic-Stil — fuer die Magic-Jewel-Animation.
     public static var magicTextures: [SKTexture] { magicTextures(set: activeSetID) }
 
     public static func magicTextures(set id: String) -> [SKTexture] {
         if let m = magicCache[id] { return m }
-        let m = Gem.colors.map { makeTexture(StoneSets.set(for: id).draw($0, true)) }
+        let m = Gem.colors.map { makeTexture(StoneSets.set(for: id).draw($0, true), smooth: smooth(id)) }
         magicCache[id] = m
         return m
     }
@@ -53,9 +57,14 @@ public enum GemTextures {
         return img
     }
 
-    private static func makeTexture(_ image: CGImage) -> SKTexture {
+    /// Verpackt ein CGImage als SKTexture. `smooth` aktiviert Mipmaps fuer die gemalten/foto-artigen
+    /// Sets — so wird das Verkleinern auf kleine Kacheln (grosse Bretter, z.B. Verschuettet 10×18 oder
+    /// frei eingestellte Maße) sauber statt flimmernd. Das pixelige FreeDoom-Set bekommt keine Mipmaps
+    /// (`smooth: false`), damit seine harten Retro-Kanten erhalten bleiben.
+    private static func makeTexture(_ image: CGImage, smooth: Bool = true) -> SKTexture {
         let t = SKTexture(cgImage: image)
         t.filteringMode = .linear
+        if smooth { t.usesMipmaps = true }
         return t
     }
 
