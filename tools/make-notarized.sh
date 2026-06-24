@@ -29,11 +29,16 @@ SIGN_ID="${SIGN_ID:-Developer ID Application: Daniel Mueller (9QSWKSR4NQ)}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-steinregen-notary}"
 
 # --- Vorab-Checks: lieber jetzt klar scheitern als nach dem langen Build --------------------
-if ! security find-identity -v -p codesigning 2>/dev/null | grep -qF "$SIGN_ID"; then
+# Hinweis: Ausgabe IMMER erst in eine Variable holen und dann per Here-String (<<<) greppen,
+# NICHT „befehl | grep -q“. Sonst beendet sich grep -q beim ersten Treffer, der Erzeuger bekommt
+# beim Weiterschreiben SIGPIPE und stirbt — und `set -o pipefail` wertet die Pipeline dann als
+# Fehler, obwohl der Treffer da war (führt zu falschen Negativ-Ergebnissen).
+IDENTITIES="$(security find-identity -v -p codesigning 2>/dev/null || true)"
+if ! grep -qF "$SIGN_ID" <<<"$IDENTITIES"; then
     echo "FEHLER: Signing-Identität nicht in der Keychain gefunden:"
     echo "        »$SIGN_ID«"
     echo "        Vorhandene Identitäten:"
-    security find-identity -v -p codesigning 2>/dev/null | sed 's/^/          /'
+    sed 's/^/          /' <<<"$IDENTITIES"
     exit 1
 fi
 if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
@@ -47,8 +52,10 @@ fi
 echo "==> Bauen + Developer-ID-Signatur…"
 SIGN_ID="$SIGN_ID" SKIP_ZIP=1 bash tools/make-app.sh
 
-# Hardened-Runtime-Flag gegenprüfen — ohne lehnt die Notarisierung ab.
-if codesign -dvv "$APP" 2>&1 | grep -q "flags=.*runtime"; then
+# Hardened-Runtime-Flag gegenprüfen — ohne lehnt die Notarisierung ab. (Ausgabe in Variable +
+# Here-String greppen, siehe pipefail/SIGPIPE-Hinweis oben.)
+CODESIGN_INFO="$(codesign -dvv "$APP" 2>&1 || true)"
+if grep -q "flags=.*runtime" <<<"$CODESIGN_INFO"; then
     echo "    Hardened Runtime aktiv."
 else
     echo "FEHLER: Hardened Runtime nicht gesetzt — Notarisierung würde abgelehnt."; exit 1
