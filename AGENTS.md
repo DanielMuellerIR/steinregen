@@ -178,7 +178,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-22, v0.11.2)
+## 5. Status (Stand 2026-06-24, v0.13.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -323,6 +323,27 @@ vergrößert (240/188 pt), damit das Brett spürbar kleiner ist und Logo bzw. St
 freistehen (vorher saßen sie direkt an der Brett-Kante) — auf iPad weiterhin gut spielbar groß. **v0.11.2:**
 Logo auf iPad spürbar vergrößert — im Menü (`StartView`, 660×320 statt 480×210) und im Spiel
 (620×210 statt 540×150, Brett-Einzug oben entsprechend auf 290).
+
+**v0.12.0 — eigene, lokal erzeugte Soundeffekte:** die bisherigen FreeDoom-WAVs durch **selbst
+generierte Klänge** ersetzt (lokal mit dem offenen Audio-Modell *Stable Audio 3* erzeugt). Im
+Bundle liegen jetzt kleine Mono-`.m4a`-Dateien (AAC): je ein Effekt für Drehen (`drehen.m4a`),
+Auflösen (`aufloesen.m4a`), Aufsetzen (`aufsetzen-1.m4a`, kurz, scharfer Attack, führende Stille
+getrimmt → kein hörbares Delay) und Level (`level.m4a`) sowie ein **Zufalls-Pool aus sieben**
+Game-Over-Klängen (`gameover-1.m4a` … `gameover-7.m4a`). `SoundFX` wählt Lade- bzw.
+Game-Over-Klang zufällig, aber **ohne direkte Wiederholung**; der Loader lädt jetzt `.m4a` statt
+`.wav`. Die neun ungenutzten FreeDoom-`.wav` entfernt (kleineres Bundle). README (de/en) und
+`FREEDOOM-LICENSE.txt` entsprechend korrigiert: die Sounds stammen **nicht mehr aus FreeDoom**
+(die FreeDoom-Lizenz bleibt nur noch für das Sprite-Set „FreeDoom"). Spiellogik unverändert.
+
+**v0.13.0 — wählbares Klang-Set in den Einstellungen:** Ton-Schalter und Klang-Auswahl zu **einer**
+Karte zusammengefasst — drei Optionen **Steinregen** (die eigenen Klänge aus v0.12.0), **Freedoom**
+und **Mundtot** (stumm), gesetzt in der Theme-Schrift (kein System-Picker, kein Stilbruch). Bedienbar
+per Maus **und** Tastatur (Fokus + ← → wählt, Leertaste bestätigt). `SoundFX` kennt damit zwei
+Klang-Sets (eigene / freedoom) und merkt sich die Wahl (persistiert). Die FreeDoom-Klänge wurden aus
+der Git-Historie **zurückgeholt** und als kleine Mono-AAC (`.m4a`, 2–22 KB) wieder eingebunden, sodass
+beide Sets verfügbar sind. Außerdem Einstellungs-Politur: die Steine-Liste ist jetzt per ↑ ↓
+navigierbar, die Steine-Karten zeigen nur noch Name/Vorschau/Marker (ohne Beschreibung), und das
+Steine-Set „FreeDoom" rückt auf Platz 2.
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

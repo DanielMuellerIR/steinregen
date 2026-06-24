@@ -24,8 +24,8 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
 - **Friedhof (graveyard high-score list)** — on death, enter a name (up to 16 chars); each grave
   shows the score and the level you died in. Persistent top 16, viewable from the menu.
 - **Sound effects** (locally generated) — landing, clearing, rotating, level-up and game-over
-  cues, with several random variants per event. Toggle in Settings or with **T** in-game;
-  the silent mode is called "mundtot".
+  cues, with several random variants per event. In Settings you can pick a sound set —
+  Steinregen (the project's own cues), Freedoom, or Mundtot (silent); **T** toggles in-game.
 - **Matches in all directions** — horizontal, vertical, and both diagonals.
 - **Chain reactions** — cascading clears are rewarded (score = stones × 10 × chain step).
 - **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes
