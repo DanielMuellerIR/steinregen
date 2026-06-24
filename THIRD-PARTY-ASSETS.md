@@ -52,8 +52,8 @@ situation is auditable before any (re)distribution.
 
 ## Game design
 
-- Steinregen has two modes: **Steinschlag** (a clone of the gameplay of Sega's *Columns*, 1990)
-  and **Eingemauert** (a falling-tetromino, fill-and-clear-rows mode in the long tradition of that
+- Steinregen has two modes: **Rockfall** (a clone of the gameplay of Sega's *Columns*, 1990)
+  and **Entombed** (a falling-tetromino, fill-and-clear-rows mode in the long tradition of that
   genre). Game mechanics and rules are not copyrightable. *Columns* and *Sega* are trademarks of
   their respective owners; the falling-block genre's best-known name is likewise a registered
   trademark of its owner. Steinregen uses none of those names for itself and is not affiliated with
@@ -78,7 +78,7 @@ blockers for that. They must be resolved before any commercial distribution:
    single short line is a weak claim, but the safe route for paid distribution is to remove it.
 3. **Sega/Columns trademark** — keep the "independent clone, not affiliated with Sega" disclaimer
    prominent (already stated above and in the README).
-4. **Tetromino mode (Eingemauert)** — the falling-block genre's market leader is aggressively
+4. **Tetromino mode (Entombed)** — the falling-block genre's market leader is aggressively
    enforced: the name is a registered trademark, and courts have found that closely reproducing the
    original's specific *expression* (playfield proportions, the seven standard pieces, the
    next-piece display, the 100/300/500/800 line-clear scoring) can infringe **copyright** even

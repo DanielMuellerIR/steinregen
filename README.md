@@ -13,10 +13,10 @@ deterministic engine. Written in Swift with SwiftUI and SpriteKit.
 
 ## Modes
 
-- **Steinschlag** (Columns-style) — falling columns of three stones. Line up **three or more of
+- **Rockfall** (Columns-style) — falling columns of three stones. Line up **three or more of
   the same kind** horizontally, vertically, or diagonally to clear them; cleared stones make the
   ones above fall, which can set off chain reactions for bonus points.
-- **Eingemauert** (block-stacking) — falling four-block pieces. Fill a whole row to clear it.
+- **Entombed** (block-stacking) — falling four-block pieces. Fill a whole row to clear it.
   Seven shapes, a deterministic 7-bag, simple wall kicks.
 
 Both modes run on the same deterministic core and share the look, sound, music, and high-score
@@ -33,17 +33,17 @@ backed by a muted, desaturated color tint.
 - **6 stones, marked by sigils** — inverted pentagram, inverted cross, Tiwaz rune, triquetra,
   skull, crescent. Told apart by shape, with a muted color tint as a secondary cue.
 - **Selectable stone sets** — switch in Settings (with live preview) between six sets: the
-  engraved "Sigil" and grimy "Doom" black-metal sets, three friendlier gem sets from the sibling
-  project *Zaubersteine* ("Zaubersteine", "G20", "Juwelen"), and a "FreeDoom" pixel-art set built
+  engraved "Sigils" and grimy "Doom" black-metal sets, three friendlier gem sets from the sibling
+  project *Zaubersteine* ("Zaubersteine", "G20", "Jewels"), and a "FreeDoom" pixel-art set built
   from original Freedoom sprites. Adding one is a single renderer plus one registry entry.
 - **Configurable board size** per mode, set in Settings.
 - **Selectable starting speed** (levels 1–10), rising as you clear stones — or a constant
   "endless" tempo that keeps the starting speed.
-- **Friedhof (graveyard high-score list)** — on death, enter a name (up to 16 chars); each grave
+- **Graveyard (high-score list)** — on death, enter a name (up to 16 chars); each grave
   shows the score and the level you died in. Persistent top 16, viewable from the menu.
 - **Sound effects** (locally generated) — landing, clearing, rotating, level-up and game-over
   cues, with several random variants per event. In Settings you can pick a sound set —
-  Steinregen (the project's own cues), Freedoom, or Mundtot (silent); **T** toggles in-game.
+  Steinregen (the project's own cues), Freedoom, or Silenced; **T** toggles in-game.
 - **Music** (locally generated) — three instrumental atmospheric-black-metal tracks that play one
   after another in a loop, starting on a random track each game. On by default but only from the
   start of a level, not in the menu; toggled independently of the sound effects in Settings or
@@ -67,7 +67,7 @@ On macOS, by keyboard:
 | ↑ · W | rotate |
 | ↓ · S | soft drop (faster fall) |
 | Space | hard drop |
-| T | toggle sound effects (off = "mundtot") |
+| T | toggle sound effects (off = "Silenced") |
 | M | toggle music |
 | Esc | back to main menu |
 
@@ -122,27 +122,27 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_LEVEL=<1..10>` — starting speed
 - `STEINREGEN_SEED=<UInt64>` — fixed seed (otherwise random)
 - `STEINREGEN_SET=<id>` — stone set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen` / `freedoom`)
-- `STEINREGEN_MODE=<saeulen|verschuettet>` — mode (Steinschlag / Eingemauert)
+- `STEINREGEN_MODE=<saeulen|verschuettet>` — mode (Rockfall / Entombed)
 - `STEINREGEN_ENDLESS=1` — constant tempo
 - `STEINREGEN_MUSIC=<0|1>` — force music off / on
 - `STEINREGEN_SETTINGS=1` — open the settings dialog on launch
-- `STEINREGEN_FRIEDHOF=1` — open the Friedhof (high-score list) on launch
+- `STEINREGEN_FRIEDHOF=1` — open the Graveyard (high-score list) on launch
 
 ## Architecture
 
 Three Swift Package Manager modules plus tests:
 
-- **`SteinregenCore`** — pure, deterministic game logic. Two engines (`Engine` for Steinschlag,
-  `TetrominoEngine` for Eingemauert), board, match detection, cascades, magic jewel, scoring. No
+- **`SteinregenCore`** — pure, deterministic game logic. Two engines (`Engine` for Rockfall,
+  `TetrominoEngine` for Entombed), board, match detection, cascades, magic jewel, scoring. No
   global randomness and no wall-clock; all randomness flows through an injected, seeded PRNG.
 - **`SteinregenRender`** — SpriteKit scene that drives both modes through one `PlayEngine`
   protocol: rendering, the gravity/animation loop, the procedurally drawn stone sets, the theme
   (palette/fonts/grain), sound effects, the music player, and the magic-jewel animation.
-- **`SteinregenApp`** — SwiftUI shell for macOS and iOS: menus, settings, rules, Friedhof, and
+- **`SteinregenApp`** — SwiftUI shell for macOS and iOS: menus, settings, rules, the Graveyard, and
   game-over overlay. Keyboard input on macOS, touch on iOS.
 
 Several reusable building blocks (the deterministic PRNG, the robust resource loader, the
-three-module layout) and the three "pleasant" gem sets (Zaubersteine / G20 / Juwelen) come from
+three-module layout) and the three "pleasant" gem sets (Zaubersteine / G20 / Jewels) come from
 the sibling project *Zaubersteine*.
 
 ## Trademarks
