@@ -56,6 +56,7 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
   aufsetzt, räumt sie brettweit die Sorte der Zelle direkt darunter weg.
 - **Deterministisch, seed-getrieben** — gleicher Seed spielt exakt dieselbe Partie nach.
 - **Läuft auf macOS** (Tastatur) **und iOS / iPad** (Touch), mit demselben Kern und Renderer.
+- **Deutsch und Englisch** — die Oberfläche folgt der System-Sprache und ist in den Einstellungen umschaltbar.
 
 ## Steuerung
 

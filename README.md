@@ -6,9 +6,9 @@ deterministic engine. Written in Swift with SwiftUI and SpriteKit.
 *(Deutsche Version: [README.de.md](README.de.md))*
 
 <p align="center">
-  <img src="assets/sc0.jpg" width="32%" alt="Start screen: pick a mode and starting speed">
-  <img src="assets/sc1.jpg" width="32%" alt="Gameplay on a night background">
-  <img src="assets/sc2.jpg" width="32%" alt="Settings: sound, music, board size, stone sets">
+  <img src="assets/sc0_en.jpg" width="32%" alt="Start screen: pick a mode and starting speed">
+  <img src="assets/sc1_en.jpg" width="32%" alt="Gameplay on a night background">
+  <img src="assets/sc2_en.jpg" width="32%" alt="Settings: language, sound, music, board size, stone sets">
 </p>
 
 ## Modes
@@ -54,6 +54,7 @@ backed by a muted, desaturated color tint.
   every stone of the kind directly beneath it from the board.
 - **Deterministic, seed-driven** — the same seed replays the exact same game.
 - **Runs on macOS** (keyboard) **and iOS / iPad** (touch), sharing the same core and renderer.
+- **English and German** — the interface follows your system language and can be switched in Settings.
 
 ## Controls
 

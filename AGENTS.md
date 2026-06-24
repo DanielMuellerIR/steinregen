@@ -39,7 +39,8 @@ steinregen/                   (SwiftPM-Workspace)
 │   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones
 │   │                          + ZaubersteineStones (svg/procedural/png), GemTextures =
 │   │                          set-bewusste Textur-Fabrik, SoundFX = Soundeffekte, MusicPlayer =
-│   │                          Hintergrundmusik (getrennt schaltbar), Magic-Animation
+│   │                          Hintergrundmusik (getrennt schaltbar), L10n = Lokalisierung de/en,
+│   │                          Magic-Animation
 │   │                          — cross-platform: nur SKColor, keine AppKit/UIKit-Typen)
 │   └── SteinregenApp/        (SwiftUI-Shell für macOS UND iOS: Startbildschirm, Einstellungen,
 │                              Spielregeln, Friedhof, Game-Over; Steuerung per `#if os(...)` —
@@ -157,6 +158,7 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_ENDLESS=1` — konstantes Tempo (Fallgeschwindigkeit bleibt auf der Start-Tempostufe)
 - `STEINREGEN_MUSIC=<0|1>` — Musik aus (`0`) bzw. erzwungen an (`1`); ohne die Variable gilt der
   persistierte Default (an). Praktisch für stille Screenshot-/Smoke-Test-Läufe.
+- `STEINREGEN_LANG=<de|en>` — erzwingt die Sprache (sonst System-Sprache bzw. gespeicherte Wahl).
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start direkt den Friedhof (Bestenliste)
 
@@ -210,7 +212,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-24, v0.22.0)
+## 5. Status (Stand 2026-06-25, v0.23.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -500,6 +502,23 @@ ist unberührt.
   Bild wie in der Vorpartie (`lastBackdropIndex`, no-immediate-repeat wie beim SoundFX-Pool) — bei
   jedem Spielstart erscheint ein sichtbar **neues** Motiv, **ohne App-Neustart**. (v0.21.0 wählte
   bereits pro Partie zufällig, konnte aber dasselbe zweimal hintereinander erwischen.)
+
+**v0.23.0 — Englische Lokalisierung (Deutsch/Englisch):** die gesamte Oberfläche ist jetzt
+zweisprachig. Neuer, bewusst leichtgewichtiger Helfer **`L10n`** (in `SteinregenRender`): beide
+Sprachfassungen stehen direkt am Aufrufort — `L10n.t("deutsch", "english")` — **ohne** SwiftPM-
+`.lproj`/`.xcstrings`-Maschinerie (die mit dem eigenen Bundle-Loader zickt und für macOS- UND
+iOS-Projekt getrennt einzurichten wäre). Sprache: Default = **System-Sprache** (`Locale`), fest
+umstellbar über eine neue Karte „Sprache/Language" in den Einstellungen (persistiert in
+`steinregen.sprache`); alle Top-Level-Views beobachten den Schlüssel via `@AppStorage`, der
+Wechsel greift sofort. Übersetzt sind HUD, Menü, **Modus-Namen** (Steinschlag → „Rockfall",
+Eingemauert → „Entombed"), Einstellungen, Spielregeln, Friedhof, Game-Over und die Flash-Hinweise;
+**tontreu** (z. B. „Verreckt" → „Perished", „mundtot" → „silenced"). Der frühere Bethlehem-
+Grabspruch ist durch einen **eigenen** ersetzt („Am Ende fällt jeder Stein" / „In the end, every
+stone falls") — erledigt damit zugleich den Commercial-Blocker. **iOS-Fix nebenbei:** der
+Einstellungsdialog ist auf iOS jetzt voll scrollbar (die zusätzliche Sprach-Karte ließ den Inhalt
+über die iPhone-Höhe laufen → Titel war oben abgeschnitten); macOS unverändert (feste Dialoghöhe,
+nur die Steine-Liste scrollt). Headless-Naht `STEINREGEN_LANG=de|en`. Auf macOS (Menü/Settings/
+Spiel in beiden Sprachen) und iOS-Simulator (Settings beide Sprachen) per Screenshot verifiziert.
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

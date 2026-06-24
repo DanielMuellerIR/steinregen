@@ -298,7 +298,7 @@ public final class GameScene: SKScene {
 
         // --- Linkes Panel: Punkte (groß) + Level ---
         let punkteCap = makeLabel(size: 18, bold: false)
-        punkteCap.text = "Punkte"
+        punkteCap.text = L10n.t("Punkte", "Score")
         punkteCap.fontColor = Theme.boneDim.sk
         punkteCap.horizontalAlignmentMode = .center
         punkteCap.verticalAlignmentMode = .center
@@ -320,7 +320,7 @@ public final class GameScene: SKScene {
 
         // --- Rechtes Panel: „als Nächstes" + SENKRECHTE Vorschau (wie die fallende Säule) ---
         nextLabel = makeLabel(size: 18, bold: true)
-        nextLabel.text = "als Nächstes"
+        nextLabel.text = L10n.t("als Nächstes", "Next")
         nextLabel.fontColor = Theme.boneDim.sk
         nextLabel.horizontalAlignmentMode = .center
         nextLabel.verticalAlignmentMode = .center
@@ -653,7 +653,8 @@ public final class GameScene: SKScene {
         // Dezenter Erklärungstext (bewusst leiser als das Combo-Feedback): erklärt, was gerade
         // passiert, ohne aufdringlich zu sein.
         let info = makeLabel(size: 17, bold: false)
-        info.text = "Magischer Stein — räumt eine ganze Sorte"
+        info.text = L10n.t("Magischer Stein — räumt eine ganze Sorte",
+                            "Magic stone — clears a whole kind")
         info.fontColor = Theme.boneDim.sk
         info.horizontalAlignmentMode = .center
         info.verticalAlignmentMode = .center
@@ -691,7 +692,7 @@ public final class GameScene: SKScene {
 
     private func showGameOverBanner() {
         let label = makeLabel(size: 46, bold: true)
-        label.text = "Verreckt"
+        label.text = L10n.t("Verreckt", "Perished")
         label.fontColor = Theme.blood.sk
         label.position = CGPoint(x: size.width / 2, y: size.height / 2)
         label.alpha = 0

@@ -14,10 +14,21 @@ import SteinregenCore
 @MainActor
 public struct StoneSet: Identifiable {
     public let id: String
-    public let name: String
+    /// Anzeigename je Sprache. Die meisten Sets tragen Eigennamen (Doom, FreeDoom, G20,
+    /// Zaubersteine) — da ist `nameDE == nameEN`; nur „Sigille"/„Juwelen" werden übersetzt.
+    private let nameDE: String
+    private let nameEN: String
+    /// Lokalisierter Anzeigename (computed, damit ein Sprachwechsel zur Laufzeit sofort greift).
+    public var name: String { L10n.t(nameDE, nameEN) }
     public let subtitle: String
     /// Zeichnet einen Stein dieses Sets. `magic` = heller Sonderfall (Magic Jewel).
     public let draw: @MainActor (Gem, Bool) -> CGImage
+
+    public init(id: String, nameDE: String, nameEN: String, subtitle: String,
+                draw: @escaping @MainActor (Gem, Bool) -> CGImage) {
+        self.id = id; self.nameDE = nameDE; self.nameEN = nameEN
+        self.subtitle = subtitle; self.draw = draw
+    }
 }
 
 @MainActor
@@ -25,28 +36,28 @@ public enum StoneSets {
     /// UserDefaults-Schluessel der getroffenen Auswahl (geteilt mit `@AppStorage` in der App).
     public static let defaultsKey = "steinregen.stoneSet"
 
-    public static let sigil = StoneSet(id: "sigil", name: "Sigille",
+    public static let sigil = StoneSet(id: "sigil", nameDE: "Sigille", nameEN: "Sigils",
                                        subtitle: "Fein geritzte Zeichen auf Schwarz",
                                        draw: SigilStones.draw)
-    public static let doom = StoneSet(id: "doom", name: "Doom",
+    public static let doom = StoneSet(id: "doom", nameDE: "Doom", nameEN: "Doom",
                                       subtitle: "Räudig, blutig, kräftige Farben",
                                       draw: DoomStones.draw)
 
     // Drei „optisch angenehme" Sets, komplett aus dem Schwester-Projekt *Zaubersteine* uebernommen
     // (Namen wie dort). Die freundliche Alternative zur Black-Metal-Optik. Siehe ZaubersteineStones.
-    public static let zaubersteine = StoneSet(id: "zaubersteine", name: "Zaubersteine",
+    public static let zaubersteine = StoneSet(id: "zaubersteine", nameDE: "Zaubersteine", nameEN: "Zaubersteine",
                                               subtitle: "Glänzende Steine (eigenes SVG-Set)",
                                               draw: { gem, _ in ZaubersteineStones.draw(gem, style: .svg) })
-    public static let g20 = StoneSet(id: "g20", name: "G20",
+    public static let g20 = StoneSet(id: "g20", nameDE: "G20", nameEN: "G20",
                                      subtitle: "Klare, kräftig gefärbte Tasten-Steine",
                                      draw: { gem, _ in ZaubersteineStones.draw(gem, style: .procedural) })
-    public static let juwelen = StoneSet(id: "juwelen", name: "Juwelen",
+    public static let juwelen = StoneSet(id: "juwelen", nameDE: "Juwelen", nameEN: "Jewels",
                                          subtitle: "Detailreiche Foto-Kristalle",
                                          draw: { gem, _ in ZaubersteineStones.draw(gem, style: .png) })
 
     // Bild-basiertes Set aus originalen FreeDoom-Pickup-Sprites (BSD-3-Clause). Pixeliger Retro-Look:
     // Doom-Emblem auf farbig getoentem Tile. Siehe FreeDoomStones + Resources/FREEDOOM-LICENSE.txt.
-    public static let freedoom = StoneSet(id: "freedoom", name: "FreeDoom",
+    public static let freedoom = StoneSet(id: "freedoom", nameDE: "FreeDoom", nameEN: "FreeDoom",
                                           subtitle: "Gequetschte FreeDoom-Pixelkunst (Dämonen, Flamme, Marine)",
                                           draw: FreeDoomStones.draw)
 

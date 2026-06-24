@@ -117,6 +117,9 @@ struct RootView: View {
     /// Konstantes Tempo („Endlos"): Fallgeschwindigkeit bleibt auf der Start-Tempostufe, statt mit
     /// dem Level zu steigen. Persistiert.
     @AppStorage("steinregen.endless") private var endless = false
+    // Sprache nur beobachten, damit ein Umschalten (in den Einstellungen) den ganzen Baum neu
+    // zeichnet — der Wert selbst wird über `L10n` gelesen.
+    @AppStorage(L10n.key) private var langRaw = ""
 
     var body: some View {
         ZStack {
@@ -170,6 +173,8 @@ struct RootView: View {
             // Headless-Naht: STEINREGEN_MUSIC=0 schaltet die Musik aus (stiller Screenshot-Lauf),
             // =1 erzwingt sie an. Ohne die Variable bleibt der (persistierte) Default „an".
             if let mu = env["STEINREGEN_MUSIC"] { MusicPlayer.shared.setEnabled(mu != "0") }
+            // STEINREGEN_LANG=de|en erzwingt die Sprache (sonst System-Sprache / gespeicherte Wahl).
+            if let lng = env["STEINREGEN_LANG"], let l = L10n.Lang(rawValue: lng) { L10n.lang = l }
             if env["STEINREGEN_SETTINGS"] != nil { activeSheet = .settings }
             if env["STEINREGEN_FRIEDHOF"] != nil { activeSheet = .friedhof }
             if env["STEINREGEN_AUTOSTART"] != nil {
@@ -280,7 +285,7 @@ struct StartView: View {
             // Spielmodus — zwei Chips (Säulen / Verschüttet). Auf macOS zusätzlich per ↑ ↓ wählbar
             // (← → bleiben fürs Tempo), auf iOS per Tap.
             VStack(spacing: 10) {
-                Text("Modus")
+                Text(L10n.t("Modus", "Mode"))
                     .font(.custom(Theme.blackletterBoldPostScript, size: 28)).foregroundStyle(.secondary)
                 HStack(spacing: 14) {
                     ForEach(GameMode.allCases, id: \.self) { m in modeChip(m) }
@@ -295,7 +300,7 @@ struct StartView: View {
 
             // Start-Tempostufe — eigene ◀ Level N ▶-Steuerung (statt des hässlichen System-Steppers).
             VStack(spacing: 12) {
-                Text("Start-Tempo")
+                Text(L10n.t("Start-Tempo", "Starting speed"))
                     .font(.custom(Theme.blackletterBoldPostScript, size: 28)).foregroundStyle(.secondary)
                 HStack(spacing: 24) {
                     arrowButton("chevron.left.circle.fill", enabled: startLevel > 1) {
@@ -313,14 +318,14 @@ struct StartView: View {
                     .font(.custom(Theme.blackletterFamily, size: 24)).foregroundStyle(.tertiary)
                 // Tempo-Verlauf: steigt es mit dem Level oder bleibt es konstant („Endlos")?
                 HStack(spacing: 10) {
-                    tempoPill("steigt mit Level", selected: !endless) { endless = false }
-                    tempoPill("konstant", selected: endless) { endless = true }
+                    tempoPill(L10n.t("steigt mit Level", "rises with level"), selected: !endless) { endless = false }
+                    tempoPill(L10n.t("konstant", "constant"), selected: endless) { endless = true }
                 }
             }
             .padding(.vertical, 10)
 
             Button(action: onStart) {
-                Text("Spiel starten")
+                Text(L10n.t("Spiel starten", "Start game"))
                     .font(.custom(Theme.blackletterBoldPostScript, size: 22))
                     .frame(width: 220, height: 50)
             }
@@ -377,17 +382,17 @@ struct StartView: View {
     /// Die drei Menü-Knöpfe (Einstellungen/Spielregeln/Friedhof) — Inhalt für beide Plattform-Layouts.
     @ViewBuilder private var menuButtons: some View {
         Button(action: onSettings) {
-            Label("Einstellungen", systemImage: "gearshape")
+            Label(L10n.t("Einstellungen", "Settings"), systemImage: "gearshape")
                 .font(.custom(Theme.blackletterFamily, size: 22))
                 .frame(width: 168, height: 48)
         }
         Button(action: onRules) {
-            Label("Spielregeln", systemImage: "book")
+            Label(L10n.t("Spielregeln", "How to play"), systemImage: "book")
                 .font(.custom(Theme.blackletterFamily, size: 22))
                 .frame(width: 168, height: 48)
         }
         Button(action: onFriedhof) {
-            Label("Friedhof", systemImage: "list.number")
+            Label(L10n.t("Friedhof", "Graveyard"), systemImage: "list.number")
                 .font(.custom(Theme.blackletterFamily, size: 22))
                 .frame(width: 168, height: 48)
         }
@@ -437,10 +442,10 @@ struct StartView: View {
 
     private var tempoHint: String {
         switch startLevel {
-        case 1...3: return "ruhig — gut zum Einsteigen"
-        case 4...6: return "zügig"
-        case 7...8: return "schnell"
-        default:    return "sehr schnell — für Profis"
+        case 1...3: return L10n.t("ruhig — gut zum Einsteigen", "calm — good to start")
+        case 4...6: return L10n.t("zügig", "brisk")
+        case 7...8: return L10n.t("schnell", "fast")
+        default:    return L10n.t("sehr schnell — für Profis", "very fast — for pros")
         }
     }
 
@@ -465,9 +470,13 @@ struct ControlsLegend: View {
 
     // Der bewegliche Stein heißt je Modus anders; bei den Säulen ist „Drehen" ein Durchtauschen
     // der drei Steine, beim Vierling eine echte 90°-Drehung.
-    private var moveDesc: String { mode == .saeulen ? "Säule bewegen" : "Vierling bewegen" }
+    private var moveDesc: String {
+        mode == .saeulen ? L10n.t("Säule bewegen", "move the column")
+                         : L10n.t("Vierling bewegen", "move the piece")
+    }
     private var rotateDesc: String {
-        mode == .saeulen ? "Säule drehen (Steine durchtauschen)" : "Vierling drehen"
+        mode == .saeulen ? L10n.t("Säule drehen (Steine durchtauschen)", "rotate the column (cycle stones)")
+                         : L10n.t("Vierling drehen", "rotate the piece")
     }
 
     var body: some View {
@@ -475,13 +484,13 @@ struct ControlsLegend: View {
             #if os(macOS)
             legend("← →  ·  A D", moveDesc)
             legend("↑  ·  W", rotateDesc)
-            legend("↓  ·  S", "schneller fallen lassen")
-            legend("Leertaste", "sofort fallen lassen")
+            legend("↓  ·  S", L10n.t("schneller fallen lassen", "soft drop (faster)"))
+            legend(L10n.t("Leertaste", "Space"), L10n.t("sofort fallen lassen", "hard drop"))
             #else
-            legend("◀ ▶", "\(moveDesc) (Knöpfe halten)")
-            legend("Tippen", rotateDesc)
-            legend("▼", "schneller fallen lassen")
-            legend("⤓", "sofort fallen lassen")
+            legend("◀ ▶", "\(moveDesc) \(L10n.t("(Knöpfe halten)", "(hold buttons)"))")
+            legend(L10n.t("Tippen", "Tap"), rotateDesc)
+            legend("▼", L10n.t("schneller fallen lassen", "soft drop (faster)"))
+            legend("⤓", L10n.t("sofort fallen lassen", "hard drop"))
             #endif
         }
         .font(.custom(Theme.blackletterFamily, size: 19))
@@ -515,6 +524,7 @@ struct SettingsView: View {
     @AppStorage(SoundFX.mutedKey) private var mundtot = false             // true = Soundeffekte aus
     @AppStorage(SoundFX.setKey) private var soundSetRaw = SoundFX.SoundSet.eigene.rawValue  // Klang-Set
     @AppStorage(MusicPlayer.mutedKey) private var musikAus = false        // true = Musik aus (separat!)
+    @AppStorage(L10n.key) private var langRaw = ""                        // "" = Auto (System-Sprache)
     // Brettmaße je Modus (gleiche Schlüssel wie BoardConfig — dort liest der Spielstart sie). 0 =
     // ungesetzt; die Stepper-Bindings unten setzen beim ersten Antippen den Modus-Standard ein.
     @AppStorage(BoardConfig.saeulenWidthKey)       private var saeulenW = 0
@@ -575,23 +585,58 @@ struct SettingsView: View {
     }
 
     var body: some View {
+        content
+            .dialogFrame(width: 480, height: 880)
+            .background(Color(red: 0.02, green: 0.02, blue: 0.03))
+            .preferredColorScheme(.dark)
+    }
+
+    // iOS: die ganze Seite ist scrollbar — sonst klemmt der Inhalt auf dem iPhone (mit der
+    // Sprach-Karte wird er höher als der Schirm, und der Titel würde oben abgeschnitten).
+    // macOS: feste Dialoghöhe wie gehabt, dort scrollt nur die Steine-Liste.
+    @ViewBuilder private var content: some View {
+        #if os(iOS)
+        ScrollView { stack.padding(24) }
+        #else
+        stack.padding(24)
+        #endif
+    }
+
+    private var stack: some View {
         VStack(spacing: 14) {
-            Text("Einstellungen")
+            Text(L10n.t("Einstellungen", "Settings"))
                 .font(.custom(Theme.blackletterFamily, size: 34))
                 .foregroundStyle(Theme.bone.color)
+
+            // Sprache — Deutsch/Englisch. Standard ist die System-Sprache; hier fest umstellbar.
+            // Der Schreibweg (L10n.lang) setzt denselben UserDefaults-Schlüssel, den alle Views
+            // über @AppStorage(L10n.key) beobachten → die Oberfläche zeichnet sich sofort neu.
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.t("Sprache", "Language"))
+                    .font(.custom(Theme.blackletterFamily, size: 22))
+                    .foregroundStyle(Theme.bone.color)
+                ThemeSegmented(
+                    options: [("Deutsch", "de"), ("English", "en")],
+                    selection: Binding(
+                        get: { L10n.lang.rawValue },
+                        set: { v in L10n.lang = L10n.Lang(rawValue: v) ?? .de }))
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
 
             // Ton & Klang — eine Karte, drei sich gegenseitig ausschließende Optionen:
             // „Steinregen" (eigene Klänge, Ton an) · „Freedoom" (klassische Klänge, Ton an) ·
             // „Mundtot" (Ton aus). Bedienbar per Maus UND Tastatur (← → / Leertaste). Gleiche
             // Theme-Schrift wie der Rest (kein Stilbruch). Treibt SoundFX.muted + .soundSet.
             VStack(alignment: .leading, spacing: 8) {
-                Text("Ton")
+                Text(L10n.t("Ton", "Sound"))
                     .font(.custom(Theme.blackletterFamily, size: 22))
                     .foregroundStyle(Theme.bone.color)
                 ThemeSegmented(
                     options: [("Steinregen", "eigene"),
                               ("Freedoom", "freedoom"),
-                              ("Mundtot", "mundtot")],
+                              (L10n.t("Mundtot", "Silenced"), "mundtot")],
                     selection: Binding(
                         get: { mundtot ? "mundtot" : soundSetRaw },
                         set: { v in
@@ -599,8 +644,10 @@ struct SettingsView: View {
                             else { mundtot = false; soundSetRaw = v }
                         }))
                 Text(mundtot
-                     ? "Mundtot — keine Soundeffekte (im Spiel: Taste T)"
-                     : "Soundeffekte an, Set \(soundSetRaw == "freedoom" ? "Freedoom" : "Steinregen") (im Spiel: Taste T)")
+                     ? L10n.t("Mundtot — keine Soundeffekte (im Spiel: Taste T)",
+                              "Silenced — no sound effects (in-game: T)")
+                     : L10n.t("Soundeffekte an, Set \(soundSetRaw == "freedoom" ? "Freedoom" : "Steinregen") (im Spiel: Taste T)",
+                              "Sound effects on, set \(soundSetRaw == "freedoom" ? "Freedoom" : "Steinregen") (in-game: T)"))
                     .font(.custom(Theme.blackletterFamily, size: 18))
                     .foregroundStyle(mundtot ? Theme.blood.color : Theme.boneDim.color)
             }
@@ -612,17 +659,18 @@ struct SettingsView: View {
             // An/Aus über dieselbe Theme-Schrift-Segmentanzeige. Treibt MusicPlayer.setEnabled
             // (persistiert + wirkt sofort); die Musik läuft ohnehin erst ab Levelbeginn.
             VStack(alignment: .leading, spacing: 8) {
-                Text("Musik")
+                Text(L10n.t("Musik", "Music"))
                     .font(.custom(Theme.blackletterFamily, size: 22))
                     .foregroundStyle(Theme.bone.color)
                 ThemeSegmented(
-                    options: [("An", "an"), ("Aus", "aus")],
+                    options: [(L10n.t("An", "On"), "an"), (L10n.t("Aus", "Off"), "aus")],
                     selection: Binding(
                         get: { musikAus ? "aus" : "an" },
                         set: { v in MusicPlayer.shared.setEnabled(v == "an") }))
                 Text(musikAus
-                     ? "Musik aus (im Spiel: Taste M)"
-                     : "Musik an — startet erst im Spiel (im Spiel: Taste M)")
+                     ? L10n.t("Musik aus (im Spiel: Taste M)", "Music off (in-game: M)")
+                     : L10n.t("Musik an — startet erst im Spiel (im Spiel: Taste M)",
+                              "Music on — starts only in-game (in-game: M)"))
                     .font(.custom(Theme.blackletterFamily, size: 18))
                     .foregroundStyle(musikAus ? Theme.blood.color : Theme.boneDim.color)
             }
@@ -633,12 +681,13 @@ struct SettingsView: View {
             // Brettgröße des gewählten Modus — zwei Stepper (Breite/Höhe), auf die erlaubte Spanne
             // begrenzt. Wirkt ab der nächsten Partie (Maße werden beim Spielstart gelesen).
             VStack(alignment: .leading, spacing: 8) {
-                Text("Brettgröße — \(mode.title)")
+                Text(L10n.t("Brettgröße — \(mode.title)", "Board size — \(mode.title)"))
                     .font(.custom(Theme.blackletterFamily, size: 22))
                     .foregroundStyle(Theme.bone.color)
-                dimRow("Breite", value: curWidth, range: mode.widthRange, set: setWidth)
-                dimRow("Höhe",   value: curHeight, range: mode.heightRange, set: setHeight)
-                Text("Standard \(mode.defaultWidth)×\(mode.defaultHeight) · gilt ab der nächsten Partie")
+                dimRow(L10n.t("Breite", "Width"), value: curWidth, range: mode.widthRange, set: setWidth)
+                dimRow(L10n.t("Höhe", "Height"),  value: curHeight, range: mode.heightRange, set: setHeight)
+                Text(L10n.t("Standard \(mode.defaultWidth)×\(mode.defaultHeight) · gilt ab der nächsten Partie",
+                            "Default \(mode.defaultWidth)×\(mode.defaultHeight) · applies from the next game"))
                     .font(.custom(Theme.blackletterFamily, size: 18))
                     .foregroundStyle(Theme.boneDim.color)
             }
@@ -646,37 +695,39 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
 
-            Text("Steine-Set")
+            Text(L10n.t("Steine-Set", "Stone set"))
                 .font(.custom(Theme.blackletterFamily, size: 22))
                 .foregroundStyle(Theme.bone.color)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Fokussierbar → mit ↑ ↓ durch die Sets (Auswahl wirkt sofort, Live-Vorschau);
-            // Karten bleiben zusätzlich anklickbar.
-            ScrollView {
-                VStack(spacing: 14) {
-                    ForEach(StoneSets.all) { set in
-                        StoneSetCard(set: set, selected: selectedSet == set.id) {
-                            selectedSet = set.id
-                        }
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-            .focusable()
-            .onKeyPress(.upArrow)   { moveStone(-1); return .handled }
-            .onKeyPress(.downArrow) { moveStone(1);  return .handled }
+            stoneSection
 
             Button(action: onClose) {
-                Text("Fertig").font(.custom(Theme.blackletterBoldPostScript, size: 18)).frame(width: 200, height: 42)
+                Text(L10n.t("Fertig", "Done")).font(.custom(Theme.blackletterBoldPostScript, size: 18)).frame(width: 200, height: 42)
             }
             .buttonStyle(.borderedProminent).tint(Theme.oxblood.color)
             .keyboardShortcut(.defaultAction)
         }
-        .padding(24)
-        .dialogFrame(width: 480, height: 880)
-        .background(Color(red: 0.02, green: 0.02, blue: 0.03))
-        .preferredColorScheme(.dark)
+    }
+
+    // Die Steine-Karten. macOS: in einer eigenen, fokussierbaren ScrollView (↑ ↓ schalten durch
+    // die Sets) — füllt im festen Dialog den Rest. iOS: nur die Kartenliste (die ganze Seite
+    // scrollt bereits via `content`, ein zweiter Scroll in selber Richtung würde sich beißen).
+    @ViewBuilder private var stoneSection: some View {
+        let cards = VStack(spacing: 14) {
+            ForEach(StoneSets.all) { set in
+                StoneSetCard(set: set, selected: selectedSet == set.id) { selectedSet = set.id }
+            }
+        }
+        .padding(.horizontal, 2)
+        #if os(iOS)
+        cards
+        #else
+        ScrollView { cards }
+            .focusable()
+            .onKeyPress(.upArrow)   { moveStone(-1); return .handled }
+            .onKeyPress(.downArrow) { moveStone(1);  return .handled }
+        #endif
     }
 }
 
@@ -863,13 +914,13 @@ struct GameplayView: View {
         case "t":   // Soundeffekte ein/aus (S geht nicht — belegt durch Softdrop)
             if down && !rep {
                 SoundFX.muted.toggle()
-                scene.flashHint(SoundFX.muted ? "mundtot" : "Ton an")
+                scene.flashHint(SoundFX.muted ? L10n.t("mundtot", "silenced") : L10n.t("Ton an", "Sound on"))
             }
             return true
         case "m":   // Musik ein/aus — getrennt von den Soundeffekten
             if down && !rep {
                 let on = MusicPlayer.shared.toggle()
-                scene.flashHint(on ? "Musik an" : "Musik aus")
+                scene.flashHint(on ? L10n.t("Musik an", "Music on") : L10n.t("Musik aus", "Music off"))
             }
             return true
         default:  return false
@@ -903,10 +954,10 @@ struct GameOverOverlay: View {
             Color.black.opacity(0.66).ignoresSafeArea()
             VStack(spacing: 12) {
                 VStack(spacing: 6) {
-                    Text("Verreckt")
+                    Text(L10n.t("Verreckt", "Perished"))
                         .font(.custom(Theme.blackletterBoldPostScript, size: 56))
                         .foregroundStyle(Theme.blood.color)
-                    Text("Level \(level) · \(score) Punkte")
+                    Text(L10n.t("Level \(level) · \(score) Punkte", "Level \(level) · \(score) points"))
                         .font(.custom(Theme.blackletterBoldPostScript, size: 22))
                         .foregroundStyle(Theme.bone.color)
                 }
@@ -922,7 +973,7 @@ struct GameOverOverlay: View {
                 buttons
 
                 // Grim-Zitat (Bethlehem) als Grabspruch — ganz unten, Schrift bewusst unverändert.
-                Text("Tod macht Fliegen aus uns allen")
+                Text(L10n.t("Am Ende fällt jeder Stein", "In the end, every stone falls"))
                     .font(.custom(Theme.blackletterFamily, size: 20))
                     .tracking(1)
                     .foregroundStyle(Theme.blood.color)
@@ -992,7 +1043,7 @@ struct GameOverOverlay: View {
 
     private var entryView: some View {
         VStack(spacing: 10) {
-            Text("Ein Grab auf dem Friedhof — trag dich ein:")
+            Text(L10n.t("Ein Grab auf dem Friedhof — trag dich ein:", "A grave in the graveyard — sign it:"))
                 .font(.custom(Theme.blackletterFamily, size: 22))
                 .foregroundStyle(Theme.boneDim.color)
             TextField("Name", text: $name)
@@ -1003,7 +1054,7 @@ struct GameOverOverlay: View {
                 .onChange(of: name) { _, v in if v.count > 16 { name = String(v.prefix(16)) } }
                 .onSubmit(submit)
             Button(action: submit) {
-                Text("Begraben").font(.custom(Theme.blackletterBoldPostScript, size: 19)).frame(width: 240, height: 40)
+                Text(L10n.t("Begraben", "Bury")).font(.custom(Theme.blackletterBoldPostScript, size: 19)).frame(width: 240, height: 40)
             }
             .buttonStyle(.borderedProminent).tint(Theme.oxblood.color)
             .keyboardShortcut(.defaultAction)
@@ -1012,9 +1063,9 @@ struct GameOverOverlay: View {
 
     private var buttons: some View {
         VStack(spacing: 8) {
-            navButton(0, "Nochmal (gleicher Seed)", action: onRetrySameSeed)
-            navButton(1, "Neues Spiel", action: onRetryNewSeed)
-            navButton(2, "Hauptmenü", action: onExit)
+            navButton(0, L10n.t("Nochmal (gleicher Seed)", "Again (same seed)"), action: onRetrySameSeed)
+            navButton(1, L10n.t("Neues Spiel", "New game"), action: onRetryNewSeed)
+            navButton(2, L10n.t("Hauptmenü", "Main menu"), action: onExit)
         }
     }
 
@@ -1044,7 +1095,7 @@ struct GameOverOverlay: View {
 
     private func submit() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        highlightID = Friedhof.add(name: trimmed.isEmpty ? "Niemand" : trimmed, score: score, level: level)
+        highlightID = Friedhof.add(name: trimmed.isEmpty ? L10n.t("Niemand", "Nobody") : trimmed, score: score, level: level)
         step = .list
     }
 }
@@ -1066,7 +1117,7 @@ struct FriedhofView: View {
         let shown = maxRows.map { Array(entries.prefix($0)) } ?? entries
         Group {
             if entries.isEmpty {
-                Text("Noch frisch — kein Grab ausgehoben.")
+                Text(L10n.t("Noch frisch — kein Grab ausgehoben.", "Still fresh — no grave dug yet."))
                     .font(.custom(Theme.blackletterFamily, size: 18))
                     .foregroundStyle(Theme.boneDim.color)
                     .frame(maxWidth: .infinity)
@@ -1099,7 +1150,7 @@ struct FriedhofView: View {
                 .font(.custom(Theme.blackletterFamily, size: 22))
                 .foregroundStyle(highlight ? Theme.blood.color : Theme.boneDim.color)
                 .frame(width: 36, alignment: .trailing)
-            Text(e.name.isEmpty ? "Niemand" : e.name)
+            Text(e.name.isEmpty ? L10n.t("Niemand", "Nobody") : e.name)
                 .font(.custom(Theme.blackletterFamily, size: 22))
                 .foregroundStyle(fg)
                 .lineLimit(1)
@@ -1118,12 +1169,12 @@ struct FriedhofSheet: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Friedhof")
+            Text(L10n.t("Friedhof", "Graveyard"))
                 .font(.custom(Theme.blackletterFamily, size: 34))
                 .foregroundStyle(Theme.bone.color)
             FriedhofView(entries: Friedhof.entries())
             Button(action: onClose) {
-                Text("Schließen").font(.custom(Theme.blackletterBoldPostScript, size: 18)).frame(width: 200, height: 42)
+                Text(L10n.t("Schließen", "Close")).font(.custom(Theme.blackletterBoldPostScript, size: 18)).frame(width: 200, height: 42)
             }
             .buttonStyle(.borderedProminent).tint(Theme.oxblood.color)
             .keyboardShortcut(.defaultAction)
@@ -1144,48 +1195,71 @@ struct RulesSheet: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Spielregeln")
+            Text(L10n.t("Spielregeln", "How to play"))
                 .font(.custom(Theme.blackletterFamily, size: 34))
                 .foregroundStyle(Theme.bone.color)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    section("Ziel", """
+                    section(L10n.t("Ziel", "Goal"), L10n.t("""
                     Von oben schweben Säulen aus drei Steinen ein. Staple sie so, dass mindestens \
                     DREI gleiche Steine in einer Linie liegen — sie lösen sich dann auf.
-                    """)
-                    section("Treffer", """
+                    """, """
+                    Columns of three stones float in from the top. Stack them so that at least \
+                    THREE alike line up — they then clear.
+                    """))
+                    section(L10n.t("Treffer", "Matches"), L10n.t("""
                     Eine Linie zählt waagerecht, senkrecht ODER diagonal (beide Richtungen). \
                     Sobald drei oder mehr gleiche Steine zusammenkommen, verschwinden sie.
-                    """)
-                    section("Ketten (2× · 3× · 4× …)", """
+                    """, """
+                    A line counts horizontally, vertically OR diagonally (both directions). As soon \
+                    as three or more alike meet, they vanish.
+                    """))
+                    section(L10n.t("Ketten (2× · 3× · 4× …)", "Chains (2× · 3× · 4× …)"), L10n.t("""
                     Nach einer Räumung rutschen die Steine darüber nach. Entsteht dabei eine neue \
                     Linie, geht es als Kettenreaktion weiter — jede Stufe gibt deutlich mehr Punkte. \
                     Lange Ketten sind der Schlüssel zu hohen Scores.
-                    """)
-                    section("Magischer Stein", """
+                    """, """
+                    After a clear, the stones above fall in. If that forms a new line, it continues \
+                    as a chain reaction — each step scores far more. Long chains are the key to high \
+                    scores.
+                    """))
+                    section(L10n.t("Magischer Stein", "Magic stone"), L10n.t("""
                     Selten schwebt eine hell pulsierende Säule ein. Setzt sie auf, räumt sie \
                     BRETTWEIT alle Steine der Sorte weg, die direkt unter ihr liegt. Landet sie auf \
                     leerem Boden, verpufft sie wirkungslos. Es ist der einzige Spezialstein.
-                    """)
-                    section("Steuerung", """
+                    """, """
+                    Rarely a brightly pulsing column floats in. Where it lands, it clears EVERY \
+                    stone of the kind directly beneath it from the whole board. On empty ground it \
+                    fizzles out. It is the only special stone.
+                    """))
+                    section(L10n.t("Steuerung", "Controls"), L10n.t("""
                     Steuern kannst du wahlweise mit den Cursortasten oder mit den Tasten W, A, S, D \
                     — beides ist gleichwertig. Im Einzelnen: links und rechts verschieben die Säule, \
                     hoch dreht sie (die drei Steine tauschen durch), runter lässt sie schneller \
                     fallen. Die Leertaste wirft sie sofort ganz nach unten, T schaltet die \
                     Soundeffekte an und aus, M die Musik, Esc führt zurück ins Menü.
-                    """)
-                    section("Tempo & Ende", """
+                    """, """
+                    Play with the arrow keys or with W, A, S, D — both work the same. In detail: \
+                    left and right move the piece, up rotates it (cycling the three stones), down \
+                    makes it fall faster. Space drops it all the way down, T toggles the sound \
+                    effects, M the music, Esc returns to the menu.
+                    """))
+                    section(L10n.t("Tempo & Ende", "Speed & end"), L10n.t("""
                     Das Level steigt mit der Zahl geräumter Steine; je höher, desto schneller fällt \
                     die Säule. Die Partie endet, wenn die mittlere Einwurf-Spalte bis oben voll ist \
                     und keine neue Säule mehr Platz findet.
-                    """)
+                    """, """
+                    The level rises with the number of cleared stones; the higher it is, the faster \
+                    pieces fall. The game ends when the central spawn column is full to the top and \
+                    no new piece fits.
+                    """))
                 }
                 .padding(.horizontal, 4)
             }
 
             Button(action: onClose) {
-                Text("Fertig").font(.custom(Theme.blackletterBoldPostScript, size: 18)).frame(width: 200, height: 42)
+                Text(L10n.t("Fertig", "Done")).font(.custom(Theme.blackletterBoldPostScript, size: 18)).frame(width: 200, height: 42)
             }
             .buttonStyle(.borderedProminent).tint(Theme.oxblood.color)
             .keyboardShortcut(.defaultAction)

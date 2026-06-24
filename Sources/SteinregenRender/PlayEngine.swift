@@ -27,16 +27,18 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
     /// nur diese Anzeige-Strings tragen die von Daniel gewuenschten Namen.)
     public var title: String {
         switch self {
-        case .saeulen:      return "Steinschlag"
-        case .verschuettet: return "Eingemauert"
+        case .saeulen:      return L10n.t("Steinschlag", "Rockfall")
+        case .verschuettet: return L10n.t("Eingemauert", "Entombed")
         }
     }
 
     /// Kurzbeschreibung (eine Zeile) fuer die Modus-Wahl.
     public var hint: String {
         switch self {
-        case .saeulen:      return "fallende Dreier-Säulen · 3 gleiche in Linie räumen"
-        case .verschuettet: return "fallende Vierlinge · volle Reihen räumen"
+        case .saeulen:      return L10n.t("fallende Dreier-Säulen · 3 gleiche in Linie räumen",
+                                          "falling triplet columns · clear 3 alike in a line")
+        case .verschuettet: return L10n.t("fallende Vierlinge · volle Reihen räumen",
+                                          "falling four-block pieces · clear full rows")
         }
     }
 
