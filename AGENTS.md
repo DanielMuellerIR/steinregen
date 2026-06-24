@@ -182,7 +182,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-24, v0.16.0)
+## 5. Status (Stand 2026-06-24, v0.17.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -381,6 +381,20 @@ gemalten/foto-artigen Sets `usesMipmaps` → sauberes (statt flimmerndes) Verkle
 Kacheln großer Bretter (Verschüttet 10×18, frei eingestellte Maße). Das pixelige Set **FreeDoom
 bleibt ohne Mipmaps** (harte Retro-Kanten bleiben erhalten). Säulen 6×13 dadurch optisch unverändert
 (große Kacheln → kein sichtbarer Effekt), per Screenshot bestätigt.
+
+**v0.17.0 — Modus-Wahl im Startbildschirm (Phase 4, Teil 1):** der Spielmodus ist jetzt direkt im
+Menü wählbar — zwei Chips **Säulen** / **Verschüttet** (gewählter in Ochsenblut), mit einzeiligem
+Hinweis, im Stil des Tempo-Wählers (Theme-Schrift, kein System-Control). Bedienbar per Maus/Touch
+**und** auf macOS per **↑ ↓** (← → bleiben fürs Tempo; fokus-unabhängiger `NSEvent`-Monitor).
+`startGame` reicht den Modus an `GameScene.start(mode:)` durch. Die Steuerungs-Legende ist
+modus-abhängig („Säule" vs. „Vierling" bewegen/drehen). **iOS-Layout:** der Startbildschirm liegt
+auf iOS jetzt in einer zentrierenden `ScrollView` (`minHeight = Bildschirmhöhe`) — der zusätzliche
+Modus-Block kann das iPhone-Menü höher als den Schirm machen; so bleibt alles erreichbar und
+**alle bestehenden Element-Maße unverändert** (zentriert wo Platz reicht = iPad, scrollbar sonst =
+iPhone). Die Modus-Chips sind breiten-adaptiv (macOS exakt 190 pt wie zuvor, schmales iPhone:
+schrumpfen mit), der Hinweistext bricht um statt rechts abzuschneiden. Auf macOS, iPhone- und
+iPad-Simulator verifiziert (Menü beide Modi + Verschüttet-Spiel auf iOS headless gesichtet).
+Noch offen in Phase 4: Dimensions-Einstellungen + Endlos-Toggle.
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

@@ -127,6 +127,7 @@ struct RootView: View {
             switch screen {
             case .menu:
                 StartView(startLevel: $startLevel,
+                          mode: $gameMode,
                           onSettings: { activeSheet = .settings },
                           onFriedhof: { activeSheet = .friedhof },
                           onRules: { activeSheet = .rules },
@@ -193,6 +194,7 @@ struct RootView: View {
 
 struct StartView: View {
     @Binding var startLevel: Int
+    @Binding var mode: GameMode
     let onSettings: () -> Void
     let onFriedhof: () -> Void
     let onRules: () -> Void
@@ -224,6 +226,21 @@ struct StartView: View {
     }
 
     var body: some View {
+        // Auf iOS in eine zentrierende ScrollView: durch den zusätzlichen Modus-Block kann der
+        // Menü-Inhalt auf schmalen iPhones höher als der Bildschirm werden. `minHeight = Bildschirm`
+        // hält die bisherige vertikale Zentrierung (Spacer) bei, wo der Platz reicht (iPad), und macht
+        // den Rest scrollbar statt ihn oben/unten abzuschneiden — alle Element-Maße bleiben unverändert.
+        // macOS behält das schlichte VStack (Fenster ist hoch genug, Mindesthöhe gesetzt).
+        #if os(iOS)
+        GeometryReader { geo in
+            ScrollView { menuContent.frame(minHeight: geo.size.height) }
+        }
+        #else
+        menuContent
+        #endif
+    }
+
+    private var menuContent: some View {
         VStack(spacing: 20) {
             Spacer()
 
@@ -245,6 +262,22 @@ struct StartView: View {
                         .shadow(color: .black.opacity(0.7), radius: 4, y: 2)
                 }
             }
+
+            // Spielmodus — zwei Chips (Säulen / Verschüttet). Auf macOS zusätzlich per ↑ ↓ wählbar
+            // (← → bleiben fürs Tempo), auf iOS per Tap.
+            VStack(spacing: 10) {
+                Text("Modus")
+                    .font(.custom(Theme.blackletterBoldPostScript, size: 28)).foregroundStyle(.secondary)
+                HStack(spacing: 14) {
+                    ForEach(GameMode.allCases, id: \.self) { m in modeChip(m) }
+                }
+                .frame(maxWidth: 394)        // macOS: exakt 2×190; schmales iPhone: Chips schrumpfen mit
+                Text(mode.hint)
+                    .font(.custom(Theme.blackletterFamily, size: 22)).foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)   // lieber umbrechen als rechts abschneiden
+            }
+            .padding(.vertical, 4)
 
             // Start-Tempostufe — eigene ◀ Level N ▶-Steuerung (statt des hässlichen System-Steppers).
             VStack(spacing: 12) {
@@ -288,7 +321,7 @@ struct StartView: View {
                 .tint(Theme.boneDim.color)
             #endif
 
-            ControlsLegend()
+            ControlsLegend(mode: mode)
 
             Spacer()
         }
@@ -308,6 +341,8 @@ struct StartView: View {
             switch event.keyCode {
             case 123: if startLevel > 1  { startLevel -= 1 }; return nil   // ←
             case 124: if startLevel < 10 { startLevel += 1 }; return nil   // →
+            case 126: cycleMode(-1); return nil                           // ↑
+            case 125: cycleMode(+1); return nil                           // ↓
             default:  return event
             }
         }
@@ -339,6 +374,34 @@ struct StartView: View {
         }
     }
 
+    /// Ein Modus-Chip; der gewaehlte Modus ist mit Ochsenblut hinterlegt (kein Fokusrahmen — die
+    /// Bedienung laeuft per Tap bzw. auf macOS ueber ↑ ↓).
+    private func modeChip(_ m: GameMode) -> some View {
+        let selected = (m == mode)
+        return Button { mode = m } label: {
+            Text(m.title)
+                .font(.custom(Theme.blackletterBoldPostScript, size: 26))
+                .lineLimit(1).minimumScaleFactor(0.75)   // auf schmalem iPhone notfalls leicht kleiner
+                .foregroundStyle(selected ? Theme.bone.color : Theme.boneDim.color)
+                .frame(maxWidth: .infinity)               // beide Chips teilen sich die Breite gleichmäßig
+                .frame(height: 54)
+                .background(selected ? Theme.oxblood.color : Color.white.opacity(0.05),
+                            in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(selected ? Theme.blood.color : Color.white.opacity(0.12),
+                            lineWidth: selected ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+        .focusable(false)
+    }
+
+    /// Schaltet den Modus zyklisch um (fuer die ↑ ↓-Tasten auf macOS).
+    private func cycleMode(_ delta: Int) {
+        let all = GameMode.allCases
+        guard let i = all.firstIndex(of: mode) else { return }
+        mode = all[(i + delta + all.count) % all.count]
+    }
+
     private var tempoHint: String {
         switch startLevel {
         case 1...3: return "ruhig — gut zum Einsteigen"
@@ -363,18 +426,27 @@ struct StartView: View {
     }
 }
 
-/// Kurze Steuerungs-Legende.
+/// Kurze Steuerungs-Legende. Bewegungs-/Dreh-Text richtet sich nach dem Modus (Säule vs. Vierling).
 struct ControlsLegend: View {
+    var mode: GameMode = .saeulen
+
+    // Der bewegliche Stein heißt je Modus anders; bei den Säulen ist „Drehen" ein Durchtauschen
+    // der drei Steine, beim Vierling eine echte 90°-Drehung.
+    private var moveDesc: String { mode == .saeulen ? "Säule bewegen" : "Vierling bewegen" }
+    private var rotateDesc: String {
+        mode == .saeulen ? "Säule drehen (Steine durchtauschen)" : "Vierling drehen"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             #if os(macOS)
-            legend("← →  ·  A D", "Säule bewegen")
-            legend("↑  ·  W", "Säule drehen (Steine durchtauschen)")
+            legend("← →  ·  A D", moveDesc)
+            legend("↑  ·  W", rotateDesc)
             legend("↓  ·  S", "schneller fallen lassen")
             legend("Leertaste", "sofort fallen lassen")
             #else
-            legend("◀ ▶", "Säule bewegen (Knöpfe halten)")
-            legend("Tippen", "Säule drehen")
+            legend("◀ ▶", "\(moveDesc) (Knöpfe halten)")
+            legend("Tippen", rotateDesc)
             legend("▼", "schneller fallen lassen")
             legend("⤓", "sofort fallen lassen")
             #endif

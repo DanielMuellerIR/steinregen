@@ -17,9 +17,25 @@ import SteinregenCore
 /// Die beiden waehlbaren Spielmodi. „Saeulen" = der klassische Columns-Modus (fallende Dreier-
 /// Saeulen, ≥3 gleiche in Linie). „Verschuettet" = der Vierling-Modus (sieben Formen, volle Reihen
 /// raeumen). Bewusst markenfrei benannt.
-public enum GameMode: Sendable {
+public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
     case saeulen
     case verschuettet
+
+    /// Anzeigename im Menue/Dialog.
+    public var title: String {
+        switch self {
+        case .saeulen:      return "Säulen"
+        case .verschuettet: return "Verschüttet"
+        }
+    }
+
+    /// Kurzbeschreibung (eine Zeile) fuer die Modus-Wahl.
+    public var hint: String {
+        switch self {
+        case .saeulen:      return "fallende Dreier-Säulen · 3 gleiche in Linie räumen"
+        case .verschuettet: return "fallende Vierlinge · volle Reihen räumen"
+        }
+    }
 }
 
 // MARK: - Vorschau-Form (HUD „als Naechstes")
