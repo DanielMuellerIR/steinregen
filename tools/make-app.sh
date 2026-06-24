@@ -3,6 +3,13 @@
 # dist/Steinregen.app  (+ dist/Steinregen-<version>.zip). Headless/CI-tauglich.
 #
 # Nutzung:  bash tools/make-app.sh
+#
+# Optionale Umgebungsvariablen (Default = bisheriges Verhalten: ad-hoc-Signatur + ZIP):
+#   SIGN_ID    Signing-Identität. Leer = Ad-hoc-Signatur (nur lokal lauffähig). Gesetzt (z.B.
+#              "Developer ID Application: …") = echte Signatur MIT Hardened Runtime + Zeitstempel
+#              (Pflicht für Notarisierung). Wird von tools/make-notarized.sh genutzt.
+#   SKIP_ZIP   "1" = das abschließende ZIP überspringen (die notarisierte Variante zippt selbst
+#              erst NACH dem Stapeln). Sonst wird wie bisher dist/Steinregen-<version>.zip gebaut.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -53,16 +60,32 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-echo "==> Ad-hoc-Signatur (nötig auf Apple Silicon)…"
-codesign --force --deep --sign - "$APP"
-codesign --verify --deep --strict "$APP" && echo "    Signatur ok."
+if [ -n "${SIGN_ID:-}" ]; then
+    # Echte Signatur mit Hardened Runtime (--options runtime) + Zeitstempel (--timestamp).
+    # Beides ist Pflicht für die Notarisierung; KEIN --deep (Apple rät davon ab, und das Bundle
+    # hat ohnehin nur EINE Mach-O-Datei — die Haupt-Binary; das Ressourcen-Bundle ist reiner Inhalt).
+    echo "==> Signatur mit »$SIGN_ID« (Hardened Runtime)…"
+    codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$APP"
+    codesign --verify --strict --verbose=2 "$APP" && echo "    Signatur ok."
+else
+    echo "==> Ad-hoc-Signatur (nötig auf Apple Silicon)…"
+    codesign --force --deep --sign - "$APP"
+    codesign --verify --deep --strict "$APP" && echo "    Signatur ok."
+fi
 
-echo "==> ZIP für die Weitergabe…"
-ZIP="dist/Steinregen-$VERSION.zip"
-rm -f "$ZIP"
-( cd dist && zip -qry "Steinregen-$VERSION.zip" "Steinregen.app" )
+if [ "${SKIP_ZIP:-0}" = "1" ]; then
+    echo "==> ZIP übersprungen (SKIP_ZIP=1)."
+    echo ""
+    echo "Fertig:"
+    echo "  $ROOT/$APP   (doppelklickbar)"
+else
+    echo "==> ZIP für die Weitergabe…"
+    ZIP="dist/Steinregen-$VERSION.zip"
+    rm -f "$ZIP"
+    ( cd dist && zip -qry "Steinregen-$VERSION.zip" "Steinregen.app" )
 
-echo ""
-echo "Fertig:"
-echo "  $ROOT/$APP   (doppelklickbar)"
-echo "  $ROOT/$ZIP"
+    echo ""
+    echo "Fertig:"
+    echo "  $ROOT/$APP   (doppelklickbar)"
+    echo "  $ROOT/$ZIP"
+fi

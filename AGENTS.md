@@ -113,7 +113,16 @@ steinregen/                   (SwiftPM-Workspace)
   ad-hoc-signiert) + `dist/Steinregen-<version>.zip`. Das Icon (`tools/AppIcon.icns`) wird bei
   Bedarf von `tools/make-icon.sh` **prozedural** erzeugt (Composer: `tools/icon-compose.swift`,
   Motiv: umgekehrtes Pentagramm im Kreis, satanisch). `dist/` und `tools/AppIcon.icns` sind
-  git-ignoriert (reproduzierbar).
+  git-ignoriert (reproduzierbar). `make-app.sh` kennt zwei optionale env-Schalter (Default
+  unverändert): `SIGN_ID` (echte Signatur mit Hardened Runtime statt ad-hoc) und `SKIP_ZIP=1`.
+- **Notarisierte App (Weitergabe ohne Gatekeeper-Warnung)**: `bash tools/make-notarized.sh` baut die
+  App, signiert sie mit **Developer ID + Hardened Runtime**, reicht sie bei Apple zur **Notarisierung**
+  ein (`notarytool submit --wait`), heftet das Ticket an (`stapler staple`) und packt
+  `dist/Steinregen-<version>-notarized.zip`. Nutzt intern `make-app.sh` (kein Code-Duplikat).
+  Voraussetzungen **pro Mac** (Schlüsselbund wird nicht gesynct): Developer-ID-Application-Zertifikat
+  in der Login-Keychain + notarytool-Keychain-Profil. Identität/Profil per env überschreibbar
+  (`SIGN_ID`, `NOTARY_PROFILE`, Default-Profil `steinregen-notary`). Details zum einmaligen Einrichten:
+  `der Apple-notarytool-Dokumentation`.
 - **iOS-App (iPhone)**: SwiftPM kann kein iOS-App-Bundle erzeugen → `bash tools/make-ios-app.sh`
   erzeugt per **xcodegen** aus `project.yml` ein Xcode-Projekt (`Steinregen.xcodeproj`, git-ignoriert)
   und baut die App fürs iOS-Simulator-SDK. `bash tools/make-ios-app.sh run` installiert + startet sie
@@ -476,5 +485,6 @@ zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Sim
   durchsuchen, dann gezielt entfernen (history-rewrite) oder vor dem ersten Public-Push squashen.
 
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
-Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause,
-Developer-ID-Signatur + Notarisierung (für Weitergabe ohne Gatekeeper-Warnung).
+Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause.
+(Developer-ID-Signatur + Notarisierung ist ab v0.20.0 als `tools/make-notarized.sh` verfügbar —
+siehe Build & Test.)
