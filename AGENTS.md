@@ -128,7 +128,9 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_LEVEL=<1..10>` — Start-Tempostufe
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`/`freedoom`)
-- `STEINREGEN_MODE=<modus>` — Spielmodus (`saeulen` = Columns, `verschuettet` = Vierlinge; Default `saeulen`)
+- `STEINREGEN_MODE=<modus>` — Spielmodus (`saeulen` = Columns, im Menü „Steinschlag"; `verschuettet`
+  = Vierlinge, im Menü „Eingemauert"; Default `saeulen`). Die env-/UserDefaults-IDs bleiben bewusst
+  `saeulen`/`verschuettet` — nur die Anzeige-Namen heißen Steinschlag/Eingemauert.
 - `STEINREGEN_ENDLESS=1` — konstantes Tempo (Fallgeschwindigkeit bleibt auf der Start-Tempostufe)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start direkt den Friedhof (Bestenliste)
@@ -419,6 +421,12 @@ Startbildschirm liegt jetzt auf **beiden** Plattformen in der zentrierenden Scro
 Tempo-Verlauf-Zeile ließ auch das macOS-Fenster knapp überlaufen → Logo wurde oben angeschnitten);
 zentriert wo der Platz reicht, scrollbar sonst, alle Element-Maße unverändert. macOS-Menü per
 Screenshot bestätigt. **Phase 4 (UI) ist damit komplett: Modus-Wahl + Brettgröße + Endlos.**
+
+**v0.19.1 — Modus-Namen umbenannt:** die beiden Spielmodi heißen im Menü/Dialog jetzt
+**Steinschlag** (vormals „Säulen", der Columns-Modus) und **Eingemauert** (vormals „Verschüttet",
+der Vierling-Modus). Reine Anzeige-Änderung in `GameMode.title` — die internen case-Namen
+(`saeulen`/`verschuettet`), die `STEINREGEN_MODE`-Naht und die UserDefaults-Schlüssel bleiben
+unverändert (Persistenz/Headless-Naht). macOS-Menü per Screenshot bestätigt.
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

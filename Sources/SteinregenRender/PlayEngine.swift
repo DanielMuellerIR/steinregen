@@ -22,11 +22,13 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
     case saeulen
     case verschuettet
 
-    /// Anzeigename im Menue/Dialog.
+    /// Anzeigename im Menue/Dialog. (Die internen case-Namen `saeulen`/`verschuettet`
+    /// und die env-/UserDefaults-Schluessel bleiben aus Persistenz-/Naht-Gruenden unveraendert —
+    /// nur diese Anzeige-Strings tragen die von Daniel gewuenschten Namen.)
     public var title: String {
         switch self {
-        case .saeulen:      return "Säulen"
-        case .verschuettet: return "Verschüttet"
+        case .saeulen:      return "Steinschlag"
+        case .verschuettet: return "Eingemauert"
         }
     }
 
