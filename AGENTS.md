@@ -129,6 +129,7 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`/`freedoom`)
 - `STEINREGEN_MODE=<modus>` — Spielmodus (`saeulen` = Columns, `verschuettet` = Vierlinge; Default `saeulen`)
+- `STEINREGEN_ENDLESS=1` — konstantes Tempo (Fallgeschwindigkeit bleibt auf der Start-Tempostufe)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start direkt den Friedhof (Bestenliste)
 
@@ -182,7 +183,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-24, v0.18.0)
+## 5. Status (Stand 2026-06-24, v0.19.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -407,6 +408,17 @@ Wirkt ab der nächsten Partie. Variables Brett rendert dank Phase 3 sauber — m
 headless gegengeprüft (mehr Spalten/Reihen, Einwurf mittig), iOS-Dialog im Simulator bestätigt.
 Die Modus-Grenzen liegen als `GameMode.widthRange`/`heightRange`/`defaultWidth`/`defaultHeight`.
 **Damit ist Phase 4 fast komplett — offen bleibt nur der Endlos-Toggle (= Phase 2).**
+
+**v0.19.0 — Endlos / konstantes Tempo (Phase 4 abgeschlossen, = Phase 2):** im Startbildschirm unter
+dem Start-Tempo ein Umschalter „steigt mit Level" / „konstant" (Kapseln, gewählte in Ochsenblut,
+persistiert). Bei „konstant" hält `GameScene` die Fallgeschwindigkeit auf der **Start-Tempostufe**
+fest (statt mit dem Level zu beschleunigen) — Punkte/Level zählen weiter normal. Greift für **beide**
+Modi (`fallInterval(speedLevel)` mit `speedLevel = constantTempo ? startTempoLevel : engine.level`).
+Durchgereicht über `GameScene.start(…, endless:)`, Test-Naht `STEINREGEN_ENDLESS=1`. **Layout:** der
+Startbildschirm liegt jetzt auf **beiden** Plattformen in der zentrierenden ScrollView (die zusätzliche
+Tempo-Verlauf-Zeile ließ auch das macOS-Fenster knapp überlaufen → Logo wurde oben angeschnitten);
+zentriert wo der Platz reicht, scrollbar sonst, alle Element-Maße unverändert. macOS-Menü per
+Screenshot bestätigt. **Phase 4 (UI) ist damit komplett: Modus-Wahl + Brettgröße + Endlos.**
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

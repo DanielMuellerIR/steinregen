@@ -62,6 +62,11 @@ public final class GameScene: SKScene {
     private var softDropActive = false
     /// Zuletzt gesehenes Level — um beim Anstieg den „Level geschafft"-Sound auszulösen.
     private var lastLevel = 0
+    /// Konstantes Tempo („Endlos"): bleibt true, hält die Fallgeschwindigkeit auf der Start-Tempostufe
+    /// fest, statt sie mit dem Level zu beschleunigen. Der Punkte-/Level-Zähler steigt weiter normal.
+    private var constantTempo = false
+    /// Start-Tempostufe der laufenden Partie — bei konstantem Tempo bestimmt sie die Fallgeschwindigkeit.
+    private var startTempoLevel = 1
     /// Lock-Delay (Sega-Style): kurzes Korrektur-Fenster, in dem eine aufgesetzte Saeule noch
     /// geschoben/gedreht werden kann, bevor sie fixiert. Verschiebt man sie so, dass sie wieder
     /// fallen kann, geht es normal weiter. Wert in Sekunden — bewusst etwas laenger als die reine
@@ -127,9 +132,11 @@ public final class GameScene: SKScene {
     /// Verschuettet 10×18). Default-Modus ist „Saeulen", damit bestehende Aufrufer unveraendert
     /// den Columns-Modus bekommen.
     public func start(seed: UInt64, startLevel: Int, mode: GameMode = .saeulen,
-                      width: Int? = nil, height: Int? = nil) {
+                      width: Int? = nil, height: Int? = nil, endless: Bool = false) {
         // Gewaehltes Steine-Set aus den Einstellungen uebernehmen (gilt ab dieser Partie).
         GemTextures.activeSetID = StoneSets.selectedID
+        constantTempo = endless
+        startTempoLevel = max(1, startLevel)
         switch mode {
         case .saeulen:
             engine = Engine(seed: seed, startLevel: startLevel,
@@ -435,7 +442,9 @@ public final class GameScene: SKScene {
             // Normales Fallen. (Hat die Saeule durch Schieben wieder Luft, läuft das Lock-Delay nicht.)
             lockDelayAccumulator = 0
             fallAccumulator += dt
-            let interval = softDropActive ? min(0.045, fallInterval(engine.level)) : fallInterval(engine.level)
+            // Bei konstantem Tempo („Endlos") zaehlt die Start-Tempostufe, nicht das gestiegene Level.
+            let speedLevel = constantTempo ? startTempoLevel : engine.level
+            let interval = softDropActive ? min(0.045, fallInterval(speedLevel)) : fallInterval(speedLevel)
             if fallAccumulator >= interval {
                 fallAccumulator = 0
                 stepGravity()

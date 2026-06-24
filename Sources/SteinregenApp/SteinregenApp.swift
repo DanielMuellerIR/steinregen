@@ -112,9 +112,11 @@ struct RootView: View {
     @State private var startLevel: Int = 1          // 1-basiert (kein „Level 0")
     @State private var currentSeed: UInt64 = 1
     @State private var activeSheet: ActiveSheet?
-    /// Gewaehlter Spielmodus. Vorerst nur ueber die Test-Naht (env STEINREGEN_MODE) umschaltbar —
-    /// die UI-Modus-Wahl im Startbildschirm folgt in einem spaeteren Schritt (Phase 4).
+    /// Gewaehlter Spielmodus (im Startbildschirm waehlbar).
     @State private var gameMode: GameMode = .saeulen
+    /// Konstantes Tempo („Endlos"): Fallgeschwindigkeit bleibt auf der Start-Tempostufe, statt mit
+    /// dem Level zu steigen. Persistiert.
+    @AppStorage("steinregen.endless") private var endless = false
 
     var body: some View {
         ZStack {
@@ -128,6 +130,7 @@ struct RootView: View {
             case .menu:
                 StartView(startLevel: $startLevel,
                           mode: $gameMode,
+                          endless: $endless,
                           onSettings: { activeSheet = .settings },
                           onFriedhof: { activeSheet = .friedhof },
                           onRules: { activeSheet = .rules },
@@ -163,6 +166,7 @@ struct RootView: View {
             let env = ProcessInfo.processInfo.environment
             if let setID = env["STEINREGEN_SET"] { StoneSets.selectedID = setID }
             if let m = env["STEINREGEN_MODE"] { gameMode = (m == "verschuettet") ? .verschuettet : .saeulen }
+            if env["STEINREGEN_ENDLESS"] != nil { endless = true }
             if env["STEINREGEN_SETTINGS"] != nil { activeSheet = .settings }
             if env["STEINREGEN_FRIEDHOF"] != nil { activeSheet = .friedhof }
             if env["STEINREGEN_AUTOSTART"] != nil {
@@ -182,7 +186,8 @@ struct RootView: View {
     private func startGame(seed: UInt64) {
         currentSeed = seed
         scene.start(seed: seed, startLevel: startLevel, mode: gameMode,
-                    width: BoardConfig.width(gameMode), height: BoardConfig.height(gameMode))
+                    width: BoardConfig.width(gameMode), height: BoardConfig.height(gameMode),
+                    endless: endless)
         screen = .playing
     }
 
@@ -196,6 +201,7 @@ struct RootView: View {
 struct StartView: View {
     @Binding var startLevel: Int
     @Binding var mode: GameMode
+    @Binding var endless: Bool
     let onSettings: () -> Void
     let onFriedhof: () -> Void
     let onRules: () -> Void
@@ -227,18 +233,14 @@ struct StartView: View {
     }
 
     var body: some View {
-        // Auf iOS in eine zentrierende ScrollView: durch den zusätzlichen Modus-Block kann der
-        // Menü-Inhalt auf schmalen iPhones höher als der Bildschirm werden. `minHeight = Bildschirm`
-        // hält die bisherige vertikale Zentrierung (Spacer) bei, wo der Platz reicht (iPad), und macht
-        // den Rest scrollbar statt ihn oben/unten abzuschneiden — alle Element-Maße bleiben unverändert.
-        // macOS behält das schlichte VStack (Fenster ist hoch genug, Mindesthöhe gesetzt).
-        #if os(iOS)
+        // Zentrierende ScrollView auf BEIDEN Plattformen: durch Modus- und Tempo-Verlauf-Wahl ist der
+        // Menü-Inhalt höher geworden und kann ein knapp bemessenes Fenster / schmales iPhone
+        // überlaufen. `minHeight = sichtbare Höhe` hält die bisherige vertikale Zentrierung (Spacer)
+        // bei, wo der Platz reicht (großes Fenster / iPad), und macht den Rest scrollbar statt ihn
+        // oben/unten abzuschneiden — alle Element-Maße bleiben unverändert.
         GeometryReader { geo in
             ScrollView { menuContent.frame(minHeight: geo.size.height) }
         }
-        #else
-        menuContent
-        #endif
     }
 
     private var menuContent: some View {
@@ -298,6 +300,11 @@ struct StartView: View {
                 }
                 Text(tempoHint)
                     .font(.custom(Theme.blackletterFamily, size: 24)).foregroundStyle(.tertiary)
+                // Tempo-Verlauf: steigt es mit dem Level oder bleibt es konstant („Endlos")?
+                HStack(spacing: 10) {
+                    tempoPill("steigt mit Level", selected: !endless) { endless = false }
+                    tempoPill("konstant", selected: endless) { endless = true }
+                }
             }
             .padding(.vertical, 10)
 
@@ -394,6 +401,20 @@ struct StartView: View {
         }
         .buttonStyle(.plain)
         .focusable(false)
+    }
+
+    /// Kleine Kapsel zur Wahl des Tempo-Verlaufs (steigend vs. konstant); gewaehlte in Ochsenblut.
+    private func tempoPill(_ title: String, selected: Bool, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.custom(Theme.blackletterFamily, size: 18))
+                .foregroundStyle(selected ? Theme.bone.color : Theme.boneDim.color)
+                .padding(.horizontal, 16).frame(height: 38)
+                .background(selected ? Theme.oxblood.color : Color.white.opacity(0.05), in: Capsule())
+                .overlay(Capsule().stroke(selected ? Theme.blood.color : Color.white.opacity(0.12),
+                                          lineWidth: selected ? 2 : 1))
+        }
+        .buttonStyle(.plain).focusable(false)
     }
 
     /// Schaltet den Modus zyklisch um (fuer die ↑ ↓-Tasten auf macOS).
