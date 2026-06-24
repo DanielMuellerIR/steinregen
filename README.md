@@ -26,6 +26,12 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
 - **Sound effects** (locally generated) — landing, clearing, rotating, level-up and game-over
   cues, with several random variants per event. In Settings you can pick a sound set —
   Steinregen (the project's own cues), Freedoom, or Mundtot (silent); **T** toggles in-game.
+- **Music** (locally generated) — three instrumental atmospheric-black-metal tracks that play one
+  after another in a loop, starting on a random track each game. On by default but only from the
+  start of a level, not in the menu; toggled independently of the sound effects in Settings or
+  with **M** in-game.
+- **Backgrounds** — a set of AI-generated foggy-night motifs (graveyard, dead winter forest,
+  ruined cathedral, foggy moor, blood-red moon); one is picked at random for each game.
 - **Matches in all directions** — horizontal, vertical, and both diagonals.
 - **Chain reactions** — cascading clears are rewarded (score = stones × 10 × chain step).
 - **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes
@@ -41,7 +47,8 @@ film grain, and a jagged black-metal logo. The six stones are told apart by a wh
 | ↑ · W | rotate (cycle the three stones) |
 | ↓ · S | soft drop (faster fall) |
 | Space | hard drop |
-| T | toggle sound (off = "mundtot") |
+| T | toggle sound effects (off = "mundtot") |
+| M | toggle music |
 | Esc | back to main menu |
 
 ## Build & Run
@@ -115,7 +122,9 @@ The "FreeDoom" stone-set sprites come from the
 commercial Doom material), licensed under
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
-The sound effects were generated locally with an open audio model (Stable Audio 3) and ship as
-part of this project.
+The sound effects were generated locally with an open audio model (Stable Audio 3); the three
+music tracks with the open **ACE-Step** model; the foggy-night background images with the open
+**Qwen-Image** model. All ship as part of this project. See
+[THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md) for the full attribution and license overview.
 
 🤖 Built with [Claude Code](https://claude.com/claude-code).

@@ -26,12 +26,25 @@ situation is auditable before any (re)distribution.
   `diamond.png`) and **SVG-rendered stones** (`svg_*.png`) — original artwork created by the author
   in Affinity Designer for the sibling project *Zaubersteine* (MIT). Own work. ✅
 
+## Background images
+
+- **`hintergrund.png`, `hintergrund-2.png` … `hintergrund-5.png`** — five foggy-night motifs
+  (graveyard, dead winter forest, ruined gothic cathedral, foggy moor, blood-red moon) generated
+  locally with the open **Qwen-Image** model. The game picks one at random per game. Qwen-Image
+  permits commercial use. ✅
+
 ## Logo
 
 - **`logo.png`** — derived from a logotype produced with a locally-run **FLUX.1 [dev]** image
   model. ⚠️ FLUX.1 [dev] is licensed for **non-commercial** use by Black Forest Labs. Fine for
   non-commercial distribution; the output-rights situation must be verified (or the logo replaced)
   before any commercial release. See the open items below.
+
+## Music
+
+- **`musik-1.mp3`, `musik-2.mp3`, `musik-3.mp3`** — three instrumental atmospheric-black-metal
+  tracks generated locally with the open **ACE-Step** model. They play in sequence during a game.
+  ACE-Step permits commercial use. ✅
 
 ## App icon
 

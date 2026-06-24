@@ -138,7 +138,7 @@ struct RootView: View {
             case .playing:
                 GameplayView(scene: scene,
                              model: model,
-                             onExit: { screen = .menu },
+                             onExit: goToMenu,
                              onRetrySameSeed: { startGame(seed: currentSeed) },
                              onRetryNewSeed: { startGame(seed: Self.randomSeed()) })
             }
@@ -167,6 +167,9 @@ struct RootView: View {
             if let setID = env["STEINREGEN_SET"] { StoneSets.selectedID = setID }
             if let m = env["STEINREGEN_MODE"] { gameMode = (m == "verschuettet") ? .verschuettet : .saeulen }
             if env["STEINREGEN_ENDLESS"] != nil { endless = true }
+            // Headless-Naht: STEINREGEN_MUSIC=0 schaltet die Musik aus (stiller Screenshot-Lauf),
+            // =1 erzwingt sie an. Ohne die Variable bleibt der (persistierte) Default „an".
+            if let mu = env["STEINREGEN_MUSIC"] { MusicPlayer.shared.setEnabled(mu != "0") }
             if env["STEINREGEN_SETTINGS"] != nil { activeSheet = .settings }
             if env["STEINREGEN_FRIEDHOF"] != nil { activeSheet = .friedhof }
             if env["STEINREGEN_AUTOSTART"] != nil {
@@ -189,6 +192,14 @@ struct RootView: View {
                     width: BoardConfig.width(gameMode), height: BoardConfig.height(gameMode),
                     endless: endless)
         screen = .playing
+        // Musik erst AB Levelbeginn (nicht im Menü). Läuft sie schon (z.B. „nochmal"), bleibt sie.
+        MusicPlayer.shared.gameStarted()
+    }
+
+    /// Zurück ins Hauptmenü — dabei die Musik stoppen (im Menü ist es still).
+    private func goToMenu() {
+        MusicPlayer.shared.gameEnded()
+        screen = .menu
     }
 
     private static func randomSeed() -> UInt64 {
@@ -501,8 +512,9 @@ struct SettingsView: View {
     /// Modus, dessen Brettmaße hier eingestellt werden (im Menü gewählt, vom Aufrufer durchgereicht).
     var mode: GameMode = .saeulen
     @AppStorage(StoneSets.defaultsKey) private var selectedSet = "doom"   // Standard-Set
-    @AppStorage(SoundFX.mutedKey) private var mundtot = false             // true = Ton aus
+    @AppStorage(SoundFX.mutedKey) private var mundtot = false             // true = Soundeffekte aus
     @AppStorage(SoundFX.setKey) private var soundSetRaw = SoundFX.SoundSet.eigene.rawValue  // Klang-Set
+    @AppStorage(MusicPlayer.mutedKey) private var musikAus = false        // true = Musik aus (separat!)
     // Brettmaße je Modus (gleiche Schlüssel wie BoardConfig — dort liest der Spielstart sie). 0 =
     // ungesetzt; die Stepper-Bindings unten setzen beim ersten Antippen den Modus-Standard ein.
     @AppStorage(BoardConfig.saeulenWidthKey)       private var saeulenW = 0
@@ -596,6 +608,28 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
 
+            // Musik — bewusst GETRENNT von den Soundeffekten (eigene Karte, eigener Schalter).
+            // An/Aus über dieselbe Theme-Schrift-Segmentanzeige. Treibt MusicPlayer.setEnabled
+            // (persistiert + wirkt sofort); die Musik läuft ohnehin erst ab Levelbeginn.
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Musik")
+                    .font(.custom(Theme.blackletterFamily, size: 22))
+                    .foregroundStyle(Theme.bone.color)
+                ThemeSegmented(
+                    options: [("An", "an"), ("Aus", "aus")],
+                    selection: Binding(
+                        get: { musikAus ? "aus" : "an" },
+                        set: { v in MusicPlayer.shared.setEnabled(v == "an") }))
+                Text(musikAus
+                     ? "Musik aus (im Spiel: Taste M)"
+                     : "Musik an — startet erst im Spiel (im Spiel: Taste M)")
+                    .font(.custom(Theme.blackletterFamily, size: 18))
+                    .foregroundStyle(musikAus ? Theme.blood.color : Theme.boneDim.color)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+
             // Brettgröße des gewählten Modus — zwei Stepper (Breite/Höhe), auf die erlaubte Spanne
             // begrenzt. Wirkt ab der nächsten Partie (Maße werden beim Spielstart gelesen).
             VStack(alignment: .leading, spacing: 8) {
@@ -640,7 +674,7 @@ struct SettingsView: View {
             .keyboardShortcut(.defaultAction)
         }
         .padding(24)
-        .dialogFrame(width: 480, height: 820)
+        .dialogFrame(width: 480, height: 880)
         .background(Color(red: 0.02, green: 0.02, blue: 0.03))
         .preferredColorScheme(.dark)
     }
@@ -826,13 +860,18 @@ struct GameplayView: View {
         case "d": if down { if !rep { scene.startMove(1)  } } else { scene.stopMove(1)  }; return true
         case "w": if down && !rep { scene.inputRotate() }; return true
         case "s": scene.setSoftDrop(down); return true
-        case "t":   // Ton ein/aus (S geht nicht — belegt durch Softdrop)
+        case "t":   // Soundeffekte ein/aus (S geht nicht — belegt durch Softdrop)
             if down && !rep {
                 SoundFX.muted.toggle()
                 scene.flashHint(SoundFX.muted ? "mundtot" : "Ton an")
             }
             return true
-        // "m" ist für späteres Musik-Ein/Aus reserviert (Musik gibt es noch nicht).
+        case "m":   // Musik ein/aus — getrennt von den Soundeffekten
+            if down && !rep {
+                let on = MusicPlayer.shared.toggle()
+                scene.flashHint(on ? "Musik an" : "Musik aus")
+            }
+            return true
         default:  return false
         }
     }
@@ -1133,8 +1172,8 @@ struct RulesSheet: View {
                     Steuern kannst du wahlweise mit den Cursortasten oder mit den Tasten W, A, S, D \
                     — beides ist gleichwertig. Im Einzelnen: links und rechts verschieben die Säule, \
                     hoch dreht sie (die drei Steine tauschen durch), runter lässt sie schneller \
-                    fallen. Die Leertaste wirft sie sofort ganz nach unten, T schaltet den Ton an \
-                    und aus, Esc führt zurück ins Menü.
+                    fallen. Die Leertaste wirft sie sofort ganz nach unten, T schaltet die \
+                    Soundeffekte an und aus, M die Musik, Esc führt zurück ins Menü.
                     """)
                     section("Tempo & Ende", """
                     Das Level steigt mit der Zahl geräumter Steine; je höher, desto schneller fällt \

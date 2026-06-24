@@ -38,7 +38,8 @@ steinregen/                   (SwiftPM-Workspace)
 │   │                          treibt Säulen + Verschüttet mit einem Code-Pfad),
 │   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones
 │   │                          + ZaubersteineStones (svg/procedural/png), GemTextures =
-│   │                          set-bewusste Textur-Fabrik, SoundFX = Soundeffekte, Magic-Animation
+│   │                          set-bewusste Textur-Fabrik, SoundFX = Soundeffekte, MusicPlayer =
+│   │                          Hintergrundmusik (getrennt schaltbar), Magic-Animation
 │   │                          — cross-platform: nur SKColor, keine AppKit/UIKit-Typen)
 │   └── SteinregenApp/        (SwiftUI-Shell für macOS UND iOS: Startbildschirm, Einstellungen,
 │                              Spielregeln, Friedhof, Game-Over; Steuerung per `#if os(...)` —
@@ -58,11 +59,14 @@ steinregen/                   (SwiftPM-Workspace)
   Innerhalb iOS unterscheidet `UIDevice.userInterfaceIdiom == .pad` das Touch-Layout (iPhone vs. iPad).
 - **UI**: SwiftUI · **Engine**: SpriteKit (via `SpriteView`) · **Build**: Swift Package Manager
 - **Look (ab v0.2.0)**: Black-Metal-Ästhetik — rabenschwarz, knochenweiß, ein Ochsenblut-Akzent,
-  räudiges Korn. **Hintergrundbild (ab v0.20.0)**: ein KI-generiertes Nebel-bei-Nacht-Motiv
-  (`hintergrund.png`, Qwen-Image, kommerziell unbedenklich) liegt formatfüllend (Cover) ganz hinten
-  hinter dem Brett (`GameScene.buildBackdrop()`, `Theme.backdropImage()`) — **ersetzt** den früheren
-  prozeduralen, animiert driftenden Nebel (`GemTextures.fog()` entfernt). Die Steine werden
-  **prozedural** gezeichnet, alle alten Edelstein-PNGs werden NICHT mehr ins Spiel geladen.
+  räudiges Korn. **Hintergrundbilder (ab v0.20.0, Pool ab v0.21.0)**: KI-generierte Nebel-bei-Nacht-
+  Motive (`hintergrund.png` plus `hintergrund-2.png` … `hintergrund-5.png`, Qwen-Image, kommerziell
+  unbedenklich) liegen formatfüllend (Cover) ganz hinten hinter dem Brett. `Theme.backdropImages()`
+  lädt ALLE vorhandenen `hintergrund*.png` (eine weitere `hintergrund-N.png` ins Bundle legen genügt),
+  `GameScene` wählt pro Partie zufällig eines (`backdropIndex`, in `start()` gesetzt, über Resizes
+  stabil) und `GameScene.buildBackdrop()` zeichnet es. **Ersetzt** den früheren prozeduralen, animiert
+  driftenden Nebel (`GemTextures.fog()` entfernt). Die Steine werden **prozedural** gezeichnet, alle
+  alten Edelstein-PNGs werden NICHT mehr ins Spiel geladen.
 - **Steine-Sets (wählbar, erweiterbar)**: Jedes Set ist ein `StoneSet` (id + Name + Zeichen-Funktion)
   in der `StoneSets`-Registry. Aktuell sechs:
   - **„Sigille"** (`SigilStones`) — fein geritzte Zeichen, gedeckte Tönung (Black Metal).
@@ -93,6 +97,14 @@ steinregen/                   (SwiftPM-Workspace)
   Level `dswpnup`. Ton-Aus = „mundtot" (UserDefaults `steinregen.mundtot`, Taste **T**, Einstellungen).
   Kandidaten zum Probehören: `tools/get-sound-candidates.sh` + `tools/audition-sounds.sh`
   (laden nach `assets/sound-candidates/`, git-ignoriert).
+- **Musik (ab v0.21.0)**: drei instrumentale Stücke (Downfall-of-Gaia-Stil, lokal mit ACE-Step
+  erzeugt, kommerziell unbedenklich) als `musik-1.mp3`/`musik-2.mp3`/`musik-3.mp3` im Bundle,
+  abgespielt über `MusicPlayer` (eigene Datei, `AVAudioPlayer` + Delegate). Laufen NACHEINANDER in
+  Schleife, pro Partie zufälliger Einstieg. **Getrennt von den Soundeffekten**: eigener Schalter
+  (UserDefaults `steinregen.musik.aus`, Taste **M**, Einstellungs-Karte „Musik"), **standardmäßig
+  AN**, spielt aber **nur im laufenden Spiel** (nicht im Menü) — die App-Schicht ruft
+  `MusicPlayer.shared.gameStarted()` beim Levelbeginn (`startGame`) und `gameEnded()` bei der
+  Rückkehr ins Menü (`goToMenu`). Reine Render-/Präsentationsschicht, kein Core-Bezug.
   Zusätzlich im Bundle: **Grenze Gotisch** (gotische Titel-/UI-/HUD-Schrift, modernes gut lesbares
   Blackletter — ab v0.8.0 statt Pirata One) als `GrenzeGotisch-Regular.ttf` + `GrenzeGotisch-Bold.ttf`
   + `GrenzeGotisch-OFL.txt` (SIL Open Font License — muss mitgeliefert werden), zur Laufzeit über
@@ -143,6 +155,8 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
   = Vierlinge, im Menü „Eingemauert"; Default `saeulen`). Die env-/UserDefaults-IDs bleiben bewusst
   `saeulen`/`verschuettet` — nur die Anzeige-Namen heißen Steinschlag/Eingemauert.
 - `STEINREGEN_ENDLESS=1` — konstantes Tempo (Fallgeschwindigkeit bleibt auf der Start-Tempostufe)
+- `STEINREGEN_MUSIC=<0|1>` — Musik aus (`0`) bzw. erzwungen an (`1`); ohne die Variable gilt der
+  persistierte Default (an). Praktisch für stille Screenshot-/Smoke-Test-Läufe.
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start direkt den Friedhof (Bestenliste)
 
@@ -187,8 +201,8 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
 - **↑** oder **W** — Säule drehen (Steine zyklisch durchtauschen)
 - **↓** oder **S** — schneller fallen (Softdrop, gehalten)
 - **Leertaste** sofort fallen lassen (Hard-Drop)
-- **T** Ton ein/aus (Aus-Modus heißt „mundtot"); **M** ist für späteres Musik-Ein/Aus reserviert
-  (Musik gibt es noch nicht)
+- **T** Soundeffekte ein/aus (Aus-Modus heißt „mundtot"); **M** Musik ein/aus (getrennt von den
+  Soundeffekten — ab v0.21.0)
 - **Esc** zurück ins Hauptmenü
 
 Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewusst **fokus-unabhängig**
@@ -196,7 +210,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-24, v0.19.0)
+## 5. Status (Stand 2026-06-24, v0.21.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -225,7 +239,7 @@ und über den Menü-Button „Friedhof".
 
 **v0.6.0 — Soundeffekte (FreeDoom, BSD-3):** Drehen/Aufsetzen (zyklisch)/Auflösen/Game-Over
 (zufällig)/Level via `SoundFX`. In den Einstellungen an/aus (Aus = „mundtot"), im Spiel Taste **T**.
-**Vorgemerkt:** Musik (Taste **M**) — gibt es noch nicht, kommt später.
+**Musik** (Taste **M**) folgte in v0.21.0 (siehe unten).
 
 **v0.6.1 — Bugfixes:** Fenster auf festes Seitenverhältnis gesperrt (`WindowConfigurator`,
 `NSWindow.contentAspectRatio`) + Szene-Größe beim Start an den View angeglichen → keine verzerrten
@@ -451,6 +465,29 @@ im Bundle, wird über `Theme.backdropImage()` geladen und in `GameScene.buildBac
 werden beschnitten). Der verwaiste `GemTextures.fog()` + `fogCache` sind entfernt. macOS per
 Screenshot bestätigt (Brett/HUD bleiben klar lesbar). Nur das Gameplay; der SwiftUI-Startbildschirm
 ist unberührt.
+
+**v0.21.0 — Hintergrund-Pool + Musik (Phase 5):**
+- **Mehrere Hintergrundbilder statt nur einem:** die vier weiteren Qwen-Image-Favoriten aus Number
+  One (toter Winterwald, Kathedralenruine, Nebelmoor + zackige Berge, blutroter Mond) liegen neben
+  dem ursprünglichen Friedhof (`hintergrund-2.png` … `hintergrund-5.png`, alle 896×1280, kommerziell
+  unbedenklich). `Theme.backdropImage()` → **`Theme.backdropImages()`** lädt jetzt ALLE vorhandenen
+  `hintergrund*.png` (Reihenfolge: erst `hintergrund`, dann `-2`, `-3`, …; eine weitere `-N` ins
+  Bundle legen genügt). `GameScene` wählt **pro Partie zufällig** eines (`backdropIndex`, in
+  `start()` gesetzt → stabil über Resizes, kein Wechsel beim Fenster-Ziehen). macOS per Screenshots
+  über mehrere Läufe bestätigt (Friedhof/Moor/Kathedrale/Winterwald gesehen), iOS-Hochformat (Cover)
+  ebenfalls.
+- **Hintergrundmusik (neu, getrennt von den Soundeffekten):** drei instrumentale Stücke im
+  Downfall-of-Gaia-Stil (lokal mit **ACE-Step** erzeugt, kommerziell unbedenklich; die drei
+  Favoriten aus Projekt *Musica* in Number One) als `musik-1/2/3.mp3`. Neue Datei
+  **`MusicPlayer.swift`** (`AVAudioPlayer` + Delegate, `@MainActor`, Singleton `shared`): die Stücke
+  laufen **nacheinander in Schleife**, pro Partie mit **zufälligem Einstieg**. **Standardmäßig AN**,
+  aber **erst ab Levelbeginn** (nicht im Menü): `startGame` ruft `gameStarted()`, der Weg zurück ins
+  Menü (`goToMenu`) ruft `gameEnded()` (stoppt). **Eigener Schalter** (UserDefaults
+  `steinregen.musik.aus`, getrennt von `steinregen.mundtot`): Taste **M** im Spiel + eigene Karte
+  „Musik" (An/Aus) in den Einstellungen. Headless-Naht `STEINREGEN_MUSIC=<0|1>`. Verifiziert:
+  macOS-Build + Lauf ohne Crash, alle drei mp3 via `AVAudioPlayer` ladbar (120/240/240 s, Stereo);
+  iOS-Build + Simulator-Screenshots (Einstellungs-Karte „Musik" passt aufs iPhone, Gameplay-
+  Hintergrund im Hochformat). Reine Render-/App-Schicht, Core unberührt, 32 Core-Tests grün.
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

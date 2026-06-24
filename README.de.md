@@ -26,6 +26,12 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 - **Soundeffekte** (lokal erzeugt) — Aufsetzen, Auflösen, Drehen, Level und Game-Over, mit
   mehreren zufälligen Varianten pro Ereignis. In den Einstellungen wählt man ein Klang-Set —
   Steinregen (die eigenen Klänge), Freedoom oder Mundtot (stumm); im Spiel schaltet **T** um.
+- **Musik** (lokal erzeugt) — drei instrumentale Atmospheric-Black-Metal-Stücke, die nacheinander
+  in Schleife laufen, pro Partie mit zufälligem Anfangsstück. Standardmäßig an, aber erst ab
+  Levelbeginn (nicht im Menü); getrennt von den Soundeffekten ausschaltbar — in den Einstellungen
+  oder im Spiel mit **M**.
+- **Hintergründe** — mehrere KI-generierte Nebel-bei-Nacht-Motive (Friedhof, toter Winterwald,
+  Kathedralenruine, Nebelmoor, blutroter Mond); pro Partie wird eines zufällig gewählt.
 - **Treffer in alle Richtungen** — horizontal, vertikal und beide Diagonalen.
 - **Kettenreaktionen** — Kaskaden werden belohnt (Punkte = Steine × 10 × Kettenstufe).
 - **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
@@ -41,7 +47,8 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 | ↑ · W | drehen (die drei Steine durchtauschen) |
 | ↓ · S | schneller fallen (Softdrop) |
 | Leertaste | sofort fallen lassen |
-| T | Ton an/aus (aus = „mundtot") |
+| T | Soundeffekte an/aus (aus = „mundtot") |
+| M | Musik an/aus |
 | Esc | zurück ins Hauptmenü |
 
 ## Bauen & Starten
@@ -115,7 +122,9 @@ Die „FreeDoom"-Steine-Sprites stammen aus dem
 kommerzielle Original-Doom-Material), lizenziert unter
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
-Die Soundeffekte wurden lokal mit einem offenen Audio-Modell (Stable Audio 3) erzeugt und sind
-Teil dieses Projekts.
+Die Soundeffekte wurden lokal mit einem offenen Audio-Modell (Stable Audio 3) erzeugt, die drei
+Musikstücke mit dem offenen **ACE-Step**-Modell, die Nebel-bei-Nacht-Hintergründe mit dem offenen
+**Qwen-Image**-Modell. Alle sind Teil dieses Projekts. Vollständige Attribution und Lizenzlage:
+[THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).
 
 🤖 Gebaut mit [Claude Code](https://claude.com/claude-code).

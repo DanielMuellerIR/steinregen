@@ -25,6 +25,10 @@ public final class GameScene: SKScene {
     // MARK: Layer + Knoten
     /// Ganz hinten: das statische Hintergrundbild (Nebel bei Nacht). Früher prozeduraler Nebel.
     private let backdropLayer = SKNode()
+    /// Index des für die LAUFENDE Partie gewählten Hintergrundbildes in `Theme.backdropImages()`.
+    /// Wird in `start()` einmal zufällig festgelegt und bleibt über alle Layout-Durchläufe
+    /// (z.B. Fenster-Resize) stabil — sonst wechselte das Bild bei jeder Größenänderung.
+    private var backdropIndex = 0
     private let backgroundLayer = SKNode()
     private let boardLayer = SKNode()
     private let pieceLayer = SKNode()
@@ -137,6 +141,9 @@ public final class GameScene: SKScene {
         GemTextures.activeSetID = StoneSets.selectedID
         constantTempo = endless
         startTempoLevel = max(1, startLevel)
+        // Pro Partie zufällig eines der mitgelieferten Hintergrundbilder wählen (Variation).
+        let backdropCount = Theme.backdropImages().count
+        backdropIndex = backdropCount > 0 ? Int.random(in: 0..<backdropCount) : 0
         switch mode {
         case .saeulen:
             engine = Engine(seed: seed, startLevel: startLevel,
@@ -204,8 +211,12 @@ public final class GameScene: SKScene {
     private func buildBackdrop() {
         backdropLayer.removeAllChildren()
         guard size.width > 0, size.height > 0 else { return }
-        // Bild aus dem Bundle holen; fehlt es, bleibt nur die schwarze Grundflaeche (Theme.canvas).
-        guard let cg = Theme.backdropImage() else { return }
+        // Das für diese Partie gewaehlte Bild aus dem Pool holen; ist keines vorhanden, bleibt
+        // nur die schwarze Grundflaeche (Theme.canvas). `backdropIndex` wird in `start()` gesetzt;
+        // der min() schuetzt, falls die Pool-Groesse mal kleiner als der Index sein sollte.
+        let backdrops = Theme.backdropImages()
+        guard !backdrops.isEmpty else { return }
+        let cg = backdrops[min(backdropIndex, backdrops.count - 1)]
         let tex = SKTexture(cgImage: cg)
         let texSize = tex.size()
         guard texSize.width > 0, texSize.height > 0 else { return }

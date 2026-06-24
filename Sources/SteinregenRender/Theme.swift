@@ -82,23 +82,38 @@ public enum Theme {
         return logoCached
     }
 
-    // MARK: - Hintergrundbild
+    // MARK: - Hintergrundbilder
 
-    private static var triedBackdrop = false
-    private static var backdropCached: CGImage?
+    private static var triedBackdrops = false
+    private static var backdropsCached: [CGImage] = []
 
-    /// Lädt das Spielfeld-Hintergrundbild (`hintergrund.png`, ein KI-generiertes Nebel-bei-Nacht-
-    /// Motiv) aus dem Bundle — oder nil, falls nicht vorhanden (dann bleibt nur die schwarze
-    /// Grundfläche). Ersetzt den früheren prozeduralen Nebel.
-    public static func backdropImage() -> CGImage? {
-        if triedBackdrop { return backdropCached }
-        triedBackdrop = true
-        if let url = resourceBundle.url(forResource: "hintergrund", withExtension: "png"),
-           let src = CGImageSourceCreateWithURL(url as CFURL, nil),
-           let img = CGImageSourceCreateImageAtIndex(src, 0, nil) {
-            backdropCached = img
+    /// Lädt ALLE Spielfeld-Hintergrundbilder (KI-generierte Nebel-bei-Nacht-Motive) aus dem
+    /// Bundle: zuerst `hintergrund.png` (das ursprüngliche Friedhof-Motiv), danach
+    /// `hintergrund-2.png`, `hintergrund-3.png`, … fortlaufend, bis keine weitere Datei mehr
+    /// existiert. So genügt es, eine neue `hintergrund-N.png` ins Bundle zu legen — sie wird
+    /// automatisch Teil des Pools (die Szene wählt pro Partie zufällig eines). Leeres Array ⇒
+    /// es bleibt nur die schwarze Grundfläche. Das Ergebnis wird einmalig zwischengespeichert.
+    public static func backdropImages() -> [CGImage] {
+        if triedBackdrops { return backdropsCached }
+        triedBackdrops = true
+        // Kandidaten in fester Reihenfolge: erst der unnummerierte „hintergrund", dann -2, -3, …
+        var names = ["hintergrund"]
+        var n = 2
+        while resourceBundle.url(forResource: "hintergrund-\(n)", withExtension: "png") != nil {
+            names.append("hintergrund-\(n)")
+            n += 1
+            if n > 64 { break }   // Sicherheitsdeckel gegen eine versehentliche Endlosschleife
         }
-        return backdropCached
+        var imgs: [CGImage] = []
+        for name in names {
+            if let url = resourceBundle.url(forResource: name, withExtension: "png"),
+               let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+               let img = CGImageSourceCreateImageAtIndex(src, 0, nil) {
+                imgs.append(img)
+            }
+        }
+        backdropsCached = imgs
+        return imgs
     }
 
     private static var fontsRegistered = false
