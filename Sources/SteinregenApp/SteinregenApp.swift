@@ -6,7 +6,6 @@
 // Core bleibt frei von globalem Zufall. Gleicher Seed ⇒ exakt gleicher Spielverlauf.
 
 import SwiftUI
-import SpriteKit
 #if os(macOS)
 import AppKit   // nur macOS: NSEvent-Tastatur, NSWindow-Konfiguration, NSApplication
 #endif
@@ -571,7 +570,7 @@ struct SettingsView: View {
                 set(min(range.upperBound, value + 1))
             }
             Text("(\(range.lowerBound)–\(range.upperBound))")
-                .font(.custom(Theme.blackletterFamily, size: 16))
+                .font(.custom(Theme.blackletterFamily, size: 18)) // war 16, unter der 18pt-Untergrenze
                 .foregroundStyle(Theme.boneDim.color.opacity(0.7))
         }
     }

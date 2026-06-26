@@ -504,9 +504,12 @@ public final class GameScene: SKScene {
     // so das Korrektur-Fenster auf: liegt die Saeule schon auf, bekommt der Spieler nach jedem Zug
     // erneut die volle Zeit, statt dass das Fenster ab dem ersten Aufsetzen unaufhaltsam ablaeuft.
     // Im freien Fall ist der Akku ohnehin 0 — dort ist das Zuruecksetzen wirkungslos (harmlos).
-    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true); lockDelayAccumulator = 0 } }
-    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true); lockDelayAccumulator = 0 } }
-    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate(); lockDelayAccumulator = 0 } }
+    // Zusaetzlich wird hardDropped = false gesetzt: nach einem Hard-Drop gilt das halbe Korrektur-
+    // Fenster (hardDropLockDelay). Eine erfolgreiche Korrektur soll aber das VOLLE Fenster geben —
+    // sonst bekommt der Spieler nach Leertaste + seitlicher Korrektur nur noch 0,21 statt 0,42 s.
+    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true); hardDropped = false; lockDelayAccumulator = 0 } }
+    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true); hardDropped = false; lockDelayAccumulator = 0 } }
+    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate(); hardDropped = false; lockDelayAccumulator = 0 } }
 
     /// Beginnt das horizontale Halten in `dir` (-1 links, +1 rechts): ein sofortiger erster Schritt,
     /// danach uebernimmt der Auto-Repeat im `update(_:)` (siehe moveDAS/moveARR).
