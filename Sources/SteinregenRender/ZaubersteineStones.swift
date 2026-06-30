@@ -1,6 +1,6 @@
 // ZaubersteineStones.swift
 // Drei „optisch angenehme" Steine-Sets, komplett aus dem Schwester-Projekt *Zaubersteine*
-// uebernommen (Daniels eigenes MIT-Projekt). Es sind die drei dortigen Render-Styles —
+// uebernommen (ein eigenes MIT-Projekt). Es sind die drei dortigen Render-Styles —
 // in Zaubersteine heissen sie:
 //   • „Zaubersteine" = .svg        (glaenzende, gerasterte SVG-Steine; eigene PNGs svg_<typ>.png)
 //   • „G20"          = .procedural (prozedural gezeichnete, kraeftig gefaerbte Tasten-Steine)

@@ -134,8 +134,8 @@ steinregen/                   (SwiftPM-Workspace)
   `dist/Steinregen-<version>-notarized.zip`. Nutzt intern `make-app.sh` (kein Code-Duplikat).
   Voraussetzungen **pro Mac** (Schlüsselbund wird nicht gesynct): Developer-ID-Application-Zertifikat
   in der Login-Keychain + notarytool-Keychain-Profil. Identität/Profil per env überschreibbar
-  (`SIGN_ID`, `NOTARY_PROFILE`, Default-Profil `steinregen-notary`). Details zum einmaligen Einrichten:
-  `der Apple-notarytool-Dokumentation`.
+  (`SIGN_ID`, `NOTARY_PROFILE`, Default-Profil `steinregen-notary`). Das notarytool-Keychain-Profil
+  einmalig anlegen mit `xcrun notarytool store-credentials` (Apple-ID + Team-ID + App-spezifisches Passwort).
 - **Notarisiertes DMG / Release**: `bash tools/make-dmg.sh` baut die Developer-ID-signierte App in
   ein DMG mit Hintergrundbild (`assets/dmg-background.png`, erzeugt von
   `tools/generate-dmg-background.swift`) + Applications-Shortcut, signiert/notarisiert/stapelt es →
@@ -436,7 +436,7 @@ Noch offen in Phase 4: Dimensions-Einstellungen + Endlos-Toggle.
 
 **v0.18.0 — einstellbare Brettgröße je Modus (Phase 4, Teil 2):** im Einstellungsdialog eine neue
 Karte „Brettgröße — <Modus>" mit zwei Steppern (Breite/Höhe, ◀ N ▶), begrenzt auf die je Modus
-erlaubte Spanne. **Bestätigte Grenzen (Daniel, 2026-06-24):** Säulen Breite 5–12 / Höhe 10–24
+erlaubte Spanne. **Bestätigte Grenzen (Stand 2026-06-24):** Säulen Breite 5–12 / Höhe 10–24
 (Default 6×13), Verschüttet Breite 8–14 / Höhe 14–24 (Default 10×18). Persistenz zentral über
 `BoardConfig` (Render): dieselben UserDefaults-Schlüssel, die der Einstellungsdialog schreibt und
 `startGame` beim Spielstart liest (ungesetzt ⇒ Modus-Standard, gespeicherte Werte auf die Spanne
@@ -464,7 +464,7 @@ der Vierling-Modus). Reine Anzeige-Änderung in `GameMode.title` — die interne
 unverändert (Persistenz/Headless-Naht). macOS-Menü per Screenshot bestätigt.
 
 **v0.20.0 — Hintergrundbild statt prozeduralem Nebel:** der früher prozedural erzeugte, animiert
-driftende Nebel (sah laut Daniel „überhaupt nicht gut" aus) ist durch ein **statisches
+driftende Nebel (wirkte unpassend) ist durch ein **statisches
 KI-Hintergrundbild** ersetzt — ein Nebel-bei-Nacht-Friedhof (Mond, schmiedeeisernes Kreuz,
 Grabsteine, Ochsenblut-Schimmer), passend zur Black-Metal-Ästhetik. Lokal auf dem M5 mit
 **Qwen-Image** generiert (hohe Qualität **und** kommerziell unbedenklich — anders als FLUX, das wie
@@ -500,8 +500,8 @@ ist unberührt.
   Hintergrund im Hochformat). Reine Render-/App-Schicht, Core unberührt, 32 Core-Tests grün.
 
 **v0.22.0 — Level-Sound ersetzt + Hintergrund wechselt garantiert pro Partie:**
-- **Neuer Level-Geschafft-Klang:** der alte `level.m4a` (laut Daniel schlecht) ist durch einen
-  **dunklen Ritual-Gong** ersetzt — lokal mit **Stable Audio 3** (sfxgen) erzeugt, von Daniel aus
+- **Neuer Level-Geschafft-Klang:** der alte `level.m4a` (klang schwach) ist durch einen
+  **dunklen Ritual-Gong** ersetzt — lokal mit **Stable Audio 3** (sfxgen) erzeugt, aus
   5 Konzepten × 2 Varianten (Glocke/Sarg/Gong/Handglocke/Röhrenglocke) in Number One per ⭐
   ausgewählt. Gewählt wegen voller, durchsetzungsfähiger Klangfarbe, die **neben der Musik**
   durchkommt. **Reiner Asset-Tausch:** `Resources/level.m4a` (mono AAC, 3 s) ausgetauscht, das

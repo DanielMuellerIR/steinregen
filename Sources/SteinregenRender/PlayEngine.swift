@@ -24,7 +24,7 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
 
     /// Anzeigename im Menue/Dialog. (Die internen case-Namen `saeulen`/`verschuettet`
     /// und die env-/UserDefaults-Schluessel bleiben aus Persistenz-/Naht-Gruenden unveraendert —
-    /// nur diese Anzeige-Strings tragen die von Daniel gewuenschten Namen.)
+    /// nur diese Anzeige-Strings tragen die gewuenschten Anzeige-Namen.)
     public var title: String {
         switch self {
         case .saeulen:      return L10n.t("Steinschlag", "Rockfall")
@@ -46,7 +46,7 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
     public var defaultWidth: Int  { self == .saeulen ? Board.defaultWidth  : TetrominoEngine.defaultWidth }
     public var defaultHeight: Int { self == .saeulen ? Board.defaultHeight : TetrominoEngine.defaultHeight }
 
-    /// Erlaubte Spanne der einstellbaren Brettmaße (von Daniel bestätigt, Stand 2026-06-24).
+    /// Erlaubte Spanne der einstellbaren Brettmaße (bestätigt, Stand 2026-06-24).
     public var widthRange: ClosedRange<Int>  { self == .saeulen ? 5...12 : 8...14 }
     public var heightRange: ClosedRange<Int> { self == .saeulen ? 10...24 : 14...24 }
 }
