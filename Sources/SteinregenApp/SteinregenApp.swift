@@ -11,6 +11,7 @@ import AppKit   // nur macOS: NSEvent-Tastatur, NSWindow-Konfiguration, NSApplic
 #endif
 #if os(iOS)
 import UIKit    // nur iOS: UIDevice (eindeutige iPad-Erkennung fürs Touch-Layout)
+import AVFoundation   // nur iOS: AVAudioSession (Stummschalter respektieren, mit anderer Audio mischen)
 #endif
 import SteinregenCore
 import SteinregenRender
@@ -41,6 +42,13 @@ struct SteinregenApp: App {
         // macOS: App als regulaeres, fokussiertes Fenster nach vorn holen.
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
+        #endif
+        #if os(iOS)
+        // iOS: Spiel-Ton als „ambient" — respektiert den Stummschalter (lautlos ⇒ still) und
+        // mischt sich höflich mit anderer Audio (unterbricht z.B. laufende Musik nicht). Ohne diese
+        // Session gilt der Default „soloAmbient", der fremde Audio stattdessen abwürgt.
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+        try? AVAudioSession.sharedInstance().setActive(true)
         #endif
     }
 

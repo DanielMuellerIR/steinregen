@@ -3,7 +3,7 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
-## [0.23.3]
+## [0.23.4]
 
 First public release.
 
