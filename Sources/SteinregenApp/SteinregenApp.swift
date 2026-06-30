@@ -267,9 +267,11 @@ struct StartView: View {
     }
 
     private var menuContent: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
+        VStack(spacing: 14) {
+            #if os(macOS)
+            Spacer()   // macOS: vertikal zentriert im festen Fenster. iOS: kein Spacer → Inhalt oben,
+                       // Logo ganz nach oben (so passt der Startbildschirm ohne Scrollen aufs iPhone).
+            #endif
             VStack(spacing: 6) {
                 // Logo-Grafik statt Schriftzug; Fallback auf den Blackletter-Text, falls die
                 // Datei fehlt (z.B. in einem Build ohne logo.png im Bundle). FESTE Höhe, damit das
@@ -299,16 +301,13 @@ struct StartView: View {
                 }
                 .frame(maxWidth: 394)        // macOS: exakt 2×190; schmales iPhone: Chips schrumpfen mit
                 Text(mode.hint)
-                    .font(.custom(Theme.blackletterFamily, size: 22)).foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)   // lieber umbrechen als rechts abschneiden
+                    .font(.custom(Theme.blackletterFamily, size: 20)).foregroundStyle(.tertiary)
+                    .lineLimit(1).minimumScaleFactor(0.6)   // einzeilig halten — notfalls kleiner statt umbrechen
             }
-            .padding(.vertical, 4)
 
             // Start-Tempostufe — eigene ◀ Level N ▶-Steuerung (statt des hässlichen System-Steppers).
-            VStack(spacing: 12) {
-                Text(L10n.t("Start-Tempo", "Starting speed"))
-                    .font(.custom(Theme.blackletterBoldPostScript, size: 28)).foregroundStyle(.secondary)
+            // Ohne Überschrift/Erklärung: dass „Level" das Tempo ist, versteht sich von selbst.
+            VStack(spacing: 10) {
                 HStack(spacing: 24) {
                     arrowButton("chevron.left.circle.fill", enabled: startLevel > 1) {
                         if startLevel > 1 { startLevel -= 1 }
@@ -321,15 +320,12 @@ struct StartView: View {
                         if startLevel < 10 { startLevel += 1 }
                     }
                 }
-                Text(tempoHint)
-                    .font(.custom(Theme.blackletterFamily, size: 24)).foregroundStyle(.tertiary)
                 // Tempo-Verlauf: steigt es mit dem Level oder bleibt es konstant („Endlos")?
                 HStack(spacing: 10) {
                     tempoPill(L10n.t("steigt mit Level", "rises with level"), selected: !endless) { endless = false }
                     tempoPill(L10n.t("konstant", "constant"), selected: endless) { endless = true }
                 }
             }
-            .padding(.vertical, 10)
 
             Button(action: onStart) {
                 Text(L10n.t("Spiel starten", "Start game"))
@@ -340,24 +336,24 @@ struct StartView: View {
             .tint(Theme.oxblood.color)
             .keyboardShortcut(.defaultAction)
 
-            // Die drei Menü-Knöpfe: auf macOS eine Zeile (breites Fenster), auf iPhone gestapelt
-            // (sonst läuft die Zeile über den schmalen Bildschirm hinaus).
+            // Die drei Menü-Knöpfe: auf macOS eine Zeile mit breiten Knöpfen, auf iPhone eine
+            // kompakte Reihe aus Icon+Label, damit alles ohne Scrollen aufs Bild passt.
             #if os(macOS)
             HStack(spacing: 8) { menuButtons }
                 .buttonStyle(.bordered)
                 .tint(Theme.boneDim.color)
             #else
-            VStack(spacing: 10) { menuButtons }
-                .buttonStyle(.bordered)
-                .tint(Theme.boneDim.color)
+            HStack(spacing: 10) {
+                compactMenuButton(L10n.t("Einstellungen", "Settings"), "gearshape", onSettings)
+                compactMenuButton(L10n.t("Spielregeln", "How to play"), "book", onRules)
+                compactMenuButton(L10n.t("Friedhof", "Graveyard"), "list.number", onFriedhof)
+            }
             #endif
-
-            ControlsLegend(mode: mode)
 
             Spacer()
         }
         .padding(.horizontal, 36)
-        .padding(.vertical, 24)
+        .padding(.vertical, 14)
         .onAppear { installKeyMonitor() }
         .onDisappear { removeKeyMonitor() }
     }
@@ -405,6 +401,23 @@ struct StartView: View {
         }
     }
 
+    #if os(iOS)
+    /// Kompakter Menü-Knopf fürs iPhone: Icon über kleinem Label, drei nebeneinander in einer Reihe
+    /// (spart Höhe gegenüber drei gestapelten Knöpfen — der Startbildschirm passt so ohne Scrollen).
+    private func compactMenuButton(_ title: String, _ icon: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon).font(.system(size: 22))
+                Text(title).font(.custom(Theme.blackletterFamily, size: 14))
+                    .lineLimit(1).minimumScaleFactor(0.6)
+            }
+            .frame(maxWidth: .infinity).frame(height: 58)
+        }
+        .buttonStyle(.bordered)
+        .tint(Theme.boneDim.color)
+    }
+    #endif
+
     /// Ein Modus-Chip; der gewaehlte Modus ist mit Ochsenblut hinterlegt (kein Fokusrahmen — die
     /// Bedienung laeuft per Tap bzw. auf macOS ueber ↑ ↓).
     private func modeChip(_ m: GameMode) -> some View {
@@ -447,15 +460,6 @@ struct StartView: View {
         mode = all[(i + delta + all.count) % all.count]
     }
 
-    private var tempoHint: String {
-        switch startLevel {
-        case 1...3: return L10n.t("ruhig — gut zum Einsteigen", "calm — good to start")
-        case 4...6: return L10n.t("zügig", "brisk")
-        case 7...8: return L10n.t("schnell", "fast")
-        default:    return L10n.t("sehr schnell — für Profis", "very fast — for pros")
-        }
-    }
-
     /// Großer, gut sichtbarer Pfeil-Knopf für die Tempo-Auswahl. Am Bereichsende (Level 1 bzw. 10)
     /// wird er gedämpft und deaktiviert. SF-Symbol statt Schrift-Glyphe — die gotische Schrift hat
     /// keine Pfeile.
@@ -468,53 +472,6 @@ struct StartView: View {
         .buttonStyle(.plain)
         .focusable(false)        // kein blauer Fokusrahmen — die Bedienung läuft über ← →
         .disabled(!enabled)
-    }
-}
-
-/// Kurze Steuerungs-Legende. Bewegungs-/Dreh-Text richtet sich nach dem Modus (Säule vs. Vierling).
-struct ControlsLegend: View {
-    var mode: GameMode = .saeulen
-
-    // Der bewegliche Stein heißt je Modus anders; bei den Säulen ist „Drehen" ein Durchtauschen
-    // der drei Steine, beim Vierling eine echte 90°-Drehung.
-    private var moveDesc: String {
-        mode == .saeulen ? L10n.t("Säule bewegen", "move the column")
-                         : L10n.t("Vierling bewegen", "move the piece")
-    }
-    private var rotateDesc: String {
-        mode == .saeulen ? L10n.t("Säule drehen (Steine durchtauschen)", "rotate the column (cycle stones)")
-                         : L10n.t("Vierling drehen", "rotate the piece")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            #if os(macOS)
-            legend("← →  ·  A D", moveDesc)
-            legend("↑  ·  W", rotateDesc)
-            legend("↓  ·  S", L10n.t("schneller fallen lassen", "soft drop (faster)"))
-            legend(L10n.t("Leertaste", "Space"), L10n.t("sofort fallen lassen", "hard drop"))
-            #else
-            legend("◀ ▶", "\(moveDesc) \(L10n.t("(Knöpfe halten)", "(hold buttons)"))")
-            legend(L10n.t("Tippen", "Tap"), rotateDesc)
-            legend("▼", L10n.t("schneller fallen lassen", "soft drop (faster)"))
-            legend("⤓", L10n.t("sofort fallen lassen", "hard drop"))
-            #endif
-        }
-        .font(.custom(Theme.blackletterFamily, size: 19))
-        .padding(18)
-        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func legend(_ key: String, _ desc: String) -> some View {
-        HStack(spacing: 12) {
-            // Bewusste Ausnahme: die Tasten-/Pfeil-Spalte bleibt in der klaren Mono-Schrift —
-            // Grenze Gotisch hat keine Pfeil-Glyphen (←↑→↓) und wuerde sie als Kaestchen zeigen.
-            Text(key)
-                .font(.system(size: 18, weight: .bold, design: .monospaced))
-                .frame(width: 132, alignment: .leading)
-                .foregroundStyle(.primary)
-            Text(desc).foregroundStyle(.secondary)
-        }
     }
 }
 
@@ -1240,6 +1197,21 @@ struct RulesSheet: View {
                     stone of the kind directly beneath it from the whole board. On empty ground it \
                     fizzles out. It is the only special stone.
                     """))
+                    #if os(iOS)
+                    section(L10n.t("Steuerung", "Controls"), L10n.t("""
+                    Tippen dreht die Säule (die drei Steine tauschen durch). Nach links oder rechts \
+                    wischen verschiebt sie um einen Schritt, nach unten wischen wirft sie sofort ganz \
+                    nach unten. Unten liegt eine Knopfleiste: ◀ ▶ gehalten bewegen (mit Auto-\
+                    Wiederholung), ↻ dreht, ▼ gehalten lässt schneller fallen, ⤓ wirft sofort ab. Ton \
+                    und Musik schaltest du in den Einstellungen, der ✕-Knopf oben links führt ins Menü.
+                    """, """
+                    Tap rotates the column (cycling the three stones). Swipe left or right to move it \
+                    one step; swipe down to drop it all the way instantly. A button bar sits at the \
+                    bottom: hold ◀ ▶ to move (with auto-repeat), ↻ rotates, hold ▼ for a faster fall, \
+                    ⤓ drops instantly. Toggle sound and music in Settings; the ✕ button top-left \
+                    returns to the menu.
+                    """))
+                    #else
                     section(L10n.t("Steuerung", "Controls"), L10n.t("""
                     Steuern kannst du wahlweise mit den Cursortasten oder mit den Tasten W, A, S, D \
                     — beides ist gleichwertig. Im Einzelnen: links und rechts verschieben die Säule, \
@@ -1252,6 +1224,7 @@ struct RulesSheet: View {
                     makes it fall faster. Space drops it all the way down, T toggles the sound \
                     effects, M the music, Esc returns to the menu.
                     """))
+                    #endif
                     section(L10n.t("Tempo & Ende", "Speed & end"), L10n.t("""
                     Das Level steigt mit der Zahl geräumter Steine; je höher, desto schneller fällt \
                     die Säule. Die Partie endet, wenn die mittlere Einwurf-Spalte bis oben voll ist \
