@@ -1,6 +1,6 @@
 # Steinregen
 
-Ein natives macOS- und iOS-Spiel in roher Black-Metal-Ästhetik — zwei Fallstein-Modi auf einer
+Ein natives macOS- und iOS-Spiel in roher Black-Metal-Ästhetik — zwei Spiel-Modi auf einer
 gemeinsamen Engine. Geschrieben in Swift mit SwiftUI und SpriteKit.
 
 *(English version: [README.md](README.md))*
@@ -10,6 +10,12 @@ gemeinsamen Engine. Geschrieben in Swift mit SwiftUI und SpriteKit.
   <img src="assets/sc1.jpg" width="32%" alt="Spiel auf einem Nacht-Hintergrund">
   <img src="assets/sc2.jpg" width="32%" alt="Einstellungen: Ton, Musik, Brettgröße, Steine-Sets">
 </p>
+
+## Download
+
+**[➜ Aktuelles signiertes & notarisiertes DMG herunterladen](https://github.com/DanielMuellerIR/steinregen/releases/latest)** — öffnen, *Steinregen* in den Programme-Ordner ziehen, doppelklicken. Mit Developer ID signiert und von Apple notarisiert, öffnet also ohne Gatekeeper-Warnung. Braucht macOS 15 oder neuer.
+
+Lieber aus dem Quellcode bauen, oder die iOS-App? Siehe [Bauen & Starten](#bauen--starten) unten.
 
 ## Modi
 
@@ -45,7 +51,7 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 - **Soundeffekte** (lokal erzeugt) — Aufsetzen, Auflösen, Drehen, Level und Game-Over, mit
   mehreren zufälligen Varianten pro Ereignis. In den Einstellungen wählt man ein Klang-Set —
   Steinregen (die eigenen Klänge), Freedoom oder Mundtot (stumm); im Spiel schaltet **T** um.
-- **Musik** (lokal erzeugt) — drei instrumentale Atmospheric-Black-Metal-Stücke, die nacheinander
+- **Musik** (lokal erzeugt) — drei ruhige, atmosphärische instrumentale Metal-Stücke, die nacheinander
   in Schleife laufen, pro Partie mit zufälligem Anfangsstück. Standardmäßig an, aber erst ab
   Levelbeginn (nicht im Menü); getrennt von den Soundeffekten ausschaltbar — in den Einstellungen
   oder im Spiel mit **M**.

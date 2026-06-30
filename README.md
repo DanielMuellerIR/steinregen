@@ -11,6 +11,12 @@ shared engine. Written in Swift with SwiftUI and SpriteKit.
   <img src="assets/sc2_en.jpg" width="32%" alt="Settings: language, sound, music, board size, stone sets">
 </p>
 
+## Download
+
+**[➜ Download the latest signed & notarized DMG](https://github.com/DanielMuellerIR/steinregen/releases/latest)** — open it, drag *Steinregen* into Applications and double-click. Signed with a Developer ID and notarized by Apple, so it opens without a Gatekeeper warning. Requires macOS 15 or newer.
+
+Prefer to build from source, or want the iOS app? See [Build & Run](#build--run) below.
+
 ## Modes
 
 - **Rockfall** (Columns-style) — falling columns of three stones. Line up **three or more of
@@ -44,7 +50,7 @@ backed by a muted, desaturated color tint.
 - **Sound effects** (locally generated) — landing, clearing, rotating, level-up and game-over
   cues, with several random variants per event. In Settings you can pick a sound set —
   Steinregen (the project's own cues), Freedoom, or Silenced; **T** toggles in-game.
-- **Music** (locally generated) — three instrumental atmospheric-black-metal tracks that play one
+- **Music** (locally generated) — three calm, atmospheric instrumental metal tracks that play one
   after another in a loop, starting on a random track each game. On by default but only from the
   start of a level, not in the menu; toggled independently of the sound effects in Settings or
   with **M** in-game.

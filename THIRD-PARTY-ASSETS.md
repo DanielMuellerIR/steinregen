@@ -42,7 +42,7 @@ situation is auditable before any (re)distribution.
 
 ## Music
 
-- **`musik-1.mp3`, `musik-2.mp3`, `musik-3.mp3`** — three instrumental atmospheric-black-metal
+- **`musik-1.mp3`, `musik-2.mp3`, `musik-3.mp3`** — three calm, atmospheric instrumental metal
   tracks generated locally with the open **ACE-Step** model. They play in sequence during a game.
   ACE-Step permits commercial use. ✅
 

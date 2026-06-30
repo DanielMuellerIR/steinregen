@@ -243,12 +243,19 @@ public final class GameScene: SKScene {
         backdropLayer.addChild(node)
     }
 
-    /// Legt das statische Korn als ganzflaechigen Schleier ueber die Szene (raeudiger Lo-Fi-Look).
+    /// Legt das statische Korn als Lo-Fi-Schleier NUR ueber das Spielfeld (das Brett-Panel) statt
+    /// ueber die ganze Szene. So bleibt der raeudige Look dort, wo gespielt wird, waehrend die
+    /// KI-Hintergrundbilder ausserhalb scharf und kontrastreich bleiben (frueher lag das Korn
+    /// flaechig ueber dem ganzen Bild und liess die Hintergruende koernig/pixelig wirken).
     private func buildGrain() {
         overlayLayer.removeAllChildren()
-        guard size.width > 0, size.height > 0 else { return }
-        let grain = SKSpriteNode(texture: GemTextures.grain(), size: size)
-        grain.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        guard size.width > 0, size.height > 0, tile > 0 else { return }
+        // Exakt der Bereich des Brett-Panels (gleiche Maße wie in buildBackground).
+        let boardW = CGFloat(boardWidth) * tile
+        let boardH = CGFloat(boardHeight) * tile
+        let rect = CGRect(x: boardOriginX - 6, y: boardOriginY - 6, width: boardW + 12, height: boardH + 12)
+        let grain = SKSpriteNode(texture: GemTextures.grain(), size: rect.size)
+        grain.position = CGPoint(x: rect.midX, y: rect.midY)
         grain.alpha = 0.32
         overlayLayer.addChild(grain)
     }
