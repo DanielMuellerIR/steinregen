@@ -1,7 +1,7 @@
 # Steinregen
 
 Ein natives macOS- und iOS-Spiel in roher Black-Metal-Ästhetik — zwei Fallstein-Modi auf einer
-deterministischen Engine. Geschrieben in Swift mit SwiftUI und SpriteKit.
+gemeinsamen Engine. Geschrieben in Swift mit SwiftUI und SpriteKit.
 
 *(English version: [README.md](README.md))*
 
@@ -16,10 +16,10 @@ deterministischen Engine. Geschrieben in Swift mit SwiftUI und SpriteKit.
 - **Steinschlag** (Columns-Art) — es fallen Dreier-Säulen aus Steinen. **Drei oder mehr gleiche**
   in einer Linie — waagerecht, senkrecht oder diagonal — werden geräumt; geräumte Steine lassen
   die darüber liegenden nachrutschen, was Kettenreaktionen mit Bonuspunkten auslösen kann.
-- **Eingemauert** (Stapeln) — es fallen Vierlinge (Vier-Block-Formen). Eine ganze Reihe füllen
-  räumt sie. Sieben Formen, ein deterministischer 7-Beutel, einfache Wall-Kicks.
+- **Eingemauert** (Tetris-Art) — es fallen Tetrominos (Vier-Block-Formen). Eine ganze Reihe füllen
+  räumt sie. Sieben Formen, ein 7-Beutel-Zufallsgeber, einfache Wall-Kicks.
 
-Beide Modi laufen auf demselben deterministischen Kern und teilen sich Optik, Ton, Musik und
+Beide Modi laufen auf demselben Kern und teilen sich Optik, Ton, Musik und
 Bestenliste. Modus (und Brettgröße) wählt man im Startbildschirm.
 
 ## Optik
@@ -54,7 +54,7 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
   hintereinander.
 - **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
   aufsetzt, räumt sie brettweit die Sorte der Zelle direkt darunter weg.
-- **Deterministisch, seed-getrieben** — gleicher Seed spielt exakt dieselbe Partie nach.
+- **Reproduzierbar, seed-getrieben** — gleicher Seed spielt exakt dieselbe Partie nach, Zug für Zug.
 - **Läuft auf macOS** (Tastatur) **und iOS / iPad** (Touch), mit demselben Kern und Renderer.
 - **Deutsch und Englisch** — die Oberfläche folgt der System-Sprache und ist in den Einstellungen umschaltbar.
 
@@ -93,6 +93,21 @@ umgekehrtes Pentagramm) plus ein weitergebbares `dist/Steinregen-<version>.zip`.
 Finder doppelklicken oder nach `/Programme` ziehen. Für einen notarisierten, Gatekeeper-tauglichen
 Build: `bash tools/make-notarized.sh` (braucht ein Developer-ID-Zertifikat und ein
 notarytool-Schlüsselbund-Profil).
+
+### Notarisiertes DMG (zur Weitergabe)
+
+```bash
+bash tools/make-dmg.sh                 # signiert + notarisiert (braucht Developer-ID-Zertifikat + Notar-Profil)
+bash tools/make-dmg.sh --no-notarize   # unsigniert — schneller lokaler Layout-Test
+```
+
+Baut `dist/Steinregen-<version>.dmg`: die signierte App in einem DMG mit Installations-Hintergrund
+und `Applications`-Shortcut, notarisiert und gestapelt, sodass es ohne Gatekeeper-Warnung öffnet.
+Der Hintergrund stammt aus `tools/generate-dmg-background.swift` (→ `assets/dmg-background.png`).
+
+`bash tools/make-dmg.sh --publish` setzt zusätzlich den Tag `v<version>` und legt das passende
+GitHub-Release mit dem DMG an (Notes aus `CHANGELOG.md`). Ein Release entsteht pro Versions-Bump —
+reine Doku- oder andere Änderungen ohne `VERSION`-Bump erzeugen kein neues DMG.
 
 ### iOS-App
 
@@ -135,26 +150,30 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 
 Drei Swift-Package-Manager-Module plus Tests:
 
-- **`SteinregenCore`** — reine, deterministische Spiellogik. Zwei Engines (`Engine` für
+- **`SteinregenCore`** — reine Spiellogik. Zwei Engines (`Engine` für
   Steinschlag, `TetrominoEngine` für Eingemauert), Brett, Treffer-Erkennung, Kaskaden, Magic
   Jewel, Punkte. Kein globaler Zufall, keine Wanduhr; aller Zufall läuft über einen injizierten,
-  seed-bestimmten PRNG.
+  seed-bestimmten PRNG, sodass ein gegebener Seed immer identisch nachspielt.
 - **`SteinregenRender`** — SpriteKit-Szene, die beide Modi über ein `PlayEngine`-Protokoll treibt:
   Darstellung, Schwerkraft-/Animations-Loop, die prozedural gezeichneten Steine-Sets, das Theme
   (Palette/Fonts/Korn), Soundeffekte, der Musik-Player und die Magic-Jewel-Animation.
 - **`SteinregenApp`** — SwiftUI-Shell für macOS und iOS: Menüs, Einstellungen, Spielregeln,
   Friedhof, Game-Over-Overlay. Tastatur auf macOS, Touch auf iOS.
 
-Mehrere wiederverwendete Bausteine (der deterministische PRNG, der robuste Ressourcen-Loader,
+Mehrere wiederverwendete Bausteine (der seed-bestimmte PRNG, der robuste Ressourcen-Loader,
 das Drei-Modul-Layout) sowie die drei freundlichen Edelstein-Sets (Zaubersteine / G20 / Juwelen)
 stammen aus dem Schwester-Projekt *Zaubersteine*.
 
 ## Markenrechte
 
-Steinregen ist ein eigenständiges Projekt und steht in keiner Verbindung zu Dritten. Seine zwei
-Modi sind von klassischen Fallstein-Spielen inspiriert; *Columns* ist eine Marke von Sega, und die
-Namen weiterer Spiele des Genres sind Marken der jeweiligen Inhaber. Spielregeln sind nicht
-urheberrechtlich schützbar, die Namen aber schon — Steinregen verwendet keinen davon für sich.
+Steinregen ist ein eigenständiges Projekt, steht in keiner Verbindung zu Dritten und wird von
+ihnen weder unterstützt noch gefördert. Seine zwei Modi sind von klassischen Fallstein-Spielen
+inspiriert und werden nur beschreibend zum Vergleich genannt: *Columns* ist eine Marke von Sega,
+*Tetris* eine eingetragene Marke der The Tetris Company, LLC. Steinregens eigene Modi heißen
+*Steinschlag* und *Eingemauert*; es verwendet weder *Columns* noch *Tetris* als eigenen Namen und
+liefert keine Grafiken, Klänge oder den Trade-Dress dieser Spiele mit. Spielmechaniken sind nicht
+urheberrechtlich schützbar, die Namen schon — sie erscheinen hier rein als beschreibende
+(nominative) Nennung.
 
 ## Lizenz
 

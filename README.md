@@ -1,7 +1,7 @@
 # Steinregen
 
 A native macOS and iOS game in a raw black-metal style — two falling-block puzzle modes on one
-deterministic engine. Written in Swift with SwiftUI and SpriteKit.
+shared engine. Written in Swift with SwiftUI and SpriteKit.
 
 *(Deutsche Version: [README.de.md](README.de.md))*
 
@@ -16,10 +16,10 @@ deterministic engine. Written in Swift with SwiftUI and SpriteKit.
 - **Rockfall** (Columns-style) — falling columns of three stones. Line up **three or more of
   the same kind** horizontally, vertically, or diagonally to clear them; cleared stones make the
   ones above fall, which can set off chain reactions for bonus points.
-- **Entombed** (block-stacking) — falling four-block pieces. Fill a whole row to clear it.
-  Seven shapes, a deterministic 7-bag, simple wall kicks.
+- **Entombed** (Tetris-style) — falling tetromino pieces (four-block shapes). Fill a whole row to
+  clear it. Seven shapes, a 7-bag randomizer, simple wall kicks.
 
-Both modes run on the same deterministic core and share the look, sound, music, and high-score
+Both modes run on the same core and share the look, sound, music, and high-score
 list. Pick the mode (and board size) on the start screen.
 
 ## Look
@@ -52,7 +52,7 @@ backed by a muted, desaturated color tint.
   cathedral, foggy moor, blood-red moon); a different one each game, never the same twice in a row.
 - **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes
   every stone of the kind directly beneath it from the board.
-- **Deterministic, seed-driven** — the same seed replays the exact same game.
+- **Reproducible, seed-driven** — the same seed replays the exact same game, move for move.
 - **Runs on macOS** (keyboard) **and iOS / iPad** (touch), sharing the same core and renderer.
 - **English and German** — the interface follows your system language and can be switched in Settings.
 
@@ -90,6 +90,21 @@ Builds `dist/Steinregen.app` (ad-hoc signed, with a procedurally drawn Dock icon
 inverted-pentagram sigil) plus a distributable `dist/Steinregen-<version>.zip`. Double-click the
 `.app` in Finder, or drag it into `/Applications`. For a notarized, Gatekeeper-friendly build use
 `bash tools/make-notarized.sh` (needs a Developer ID certificate and a notarytool keychain profile).
+
+### Notarized DMG (for distribution)
+
+```bash
+bash tools/make-dmg.sh                 # signs + notarizes (needs a Developer ID cert + notary profile)
+bash tools/make-dmg.sh --no-notarize   # unsigned — quick local layout test
+```
+
+Builds `dist/Steinregen-<version>.dmg`: the signed app inside a DMG with an install background and
+an `Applications` shortcut, notarized and stapled so it opens without a Gatekeeper warning. The
+background comes from `tools/generate-dmg-background.swift` (→ `assets/dmg-background.png`).
+
+`bash tools/make-dmg.sh --publish` additionally tags `v<version>` and creates the matching GitHub
+release with the DMG attached (notes from `CHANGELOG.md`). A release is cut per version bump —
+documentation-only or other changes that don't bump `VERSION` produce no new DMG.
 
 ### iOS app
 
@@ -132,25 +147,29 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 
 Three Swift Package Manager modules plus tests:
 
-- **`SteinregenCore`** — pure, deterministic game logic. Two engines (`Engine` for Rockfall,
+- **`SteinregenCore`** — pure game logic. Two engines (`Engine` for Rockfall,
   `TetrominoEngine` for Entombed), board, match detection, cascades, magic jewel, scoring. No
-  global randomness and no wall-clock; all randomness flows through an injected, seeded PRNG.
+  global randomness and no wall-clock; all randomness flows through an injected, seeded PRNG, so a
+  given seed always replays identically.
 - **`SteinregenRender`** — SpriteKit scene that drives both modes through one `PlayEngine`
   protocol: rendering, the gravity/animation loop, the procedurally drawn stone sets, the theme
   (palette/fonts/grain), sound effects, the music player, and the magic-jewel animation.
 - **`SteinregenApp`** — SwiftUI shell for macOS and iOS: menus, settings, rules, the Graveyard, and
   game-over overlay. Keyboard input on macOS, touch on iOS.
 
-Several reusable building blocks (the deterministic PRNG, the robust resource loader, the
+Several reusable building blocks (the seeded PRNG, the robust resource loader, the
 three-module layout) and the three "pleasant" gem sets (Zaubersteine / G20 / Jewels) come from
 the sibling project *Zaubersteine*.
 
 ## Trademarks
 
-Steinregen is an independent project and is not affiliated with or endorsed by anyone. Its two
-modes are inspired by classic falling-block puzzle games; *Columns* is a trademark of Sega, and
-the names of other games in the genre are trademarks of their respective owners. Game rules are
-not copyrightable, but those names are — Steinregen uses none of them as its own.
+Steinregen is an independent project and is not affiliated with, endorsed by, or sponsored by
+anyone. Its two modes are inspired by classic falling-block puzzle games and are referred to only
+by descriptive comparison: *Columns* is a trademark of Sega, and *Tetris* is a registered
+trademark of The Tetris Company, LLC. Steinregen's own modes are named *Rockfall* and *Entombed*;
+it uses neither *Columns* nor *Tetris* as its own name and ships none of those games' graphics,
+sounds, or trade dress. Game mechanics are not copyrightable; the names are, and appear here
+purely as nominative (descriptive) references.
 
 ## License
 

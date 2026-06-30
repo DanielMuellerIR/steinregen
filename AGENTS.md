@@ -136,6 +136,14 @@ steinregen/                   (SwiftPM-Workspace)
   in der Login-Keychain + notarytool-Keychain-Profil. Identität/Profil per env überschreibbar
   (`SIGN_ID`, `NOTARY_PROFILE`, Default-Profil `steinregen-notary`). Details zum einmaligen Einrichten:
   `der Apple-notarytool-Dokumentation`.
+- **Notarisiertes DMG / Release**: `bash tools/make-dmg.sh` baut die Developer-ID-signierte App in
+  ein DMG mit Hintergrundbild (`assets/dmg-background.png`, erzeugt von
+  `tools/generate-dmg-background.swift`) + Applications-Shortcut, signiert/notarisiert/stapelt es →
+  `dist/Steinregen-<version>.dmg`. `--no-notarize` baut ein unsigniertes Test-DMG (Layout-Check ohne
+  Zertifikat). `--publish` setzt Tag `v<version>` und legt das GitHub-Release mit dem DMG an (Notes
+  aus `CHANGELOG.md`). **Konvention: Ein Release/DMG entsteht nur bei `VERSION`-Bump — reine
+  README-/Doku-/Mini-Änderungen ohne Bump erzeugen kein neues DMG.** Notar-Profil-Default
+  `steinregen-notary` (per `NOTARY_PROFILE` überschreibbar).
 - **iOS-App (iPhone)**: SwiftPM kann kein iOS-App-Bundle erzeugen → `bash tools/make-ios-app.sh`
   erzeugt per **xcodegen** aus `project.yml` ein Xcode-Projekt (`Steinregen.xcodeproj`, git-ignoriert)
   und baut die App fürs iOS-Simulator-SDK. `bash tools/make-ios-app.sh run` installiert + startet sie
