@@ -44,10 +44,11 @@ struct SteinregenApp: App {
         NSApplication.shared.activate(ignoringOtherApps: true)
         #endif
         #if os(iOS)
-        // iOS: Spiel-Ton als „ambient" — respektiert den Stummschalter (lautlos ⇒ still) und
-        // mischt sich höflich mit anderer Audio (unterbricht z.B. laufende Musik nicht). Ohne diese
-        // Session gilt der Default „soloAmbient", der fremde Audio stattdessen abwürgt.
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+        // iOS-Audio: .playback + .mixWithOthers. So spielen Musik UND Soundeffekte auch dann, wenn
+        // der Stummschalter / Lautlos-Modus aktiv ist (mit .ambient blieb es auf einem lautlos
+        // gestellten iPhone komplett still) — mischen sich aber höflich mit fremder Audio (kein
+        // Abwürgen von z.B. Spotify). Abschalten geht in der App (Noten-Knopf / Einstellungen / M).
+        try? AVAudioSession.sharedInstance().setCategory(.playback, options: [.mixWithOthers])
         try? AVAudioSession.sharedInstance().setActive(true)
         #endif
     }
@@ -1300,6 +1301,17 @@ private struct TouchControlsOverlay: View {
     // damit der Noten-Knopf oben rechts sofort die richtige Optik (Slash/gedimmt = aus) zeigt.
     @AppStorage(MusicPlayer.mutedKey) private var musicMuted = false
 
+    // In-Game-Logo: auf kleinen iPhones (SE, ~667 pt) deutlich kleiner — sonst ragt es in die
+    // Spielfläche, weil über dem Brett kaum freier Raum bleibt. Große iPhones + iPad: volles Maß.
+    private var logoMaxWidth: CGFloat {
+        if isPad { return 620 }
+        return UIScreen.main.bounds.height < 700 ? 230 : 380
+    }
+    private var logoMaxHeight: CGFloat {
+        if isPad { return 210 }
+        return UIScreen.main.bounds.height < 700 ? 76 : 140
+    }
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             gestureCatcher
@@ -1310,7 +1322,7 @@ private struct TouchControlsOverlay: View {
                 if let logo = Theme.logoImage() {
                     Image(decorative: logo, scale: 1)
                         .resizable().interpolation(.high).scaledToFit()
-                        .frame(maxWidth: isPad ? 620 : 380, maxHeight: isPad ? 210 : 140)
+                        .frame(maxWidth: logoMaxWidth, maxHeight: logoMaxHeight)
                         .opacity(0.95)
                         .shadow(color: .black.opacity(0.6), radius: 6, y: 2)
                         .allowsHitTesting(false)
@@ -1322,8 +1334,10 @@ private struct TouchControlsOverlay: View {
             // Volle Breite/Höhe — sonst schrumpft die VStack auf ihr breitestes Kind und landet
             // (ZStack .topLeading) am linken Rand; so zentrieren sich Logo und Knopfgruppe.
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // Menü-Knopf oben links — eigene Ebene, klein in der Ecke; überlagert das zentrierte
-            // Logo praktisch nicht und lässt ihm so den vollen oberen Freiraum.
+        }
+        // Ecken-Knöpfe als OVERLAYS (über dem Gesture-Catcher) — so bekommen sie den Tap zuverlässig,
+        // statt dass die Brett-Geste (Tippen = drehen) ihn abfängt. ✕ links = zurück ins Menü.
+        .overlay(alignment: .topLeading) {
             Button(action: onExit) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 30))
@@ -1331,10 +1345,10 @@ private struct TouchControlsOverlay: View {
                     .padding(12)
             }
             .buttonStyle(.plain)
-
-            // Musik-Knopf oben rechts (analog zum ✕ oben links): schaltet die Hintergrundmusik an/aus.
-            // Eigene Ebene, an die rechte obere Ecke ausgerichtet. Der Slash zeigt „aus" — fällt auf
-            // Symbolen ohne Slash-Variante weg, deshalb zusätzlich gedimmt, damit der Zustand klar ist.
+        }
+        // Musik-Knopf oben rechts (analog zum ✕): schaltet die Hintergrundmusik an/aus. Helle Note =
+        // an, gedimmte Note mit Slash = aus.
+        .overlay(alignment: .topTrailing) {
             Button { MusicPlayer.shared.toggle() } label: {
                 Image(systemName: "music.note")
                     .symbolVariant(musicMuted ? .slash : .none)
@@ -1343,7 +1357,6 @@ private struct TouchControlsOverlay: View {
                     .padding(12)
             }
             .buttonStyle(.plain)
-            .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 
