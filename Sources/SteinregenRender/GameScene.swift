@@ -37,8 +37,6 @@ public final class GameScene: SKScene {
     private let boardLayer = SKNode()
     private let pieceLayer = SKNode()
     private let hudLayer = SKNode()
-    /// Liegt ueber Brett/Saeule (aber unter dem HUD) und legt das raeudige Korn drueber.
-    private let overlayLayer = SKNode()
 
     /// Brett-Knoten, indiziert [col][row]; nil = leere Zelle.
     private var gemNodes: [[SKSpriteNode?]] =
@@ -116,11 +114,9 @@ public final class GameScene: SKScene {
             addChild(backgroundLayer)
             addChild(boardLayer)
             addChild(pieceLayer)
-            addChild(overlayLayer)
             addChild(hudLayer)
-            // Zeichenreihenfolge: Hintergrundbild ganz hinten, Korn ueber den Steinen, HUD oben (bleibt scharf).
+            // Zeichenreihenfolge: Hintergrundbild ganz hinten, HUD oben (bleibt scharf).
             backdropLayer.zPosition = -1
-            overlayLayer.zPosition = 50
             hudLayer.zPosition = 100
         }
         layout()
@@ -217,7 +213,6 @@ public final class GameScene: SKScene {
         buildBackdrop()
         buildBackground(boardW: boardW, boardH: boardH)
         buildHUD(boardW: boardW, boardH: boardH)
-        buildGrain()
     }
 
     /// Legt das statische Hintergrundbild (Nebel bei Nacht) ganz nach hinten und skaliert es
@@ -243,23 +238,6 @@ public final class GameScene: SKScene {
         backdropLayer.addChild(node)
     }
 
-    /// Legt das statische Korn als Lo-Fi-Schleier NUR ueber das Spielfeld (das Brett-Panel) statt
-    /// ueber die ganze Szene. So bleibt der raeudige Look dort, wo gespielt wird, waehrend die
-    /// KI-Hintergrundbilder ausserhalb scharf und kontrastreich bleiben (frueher lag das Korn
-    /// flaechig ueber dem ganzen Bild und liess die Hintergruende koernig/pixelig wirken).
-    private func buildGrain() {
-        overlayLayer.removeAllChildren()
-        guard size.width > 0, size.height > 0, tile > 0 else { return }
-        // Exakt der Bereich des Brett-Panels (gleiche Maße wie in buildBackground).
-        let boardW = CGFloat(boardWidth) * tile
-        let boardH = CGFloat(boardHeight) * tile
-        let rect = CGRect(x: boardOriginX - 6, y: boardOriginY - 6, width: boardW + 12, height: boardH + 12)
-        let grain = SKSpriteNode(texture: GemTextures.grain(), size: rect.size)
-        grain.position = CGPoint(x: rect.midX, y: rect.midY)
-        grain.alpha = 0.32
-        overlayLayer.addChild(grain)
-    }
-
     private func cellCenter(col: Int, row: Int) -> CGPoint {
         CGPoint(x: boardOriginX + (CGFloat(col) + 0.5) * tile,
                 y: boardOriginY + (CGFloat(row) + 0.5) * tile)
@@ -272,7 +250,7 @@ public final class GameScene: SKScene {
                                              width: boardW + 12, height: boardH + 12),
                                 cornerRadius: 12)
         // Halbtransparent, damit der Nebel auch hinter dem Schacht durchzieht.
-        panel.fillColor = Theme.panel.sk(0.6)
+        panel.fillColor = Theme.panel.sk(0.75)
         panel.strokeColor = Theme.oxbloodDark.sk
         panel.lineWidth = 2
         backgroundLayer.addChild(panel)
@@ -290,7 +268,7 @@ public final class GameScene: SKScene {
             path.addLine(to: CGPoint(x: boardOriginX + boardW, y: y))
         }
         grid.path = path
-        grid.strokeColor = Theme.bone.sk(0.045)
+        grid.strokeColor = Theme.bone.sk(0.08)
         grid.lineWidth = 1
         backgroundLayer.addChild(grid)
     }

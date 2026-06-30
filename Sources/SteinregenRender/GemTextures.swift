@@ -2,7 +2,7 @@
 // Set-bewusste Textur-Fabrik. Die eigentlichen Steine zeichnen die Set-Renderer (SigilStones,
 // DoomStones, …); hier werden ihre CGImages in SKTexturen verpackt und — getrennt je Set —
 // gecacht. `activeSetID` bestimmt, welches Set das Spiel gerade zeichnet (wird beim Spielstart
-// aus den Einstellungen gesetzt). Korn und Nebel sind set-unabhaengig und liegen ebenfalls hier.
+// aus den Einstellungen gesetzt).
 
 import CoreGraphics
 import Foundation
@@ -17,7 +17,6 @@ public enum GemTextures {
     private static var cache: [String: [Gem: SKTexture]] = [:]      // [setID: [gem: texture]]
     private static var magicCache: [String: [SKTexture]] = [:]      // [setID: sigil-frames]
     private static var previewCache: [String: CGImage] = [:]        // ["setID|gemRaw": image]
-    private static var grainCache: SKTexture?
 
     // MARK: - Stein-Texturen (aktives Set)
 
@@ -66,34 +65,4 @@ public enum GemTextures {
         if smooth { t.usesMipmaps = true }
         return t
     }
-
-    // MARK: - Korn (raeudige Textur)
-
-    /// Feines, statisches Korn fuer den Lo-Fi-Look. Knochenweisse Sprenkel mit niedriger Deckkraft;
-    /// einmal erzeugt und gecacht. Der Zufall lebt hier in der Render-Schicht — der Core bleibt rein.
-    public static func grain() -> SKTexture {
-        if let g = grainCache { return g }
-        let n = 256
-        var data = [UInt8](repeating: 0, count: n * n * 4)
-        let r = Theme.bone.r, g = Theme.bone.g, b = Theme.bone.b
-        for i in 0..<(n * n) {
-            let a = Int(arc4random_uniform(46))                 // 0…45 (max ~0.18 Deckkraft)
-            let af = Double(a) / 255.0
-            data[i * 4 + 0] = UInt8(r * 255 * af)               // vormultipliziert (premultipliedLast)
-            data[i * 4 + 1] = UInt8(g * 255 * af)
-            data[i * 4 + 2] = UInt8(b * 255 * af)
-            data[i * 4 + 3] = UInt8(a)
-        }
-        let cs = CGColorSpaceCreateDeviceRGB()
-        let provider = CGDataProvider(data: Data(data) as CFData)!
-        let img = CGImage(width: n, height: n, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: n * 4,
-                          space: cs, bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
-                          provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
-        let t = SKTexture(cgImage: img)
-        t.filteringMode = .nearest
-        grainCache = t
-        return t
-    }
-
-    // MARK: - Nebel (animierter Hintergrund)
 }
