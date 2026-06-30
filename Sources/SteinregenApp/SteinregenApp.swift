@@ -1312,6 +1312,9 @@ private struct TouchControlsOverlay: View {
         return UIScreen.main.bounds.height < 700 ? 76 : 140
     }
 
+    // Sicherheitsabfrage, damit ein versehentliches Tippen auf ✕ nicht sofort die Partie abbricht.
+    @State private var showExitConfirm = false
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             gestureCatcher
@@ -1338,7 +1341,8 @@ private struct TouchControlsOverlay: View {
         // Ecken-Knöpfe als OVERLAYS (über dem Gesture-Catcher) — so bekommen sie den Tap zuverlässig,
         // statt dass die Brett-Geste (Tippen = drehen) ihn abfängt. ✕ links = zurück ins Menü.
         .overlay(alignment: .topLeading) {
-            Button(action: onExit) {
+            // ✕ fragt erst nach (Sicherheitsabfrage), statt die Partie sofort abzubrechen.
+            Button { showExitConfirm = true } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 30))
                     .foregroundStyle(Theme.bone.color.opacity(0.75))
@@ -1357,6 +1361,11 @@ private struct TouchControlsOverlay: View {
                     .padding(12)
             }
             .buttonStyle(.plain)
+        }
+        .confirmationDialog(L10n.t("Partie abbrechen?", "Quit this game?"),
+                            isPresented: $showExitConfirm, titleVisibility: .visible) {
+            Button(L10n.t("Partie abbrechen", "Quit game"), role: .destructive) { onExit() }
+            Button(L10n.t("Weiterspielen", "Keep playing"), role: .cancel) { }
         }
     }
 

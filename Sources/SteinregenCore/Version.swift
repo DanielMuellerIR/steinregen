@@ -3,4 +3,4 @@
 // werden (siehe CLAUDE.md: pro abgeschlossener Aufgabe bumpen + committen).
 
 /// Aktuelle Programmversion (Semantic Versioning).
-public let steinregenVersion = "0.23.8"
+public let steinregenVersion = "0.23.9"
