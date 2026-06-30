@@ -249,9 +249,13 @@ struct StartView: View {
     }
     private var menuLogoHeight: CGFloat {
         #if os(iOS)
-        isPad ? 320 : 210
+        if isPad { return 320 }
+        // Kleine iPhones (SE ~667 pt, mini ~812 pt) brauchen ein kleineres Logo, damit der ganze
+        // Startbildschirm ohne Scrollen passt; große iPhones behalten das volle Maß.
+        let h = UIScreen.main.bounds.height
+        return h < 700 ? 132 : (h < 850 ? 180 : 210)
         #else
-        210
+        return 210
         #endif
     }
 
@@ -291,6 +295,10 @@ struct StartView: View {
                 }
             }
 
+            #if os(iOS)
+            Spacer()   // iOS: flexibler Abstand — Logo oben, Auswahl rückt zur Mitte (kollabiert auf kleinen iPhones)
+            #endif
+
             // Spielmodus — zwei Chips (Säulen / Verschüttet). Auf macOS zusätzlich per ↑ ↓ wählbar
             // (← → bleiben fürs Tempo), auf iOS per Tap.
             VStack(spacing: 10) {
@@ -327,6 +335,10 @@ struct StartView: View {
                 }
             }
 
+            #if os(iOS)
+            Spacer()   // iOS: flexibler Abstand vor dem Start-Knopf
+            #endif
+
             Button(action: onStart) {
                 Text(L10n.t("Spiel starten", "Start game"))
                     .font(.custom(Theme.blackletterBoldPostScript, size: 22))
@@ -335,6 +347,10 @@ struct StartView: View {
             .buttonStyle(.borderedProminent)
             .tint(Theme.oxblood.color)
             .keyboardShortcut(.defaultAction)
+
+            #if os(iOS)
+            Spacer()   // iOS: schiebt die drei Menü-Knöpfe relativ nach unten (kein fixer Abstand)
+            #endif
 
             // Die drei Menü-Knöpfe: auf macOS eine Zeile mit breiten Knöpfen, auf iPhone eine
             // kompakte Reihe aus Icon+Label, damit alles ohne Scrollen aufs Bild passt.
@@ -350,7 +366,9 @@ struct StartView: View {
             }
             #endif
 
-            Spacer()
+            #if os(macOS)
+            Spacer()   // macOS: zweiter Spacer → vertikal zentriert (auf iOS sitzt die Menü-Reihe unten)
+            #endif
         }
         .padding(.horizontal, 36)
         .padding(.vertical, 14)
