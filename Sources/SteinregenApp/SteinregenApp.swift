@@ -274,8 +274,11 @@ struct StartView: View {
     private var menuContent: some View {
         VStack(spacing: 14) {
             #if os(macOS)
-            Spacer()   // macOS: vertikal zentriert im festen Fenster. iOS: kein Spacer → Inhalt oben,
-                       // Logo ganz nach oben (so passt der Startbildschirm ohne Scrollen aufs iPhone).
+            // macOS: kleiner fester Abstand oben → Logo sitzt nah am oberen Rand (statt mittig
+            // zentriert wie früher). Die flexiblen Spacer ZWISCHEN den Gruppen (unten) ziehen den
+            // restlichen Inhalt auseinander; die Menü-Reihe landet so unten. iOS bleibt unberührt
+            // (kein Spacer → Inhalt oben, passt ohne Scrollen aufs iPhone).
+            Spacer().frame(height: 40)
             #endif
             VStack(spacing: 6) {
                 // Logo-Grafik statt Schriftzug; Fallback auf den Blackletter-Text, falls die
@@ -299,6 +302,9 @@ struct StartView: View {
             #if os(iOS)
             Spacer()   // iOS: flexibler Abstand — Logo oben, Auswahl rückt zur Mitte (kollabiert auf kleinen iPhones)
             #endif
+            #if os(macOS)
+            Spacer()   // macOS: flexibler Abstand Logo → Modus (zieht die Gruppen auseinander)
+            #endif
 
             // Spielmodus — zwei Chips (Säulen / Verschüttet). Auf macOS zusätzlich per ↑ ↓ wählbar
             // (← → bleiben fürs Tempo), auf iOS per Tap.
@@ -313,6 +319,10 @@ struct StartView: View {
                     .font(.custom(Theme.blackletterFamily, size: 20)).foregroundStyle(.tertiary)
                     .lineLimit(1).minimumScaleFactor(0.6)   // einzeilig halten — notfalls kleiner statt umbrechen
             }
+
+            #if os(macOS)
+            Spacer()   // macOS: flexibler Abstand Modus → Tempo
+            #endif
 
             // Start-Tempostufe — eigene ◀ Level N ▶-Steuerung (statt des hässlichen System-Steppers).
             // Ohne Überschrift/Erklärung: dass „Level" das Tempo ist, versteht sich von selbst.
@@ -339,6 +349,9 @@ struct StartView: View {
             #if os(iOS)
             Spacer()   // iOS: flexibler Abstand vor dem Start-Knopf
             #endif
+            #if os(macOS)
+            Spacer()   // macOS: flexibler Abstand Tempo → Start-Knopf
+            #endif
 
             Button(action: onStart) {
                 Text(L10n.t("Spiel starten", "Start game"))
@@ -351,6 +364,9 @@ struct StartView: View {
 
             #if os(iOS)
             Spacer()   // iOS: schiebt die drei Menü-Knöpfe relativ nach unten (kein fixer Abstand)
+            #endif
+            #if os(macOS)
+            Spacer()   // macOS: flexibler Abstand Start → Menü-Reihe (drückt die Knöpfe nach unten)
             #endif
 
             // Die drei Menü-Knöpfe: auf macOS eine Zeile mit breiten Knöpfen, auf iPhone eine
@@ -368,7 +384,7 @@ struct StartView: View {
             #endif
 
             #if os(macOS)
-            Spacer()   // macOS: zweiter Spacer → vertikal zentriert (auf iOS sitzt die Menü-Reihe unten)
+            Spacer().frame(height: 20)   // macOS: kleiner fester Abstand unten → Menü-Reihe nah am unteren Rand
             #endif
         }
         .padding(.horizontal, 36)
