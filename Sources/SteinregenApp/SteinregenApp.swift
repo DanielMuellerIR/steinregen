@@ -1296,6 +1296,10 @@ private struct TouchControlsOverlay: View {
     let onExit: () -> Void
     var isPad: Bool = false   // iPad: größeres Logo, Steuerleiste auf Maximalbreite begrenzt
 
+    // Spiegelt den Musik-an/aus-Zustand (UserDefaults, geteilt mit Einstellungen + M-Taste am Mac),
+    // damit der Noten-Knopf oben rechts sofort die richtige Optik (Slash/gedimmt = aus) zeigt.
+    @AppStorage(MusicPlayer.mutedKey) private var musicMuted = false
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             gestureCatcher
@@ -1327,6 +1331,19 @@ private struct TouchControlsOverlay: View {
                     .padding(12)
             }
             .buttonStyle(.plain)
+
+            // Musik-Knopf oben rechts (analog zum ✕ oben links): schaltet die Hintergrundmusik an/aus.
+            // Eigene Ebene, an die rechte obere Ecke ausgerichtet. Der Slash zeigt „aus" — fällt auf
+            // Symbolen ohne Slash-Variante weg, deshalb zusätzlich gedimmt, damit der Zustand klar ist.
+            Button { MusicPlayer.shared.toggle() } label: {
+                Image(systemName: "music.note")
+                    .symbolVariant(musicMuted ? .slash : .none)
+                    .font(.system(size: 30))
+                    .foregroundStyle(Theme.bone.color.opacity(musicMuted ? 0.4 : 0.85))
+                    .padding(12)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 
