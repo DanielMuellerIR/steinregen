@@ -169,6 +169,10 @@ public final class GameScene: SKScene {
             engine = TetrominoEngine(seed: seed, startLevel: startLevel,
                                      width: width ?? TetrominoEngine.defaultWidth,
                                      height: height ?? TetrominoEngine.defaultHeight)
+        case .klumpen:
+            engine = PairEngine(seed: seed, startLevel: startLevel,
+                                width: width ?? Board.defaultWidth,
+                                height: height ?? Board.defaultHeight)
         }
         // Brettmaße + Knoten-Raster an die tatsaechliche Brettgroesse anpassen.
         boardWidth = engine!.board.width
@@ -547,6 +551,11 @@ public final class GameScene: SKScene {
 
     private func canInput() -> Bool { engine != nil && !isResolving && engine!.phase == .falling }
 
+    /// Nur fuer Headless-Tests/Diagnose: der Punktestand direkt aus der Engine. Anders als
+    /// `model.score` (wird erst nach der Raeum-ANIMATION nachgezogen) ist er sofort nach dem
+    /// Aufsetzen final — headless laufen SKActions nicht, das HUD-Update kaeme dort nie an.
+    public var testEngineScore: Int? { engine?.score }
+
     /// Nur fuer Headless-Tests/Diagnose: tiefste belegte Reihe des aktiven Steins (kleinster
     /// row-Index; Boden = 0) bzw. nil, wenn gerade kein aktiver Stein faellt (z.B. waehrend einer
     /// Aufloesung). Erlaubt Tests, das Einrasten zu erkennen (neuer Stein → Reihe springt nach oben).
@@ -596,6 +605,12 @@ public final class GameScene: SKScene {
 
         if let landing = magicLanding {
             showMagicLanding(col: landing.col, row: landing.row) { runSteps(0) }
+        } else if engine?.postLockSettle == true {
+            // Klumpen-Modus: `before` zeigt das Paar an seiner Aufsetz-Position — eine quer
+            // liegende Haelfte kann dort noch ueber einem Loch schweben. Zuerst dieses
+            // Nachfallen animieren, dann die Raeum-Wellen. (Bei bereits gestuetzten Steinen
+            // findet compactColumnsAnimated nichts und ruft sofort weiter.)
+            compactColumnsAnimated { runSteps(0) }
         } else {
             runSteps(0)
         }
@@ -793,12 +808,15 @@ public final class GameScene: SKScene {
         }
     }
 
-    /// Saeulen-Vorschau: die drei festen Knoten (aus buildHUD) texturieren — Index 0 = unten.
-    /// Unveraendert zu frueher (Magic-Saeule pulsiert).
+    /// Stapel-Vorschau: die drei festen Knoten (aus buildHUD) texturieren — Index 0 = unten.
+    /// Saeulen liefern drei Steine (unveraendert zu frueher, Magic-Saeule pulsiert); der
+    /// Klumpen-Modus liefert zwei — ueberzaehlige Knoten werden ausgeblendet.
     private func renderColumnsPreview(_ gems: [Gem]) {
         let pSize = previewNodes.first?.size ?? gemSize
         let isMagicPreview = gems.allSatisfy { $0.isMagic }
-        for (i, node) in previewNodes.enumerated() where i < gems.count {
+        for (i, node) in previewNodes.enumerated() {
+            node.isHidden = i >= gems.count
+            guard i < gems.count else { continue }
             node.size = pSize
             let gem = gems[i]
             if isMagicPreview {

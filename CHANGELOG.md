@@ -3,6 +3,15 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.24.0]
+
+- New third game mode **Blood Clots** (Puyo-style): pairs of stones fall and rotate around a
+  pivot stone; groups of four or more connected same-colored stones clear, with chain reactions.
+  Four colors, independently falling halves, simple wall kicks, no Magic Jewel.
+- Board size configurable for the new mode as well (5–12 × 10–24, default 6×13).
+- Fixed: the board-size card in Settings could show a stale mode when the dialog was opened
+  through the automation seam.
+
 ## [0.23.9]
 
 First public release.

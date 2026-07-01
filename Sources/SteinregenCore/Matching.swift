@@ -40,6 +40,39 @@ func findMatches(_ board: Board) -> [Cell] {
     return Array(marked)
 }
 
+/// Findet alle Zellen, die zu einer GRUPPE aus mindestens `minSize` gleichfarbigen, direkt
+/// verbundenen Steinen gehoeren (Flood-Fill ueber die vier Seiten-Nachbarn — Diagonalen
+/// verbinden NICHT). Raeum-Regel des „Blutklumpen"-Modus; die Saeulen nutzen weiterhin die
+/// Linien-Erkennung `findMatches` oben.
+func findGroups(_ board: Board, minSize: Int) -> [Cell] {
+    var visited = Set<Cell>()
+    var result: [Cell] = []
+
+    for row in 0..<board.height {
+        for col in 0..<board.width {
+            let start = Cell(col: col, row: row)
+            guard !visited.contains(start), let gem = board[col, row] else { continue }
+            // Flood-Fill: alle mit `start` verbundenen Zellen derselben Farbe einsammeln.
+            var group: [Cell] = []
+            var stack = [start]
+            visited.insert(start)
+            while let cell = stack.popLast() {
+                group.append(cell)
+                for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                    let n = Cell(col: cell.col + dx, row: cell.row + dy)
+                    if board.inBounds(col: n.col, row: n.row), !visited.contains(n),
+                       board[n.col, n.row] == gem {
+                        visited.insert(n)
+                        stack.append(n)
+                    }
+                }
+            }
+            if group.count >= minSize { result.append(contentsOf: group) }
+        }
+    }
+    return result
+}
+
 /// Laesst in jeder Spalte alle Steine nach unten auf die freien Plaetze nachrutschen
 /// (Columns kennt kein Ueberhaengen — Schwerkraft wirkt rein spaltenweise).
 func settle(_ board: inout Board) {

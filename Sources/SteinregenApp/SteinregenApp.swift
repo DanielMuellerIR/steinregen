@@ -162,7 +162,7 @@ struct RootView: View {
         .preferredColorScheme(.dark)   // immer finster — unabhaengig vom System-Modus
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
-            case .settings: SettingsView(mode: gameMode, onClose: { activeSheet = nil })
+            case .settings: SettingsView(mode: $gameMode, onClose: { activeSheet = nil })
             case .friedhof: FriedhofSheet(onClose: { activeSheet = nil })
             case .rules:    RulesSheet(onClose: { activeSheet = nil })
             }
@@ -176,7 +176,13 @@ struct RootView: View {
             // direkt den jeweiligen Dialog.
             let env = ProcessInfo.processInfo.environment
             if let setID = env["STEINREGEN_SET"] { StoneSets.selectedID = setID }
-            if let m = env["STEINREGEN_MODE"] { gameMode = (m == "verschuettet") ? .verschuettet : .saeulen }
+            if let m = env["STEINREGEN_MODE"] {
+                switch m {
+                case "verschuettet": gameMode = .verschuettet
+                case "klumpen":      gameMode = .klumpen
+                default:             gameMode = .saeulen
+                }
+            }
             if env["STEINREGEN_ENDLESS"] != nil { endless = true }
             // Headless-Naht: STEINREGEN_MUSIC=0 schaltet die Musik aus (stiller Screenshot-Lauf),
             // =1 erzwingt sie an. Ohne die Variable bleibt der (persistierte) Default „an".
@@ -306,15 +312,15 @@ struct StartView: View {
             Spacer()   // macOS: flexibler Abstand Logo → Modus (zieht die Gruppen auseinander)
             #endif
 
-            // Spielmodus — zwei Chips (Säulen / Verschüttet). Auf macOS zusätzlich per ↑ ↓ wählbar
-            // (← → bleiben fürs Tempo), auf iOS per Tap.
+            // Spielmodus — drei Chips (Steinschlag / Eingemauert / Blutklumpen). Auf macOS
+            // zusätzlich per ↑ ↓ wählbar (← → bleiben fürs Tempo), auf iOS per Tap.
             VStack(spacing: 10) {
                 Text(L10n.t("Modus", "Mode"))
                     .font(.custom(Theme.blackletterBoldPostScript, size: 28)).foregroundStyle(.secondary)
                 HStack(spacing: 14) {
                     ForEach(GameMode.allCases, id: \.self) { m in modeChip(m) }
                 }
-                .frame(maxWidth: 394)        // macOS: exakt 2×190; schmales iPhone: Chips schrumpfen mit
+                .frame(maxWidth: 598)        // macOS: 3×190 + Abstände; schmales iPhone: Chips schrumpfen mit
                 Text(mode.hint)
                     .font(.custom(Theme.blackletterFamily, size: 20)).foregroundStyle(.tertiary)
                     .lineLimit(1).minimumScaleFactor(0.6)   // einzeilig halten — notfalls kleiner statt umbrechen
@@ -518,7 +524,11 @@ struct StartView: View {
 /// automatisch, sobald sie in `StoneSets.all` stehen.
 struct SettingsView: View {
     /// Modus, dessen Brettmaße hier eingestellt werden (im Menü gewählt, vom Aufrufer durchgereicht).
-    var mode: GameMode = .saeulen
+    /// Als Binding, NICHT als Wert-Kopie: Das Inhalts-Closure von `.sheet` kann einen veralteten
+    /// View-Stand einfangen (beobachtet bei der env-Naht STEINREGEN_MODE + STEINREGEN_SETTINGS —
+    /// die Karte zeigte den alten Modus); ein Binding liest dagegen IMMER live aus dem
+    /// @State-Speicher des Aufrufers.
+    @Binding var mode: GameMode
     @AppStorage(StoneSets.defaultsKey) private var selectedSet = "doom"   // Standard-Set
     @AppStorage(SoundFX.mutedKey) private var mundtot = false             // true = Soundeffekte aus
     @AppStorage(SoundFX.setKey) private var soundSetRaw = SoundFX.SoundSet.eigene.rawValue  // Klang-Set
@@ -530,14 +540,28 @@ struct SettingsView: View {
     @AppStorage(BoardConfig.saeulenHeightKey)      private var saeulenH = 0
     @AppStorage(BoardConfig.verschuettetWidthKey)  private var verschuettetW = 0
     @AppStorage(BoardConfig.verschuettetHeightKey) private var verschuettetH = 0
+    @AppStorage(BoardConfig.klumpenWidthKey)       private var klumpenW = 0
+    @AppStorage(BoardConfig.klumpenHeightKey)      private var klumpenH = 0
     let onClose: () -> Void
 
     // Aktuelle (geklemmte) Maße des gewählten Modus + Schreib-Bindings, die den Modus-Standard
     // einsetzen, falls noch nichts gespeichert ist.
     private var curWidth: Int  { BoardConfig.width(mode) }
     private var curHeight: Int { BoardConfig.height(mode) }
-    private func setWidth(_ v: Int)  { if mode == .saeulen { saeulenW = v } else { verschuettetW = v } }
-    private func setHeight(_ v: Int) { if mode == .saeulen { saeulenH = v } else { verschuettetH = v } }
+    private func setWidth(_ v: Int) {
+        switch mode {
+        case .saeulen:      saeulenW = v
+        case .verschuettet: verschuettetW = v
+        case .klumpen:      klumpenW = v
+        }
+    }
+    private func setHeight(_ v: Int) {
+        switch mode {
+        case .saeulen:      saeulenH = v
+        case .verschuettet: verschuettetH = v
+        case .klumpen:      klumpenH = v
+        }
+    }
 
     /// Steine-Set per Tastatur durchschalten (↑ ↓): verschiebt die Auswahl zyklisch
     /// durch `StoneSets.all`. Die Auswahl wirkt sofort (Live-Vorschau in den Karten).

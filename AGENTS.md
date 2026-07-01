@@ -32,10 +32,11 @@ steinregen/                   (SwiftPM-Workspace)
 ├── project.yml               (xcodegen-Spec der iOS-App; .xcodeproj wird daraus erzeugt, git-ignoriert)
 ├── Sources/
 │   ├── SteinregenCore/       (reine, deterministische Spiellogik + PRNG + Modelle — plattformneutral;
-│   │                          ZWEI Engines: Engine = Säulen/Columns, TetrominoEngine = Verschüttet)
+│   │                          DREI Engines: Engine = Säulen/Columns, TetrominoEngine = Verschüttet,
+│   │                          PairEngine = Klumpen/Steinpaare)
 │   ├── SteinregenRender/     (SpriteKit-Szene, Spielloop, Theme = Palette/Fonts/Korn/Nebel,
-│   │                          PlayEngine = modusneutrales Protokoll über beide Engines (GameScene
-│   │                          treibt Säulen + Verschüttet mit einem Code-Pfad),
+│   │                          PlayEngine = modusneutrales Protokoll über alle Engines (GameScene
+│   │                          treibt Säulen + Verschüttet + Klumpen mit einem Code-Pfad),
 │   │                          Steine-Sets: StoneSets-Registry + SigilStones + DoomStones
 │   │                          + ZaubersteineStones (svg/procedural/png), GemTextures =
 │   │                          set-bewusste Textur-Fabrik, SoundFX = Soundeffekte, MusicPlayer =
@@ -161,8 +162,9 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`/`freedoom`)
 - `STEINREGEN_MODE=<modus>` — Spielmodus (`saeulen` = Columns, im Menü „Steinschlag"; `verschuettet`
-  = Vierlinge, im Menü „Eingemauert"; Default `saeulen`). Die env-/UserDefaults-IDs bleiben bewusst
-  `saeulen`/`verschuettet` — nur die Anzeige-Namen heißen Steinschlag/Eingemauert.
+  = Vierlinge, im Menü „Eingemauert"; `klumpen` = Steinpaare, im Menü „Blutklumpen"; Default
+  `saeulen`). Die env-/UserDefaults-IDs bleiben bewusst `saeulen`/`verschuettet`/`klumpen` — nur die
+  Anzeige-Namen heißen Steinschlag/Eingemauert/Blutklumpen.
 - `STEINREGEN_ENDLESS=1` — konstantes Tempo (Fallgeschwindigkeit bleibt auf der Start-Tempostufe)
 - `STEINREGEN_MUSIC=<0|1>` — Musik aus (`0`) bzw. erzwungen an (`1`); ohne die Variable gilt der
   persistierte Default (an). Praktisch für stille Screenshot-/Smoke-Test-Läufe.
@@ -226,7 +228,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-06-25, v0.23.0)
+## 5. Status (Stand 2026-07-02, v0.24.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -533,6 +535,28 @@ Einstellungsdialog ist auf iOS jetzt voll scrollbar (die zusätzliche Sprach-Kar
 über die iPhone-Höhe laufen → Titel war oben abgeschnitten); macOS unverändert (feste Dialoghöhe,
 nur die Steine-Liste scrollt). Headless-Naht `STEINREGEN_LANG=de|en`. Auf macOS (Menü/Settings/
 Spiel in beiden Sprachen) und iOS-Simulator (Settings beide Sprachen) per Screenshot verifiziert.
+
+**v0.24.0 — dritter Modus „Blutklumpen" (Puyo-Stil):** neue, eigene Core-Engine **`PairEngine`**
+(+ `Pair.swift`-Typen), parallel zu den beiden bestehenden — es fällt ein **Zweier-Paar** (Pivot +
+Satellit, dreht in vier Lagen um den Pivot, einfacher Kick: Pivot weicht um den Gegen-Versatz aus,
+kein 180-Flip). **Nur vier Farben** (`PairEngine.pairColors`, klassisch spielbar — mit sechs kämen
+Vierergruppen kaum zustande), kein Magic-Stein. Nach dem Aufsetzen fallen die beiden Hälften
+**unabhängig** (`settle` wiederverwendet); geräumt werden Gruppen ab **4 verbundenen** gleichen
+Steinen (neues `findGroups` in `Matching.swift`, Flood-Fill über Seiten-Nachbarn — Diagonalen
+verbinden nicht), Kaskaden/Punkte/Level wie im Säulen-Modus (`Engine.points`, 30 Steine je Level).
+Brett 6×13 (Spanne wie Säulen 5–12/10–24, eigene UserDefaults-Schlüssel `steinregen.dim.klumpen.*`).
+Render: `PairEngine`-Conformance zu `PlayEngine`; neue Protokoll-Eigenschaft **`postLockSettle`**
+(Default false) — bei true animiert `GameScene.animateLock` zuerst das Nachfallen der getrennten
+Hälften (`compactColumnsAnimated`), dann die Räum-Wellen; die HUD-Vorschau nutzt den Säulen-Pfad
+mit zwei Steinen (überzählige Knoten ausgeblendet). App: dritter Modus-Chip (Reihe jetzt max. 598 pt),
+Brettgrößen-Karte, Naht `STEINREGEN_MODE=klumpen`. **Nebenbei gefixt:** der Einstellungsdialog
+bekommt den Modus jetzt als **Binding** — das `.sheet`-Inhalts-Closure konnte einen veralteten
+View-Stand einfangen (Karte zeigte bei der env-Naht `STEINREGEN_MODE` + `STEINREGEN_SETTINGS` den
+alten Modus). Tests: 17 neue Core-Tests (`PairEngineTests`: Flood-Fill, Kicks, unabhängige Hälften,
+Kette, Determinismus, Vier-Farben) + 2 headless Szene-Tests (`PairModeSceneTests`; Harness-Grenze
+dokumentiert: SKActions laufen headless nicht → Engine-Score-Diagnose `testEngineScore`). Verifiziert
+auf macOS (Menü 3 Chips, Gameplay, Räumung mit Punkten via Seed 12, Game-Over, Settings-Karte) und
+iOS-Simulator (Menü englisch „Blood Clots", Klumpen-Gameplay mit Touch-Leiste).
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag

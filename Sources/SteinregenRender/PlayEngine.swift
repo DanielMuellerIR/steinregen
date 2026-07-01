@@ -15,20 +15,23 @@ import SteinregenCore
 
 // MARK: - Spielmodus
 
-/// Die beiden waehlbaren Spielmodi. „Saeulen" = der klassische Columns-Modus (fallende Dreier-
+/// Die waehlbaren Spielmodi. „Saeulen" = der klassische Columns-Modus (fallende Dreier-
 /// Saeulen, ≥3 gleiche in Linie). „Verschuettet" = der Vierling-Modus (sieben Formen, volle Reihen
-/// raeumen). Bewusst markenfrei benannt.
+/// raeumen). „Klumpen" = der Steinpaar-Modus (fallende Zweier-Paare, Gruppen ab 4 verbundenen
+/// gleichen Steinen raeumen). Bewusst markenfrei benannt.
 public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
     case saeulen
     case verschuettet
+    case klumpen
 
-    /// Anzeigename im Menue/Dialog. (Die internen case-Namen `saeulen`/`verschuettet`
+    /// Anzeigename im Menue/Dialog. (Die internen case-Namen `saeulen`/`verschuettet`/`klumpen`
     /// und die env-/UserDefaults-Schluessel bleiben aus Persistenz-/Naht-Gruenden unveraendert —
     /// nur diese Anzeige-Strings tragen die gewuenschten Anzeige-Namen.)
     public var title: String {
         switch self {
         case .saeulen:      return L10n.t("Steinschlag", "Rockfall")
         case .verschuettet: return L10n.t("Eingemauert", "Entombed")
+        case .klumpen:      return L10n.t("Blutklumpen", "Blood Clots")
         }
     }
 
@@ -39,16 +42,39 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
                                           "falling triplet columns · clear 3 alike in a line")
         case .verschuettet: return L10n.t("fallende Vierlinge · volle Reihen räumen",
                                           "falling four-block pieces · clear full rows")
+        case .klumpen:      return L10n.t("fallende Zweier-Paare · 4 verbundene gleiche räumen",
+                                          "falling stone pairs · clear 4 connected alike")
         }
     }
 
-    /// Standard-Brettmaße des Modus (Säulen 6×13 wie Columns, Verschüttet 10×18).
-    public var defaultWidth: Int  { self == .saeulen ? Board.defaultWidth  : TetrominoEngine.defaultWidth }
-    public var defaultHeight: Int { self == .saeulen ? Board.defaultHeight : TetrominoEngine.defaultHeight }
+    /// Standard-Brettmaße des Modus (Säulen und Klumpen 6×13, Verschüttet 10×18).
+    public var defaultWidth: Int {
+        switch self {
+        case .saeulen, .klumpen: return Board.defaultWidth
+        case .verschuettet:      return TetrominoEngine.defaultWidth
+        }
+    }
+    public var defaultHeight: Int {
+        switch self {
+        case .saeulen, .klumpen: return Board.defaultHeight
+        case .verschuettet:      return TetrominoEngine.defaultHeight
+        }
+    }
 
-    /// Erlaubte Spanne der einstellbaren Brettmaße (bestätigt, Stand 2026-06-24).
-    public var widthRange: ClosedRange<Int>  { self == .saeulen ? 5...12 : 8...14 }
-    public var heightRange: ClosedRange<Int> { self == .saeulen ? 10...24 : 14...24 }
+    /// Erlaubte Spanne der einstellbaren Brettmaße (Säulen/Verschüttet bestätigt 2026-06-24;
+    /// Klumpen nutzt dieselbe Spanne wie die Säulen — gleiche Brett-Geometrie).
+    public var widthRange: ClosedRange<Int> {
+        switch self {
+        case .saeulen, .klumpen: return 5...12
+        case .verschuettet:      return 8...14
+        }
+    }
+    public var heightRange: ClosedRange<Int> {
+        switch self {
+        case .saeulen, .klumpen: return 10...24
+        case .verschuettet:      return 14...24
+        }
+    }
 }
 
 // MARK: - Brettgroessen-Persistenz
@@ -63,9 +89,23 @@ public enum BoardConfig {
     public static let saeulenHeightKey     = "steinregen.dim.saeulen.h"
     public static let verschuettetWidthKey  = "steinregen.dim.verschuettet.w"
     public static let verschuettetHeightKey = "steinregen.dim.verschuettet.h"
+    public static let klumpenWidthKey       = "steinregen.dim.klumpen.w"
+    public static let klumpenHeightKey      = "steinregen.dim.klumpen.h"
 
-    public static func widthKey(_ m: GameMode) -> String  { m == .saeulen ? saeulenWidthKey  : verschuettetWidthKey }
-    public static func heightKey(_ m: GameMode) -> String { m == .saeulen ? saeulenHeightKey : verschuettetHeightKey }
+    public static func widthKey(_ m: GameMode) -> String {
+        switch m {
+        case .saeulen:      return saeulenWidthKey
+        case .verschuettet: return verschuettetWidthKey
+        case .klumpen:      return klumpenWidthKey
+        }
+    }
+    public static func heightKey(_ m: GameMode) -> String {
+        switch m {
+        case .saeulen:      return saeulenHeightKey
+        case .verschuettet: return verschuettetHeightKey
+        case .klumpen:      return klumpenHeightKey
+        }
+    }
 
     public static func width(_ m: GameMode) -> Int {
         clamp(UserDefaults.standard.integer(forKey: widthKey(m)), m.widthRange, m.defaultWidth)
@@ -85,7 +125,8 @@ public enum BoardConfig {
 /// Variante, weil sich die Optik grundlegend unterscheidet (drei gestapelte Steine vs. eine kleine
 /// Vierling-Form) — der Renderer waehlt anhand der Variante den passenden Zeichen-Pfad.
 public enum PreviewShape: Sendable {
-    /// Saeulen: die drei naechsten Steine, senkrecht gestapelt (Index 0 = unten).
+    /// Senkrecht gestapelte Steine, Index 0 = unten. Saeulen liefern drei, der Klumpen-Modus
+    /// zwei (Pivot unten, Satellit oben) — der Renderer blendet ueberzaehlige Plaetze aus.
     case columns([Gem])
     /// Verschuettet: die naechste Vierling-Form als auf (0,0) normalisierte Zell-Offsets + Sorte
     /// (alle vier Zellen tragen dieselbe kosmetische Sorte).
@@ -135,6 +176,16 @@ protocol PlayEngine {
 
     /// Wirft den naechsten Stein ein. Liefert `false`, wenn der Einwurf blockiert ist → Spiel vorbei.
     @discardableResult mutating func spawnNext() -> Bool
+
+    /// true, wenn nach dem Aufsetzen die Steine noch spaltenweise nachrutschen koennen, BEVOR die
+    /// erste Raeum-Welle laeuft (Klumpen: die beiden Haelften fallen unabhaengig). Die Szene
+    /// animiert dann zuerst dieses Nachfallen. Saeulen setzen immer gestuetzt auf, Vierlinge
+    /// duerfen ueberhaengen (kein Nachrutschen) — beide liefern den Default false.
+    var postLockSettle: Bool { get }
+}
+
+extension PlayEngine {
+    var postLockSettle: Bool { false }
 }
 
 // MARK: - Conformance: Saeulen (Columns)
@@ -184,6 +235,31 @@ extension TetrominoEngine: PlayEngine {
             return .moved
         case .locked(let r):
             // Verschuettet kennt keine Magic-Steine → nie eine Magic-Landeanimation.
+            return .locked(before: r.boardBefore, steps: r.steps, magicLanding: nil)
+        }
+    }
+}
+
+// MARK: - Conformance: Klumpen (Steinpaare)
+
+extension PairEngine: PlayEngine {
+    /// Die beiden Brett-Zellen des Paars (Pivot + Satellit) mit ihrer Farbe. Der Satellit kann
+    /// beim Einschweben ueber dem Brett liegen (row >= height) — der Renderer blendet ihn aus.
+    var activeCells: [(cell: Cell, gem: Gem)] { current.cells }
+
+    /// Vorschau als Zweier-Stapel (Pivot unten, Satellit oben) ueber den Saeulen-Zeichenpfad.
+    var preview: PreviewShape { .columns(nextGems) }
+
+    /// Nach dem Aufsetzen koennen die Haelften unabhaengig nachrutschen → die Szene animiert
+    /// zuerst dieses Nachfallen, dann die Raeum-Wellen.
+    var postLockSettle: Bool { true }
+
+    mutating func step() -> StepResult {
+        switch gravityTick() {
+        case .moved:
+            return .moved
+        case .locked(let r):
+            // Klumpen kennt keine Magic-Steine → nie eine Magic-Landeanimation.
             return .locked(before: r.boardBefore, steps: r.steps, magicLanding: nil)
         }
     }
