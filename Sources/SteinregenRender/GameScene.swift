@@ -84,12 +84,12 @@ public final class GameScene: SKScene {
     /// bleiben, aber eine kurze Last-Minute-Korrektur ist noch moeglich (gewuenschter Kompromiss).
     private let hardDropLockDelay: TimeInterval = 0.21
     private var lockDelayAccumulator: TimeInterval = 0
-    /// Wie oft das Lock-Delay-Fenster im AKTUELL aufgesetzten Zustand schon aufgefrischt wurde.
-    /// Gedeckelt (`maxLockResets`), damit man den Einrast-Zeitpunkt nicht durch schnelles Dauer-
-    /// Rotieren/-Schieben unendlich hinauszoegern kann (klassischer „Infinity"-Bug). Wird 0, sobald
-    /// der Stein wieder faellt (Reihe gewonnen) oder eine neue Saeule/ein neuer Vierling erscheint.
-    private var lockResets = 0
-    private let maxLockResets = 15
+    /// Tiefste Reihe (kleinster row-Index; Boden = 0), die der aktuelle Stein bisher erreicht hat.
+    /// Das Lock-Delay-Fenster wird NUR bei ECHTEM Fall-Fortschritt (neue, tiefere Reihe) zurueck-
+    /// gesetzt — nicht durch Drehen/Schieben und auch nicht durch das kurze Anheben, das eine Drehung
+    /// am Boden ausloest. So laesst sich der Einrast-Zeitpunkt weder durch Dauer-Rotieren (stationaer)
+    /// noch durch Auf-und-ab-„Wippen" unendlich hinauszoegern. Startwert Int.max = „noch nichts".
+    private var lockLowestRow = Int.max
     /// true, solange die aktuelle Saeule per Leertaste heruntergelassen wurde → kuerzeres Fenster.
     private var hardDropped = false
 
@@ -181,7 +181,7 @@ public final class GameScene: SKScene {
         isResolving = false
         fallAccumulator = 0
         lockDelayAccumulator = 0
-        lockResets = 0
+        lockLowestRow = Int.max
         hardDropped = false
         lastUpdateTime = 0
         softDropActive = false
@@ -455,10 +455,24 @@ public final class GameScene: SKScene {
             }
         }
 
-        if engine.canFall() {
-            // Normales Fallen. (Hat die Saeule durch Schieben wieder Luft, läuft das Lock-Delay nicht.)
+        // Lock-Delay-Uhr: sie laeuft JEDEN Frame weiter und wird NUR bei ECHTEM Fall-Fortschritt auf 0
+        // gesetzt — naemlich wenn der Stein eine neue, tiefere Reihe (kleinerer row-Index) erreicht.
+        // Weder Drehen/Schieben noch das kurze Anheben, das eine Drehung am Boden ausloest (canFall wird
+        // kurz true), zaehlen als Fortschritt. Dadurch tickt die Uhr auch beim Auf-ab-„Wippen" weiter
+        // und der Stein rastet nach ~lockDelay ein — kein unendliches Hinauszoegern durch Dauer-Rotieren.
+        // Im echten freien Fall setzt jeder Schwerkraft-Schritt eine neue tiefste Reihe → Uhr bleibt 0.
+        let bottomRow = engine.activeCells.map { $0.cell.row }.min() ?? lockLowestRow
+        if bottomRow < lockLowestRow {
+            lockLowestRow = bottomRow
             lockDelayAccumulator = 0
-            lockResets = 0             // wieder Luft → Auffrisch-Deckel neu (frischer aufgesetzter Zustand)
+        } else {
+            lockDelayAccumulator += dt
+        }
+
+        if engine.canFall() {
+            // Noch Luft unter dem Stein → weiter fallen. (Gesperrt wird nur im aufgesetzten Zustand;
+            // ist die Uhr durch Wippen schon ueber dem Limit, rastet der Stein im naechsten aufgesetzten
+            // Frame ein.)
             fallAccumulator += dt
             // Bei konstantem Tempo („Endlos") zaehlt die Start-Tempostufe, nicht das gestiegene Level.
             let speedLevel = constantTempo ? startTempoLevel : engine.level
@@ -468,9 +482,8 @@ public final class GameScene: SKScene {
                 stepGravity()
             }
         } else {
-            // Aufgesetzt → kurzes Korrektur-Fenster (Lock-Delay); erst danach wird fixiert.
+            // Aufgesetzt → nach Ablauf des Korrektur-Fensters fixieren.
             fallAccumulator = 0
-            lockDelayAccumulator += dt
             // Per Leertaste aufgesetzt → halbes Fenster; normales Aufsetzen → volles Fenster.
             let limit = hardDropped ? hardDropLockDelay : lockDelay
             if lockDelayAccumulator >= limit {
@@ -498,31 +511,16 @@ public final class GameScene: SKScene {
 
     // MARK: - Eingaben (von SwiftUI weitergereicht)
 
-    // Jede gelungene Korrektur (Schieben/Drehen) setzt den Lock-Delay-Akku auf 0 zurueck und frischt
-    // so das Korrektur-Fenster auf: liegt die Saeule schon auf, bekommt der Spieler nach jedem Zug
-    // erneut die volle Zeit, statt dass das Fenster ab dem ersten Aufsetzen unaufhaltsam ablaeuft.
-    // Im freien Fall ist der Akku ohnehin 0 — dort ist das Zuruecksetzen wirkungslos (harmlos).
-    // Zusaetzlich wird hardDropped = false gesetzt: nach einem Hard-Drop gilt das halbe Korrektur-
-    // Fenster (hardDropLockDelay). Eine erfolgreiche Korrektur soll aber das VOLLE Fenster geben —
-    // sonst bekommt der Spieler nach Leertaste + seitlicher Korrektur nur noch 0,21 statt 0,42 s.
-    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true); hardDropped = false; refreshLockDelay() } }
-    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true); hardDropped = false; refreshLockDelay() } }
-    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate(); hardDropped = false; refreshLockDelay() } }
-
-    /// Frischt nach einer gelungenen Korrektur (Schieben/Drehen) das Lock-Delay-Fenster auf — aber
-    /// GEDECKELT: im aufgesetzten Zustand nur bis `maxLockResets` Mal. Danach laeuft das Fenster ab
-    /// und der Stein rastet ein, auch wenn weiter rotiert wird (verhindert das unendliche Hinaus-
-    /// zoegern durch Dauer-Rotieren). Im freien Fall ist der Akku ohnehin 0 → dort unbegrenzt harmlos.
-    private func refreshLockDelay() {
-        guard let engine else { return }
-        if engine.canFall() {
-            lockDelayAccumulator = 0
-        } else if lockResets < maxLockResets {
-            lockDelayAccumulator = 0
-            lockResets += 1
-        }
-        // sonst: Fenster NICHT mehr auffrischen — es laeuft ab, der Stein fixiert
-    }
+    // Wichtig: Schieben/Drehen frischt das Lock-Delay-Fenster NICHT auf. Sonst liesse sich der
+    // Einrast-Zeitpunkt durch schnelles Dauer-Rotieren unendlich hinauszoegern (klassischer
+    // „Infinity"-Bug — ein Move-Reset-Deckel half nicht, weil Rotieren dem Stein oft kurz Luft gibt
+    // und der freie-Fall-Zweig den Deckel zuruecksetzte). Das Fenster laeuft jetzt ab dem Aufsetzen
+    // fest ab (~lockDelay); nur echtes Fallen (Stein hat Luft, canFall) haelt/erneuert es. `hardDropped
+    // = false` bleibt: eine Korrektur nach Hard-Drop gibt das volle statt des halben Fensters — das ist
+    // eine EINMALIGE Verlaengerung auf ~lockDelay (kein Reset), nicht ausnutzbar.
+    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true); hardDropped = false } }
+    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true); hardDropped = false } }
+    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate(); hardDropped = false } }
 
     /// Beginnt das horizontale Halten in `dir` (-1 links, +1 rechts): ein sofortiger erster Schritt,
     /// danach uebernimmt der Auto-Repeat im `update(_:)` (siehe moveDAS/moveARR).
@@ -555,6 +553,14 @@ public final class GameScene: SKScene {
     public func setSoftDrop(_ active: Bool) { softDropActive = active }
 
     private func canInput() -> Bool { engine != nil && !isResolving && engine!.phase == .falling }
+
+    /// Nur fuer Headless-Tests/Diagnose: tiefste belegte Reihe des aktiven Steins (kleinster
+    /// row-Index; Boden = 0) bzw. nil, wenn gerade kein aktiver Stein faellt (z.B. waehrend einer
+    /// Aufloesung). Erlaubt Tests, das Einrasten zu erkennen (neuer Stein → Reihe springt nach oben).
+    public var testActiveBottomRow: Int? {
+        guard let engine, engine.phase == .falling, !isResolving else { return nil }
+        return engine.activeCells.map { $0.cell.row }.min()
+    }
 
     /// Kleiner Skalier-Impuls als Feedback beim Drehen.
     private func bumpPiece() {
@@ -703,7 +709,7 @@ public final class GameScene: SKScene {
         updateHUD()
         isResolving = false
         fallAccumulator = 0
-        lockResets = 0             // frische Saeule → Auffrisch-Deckel neu
+        lockLowestRow = Int.max     // frische Saeule → Fall-Fortschritt neu messen
         hardDropped = false        // frische Saeule → wieder volles Korrektur-Fenster
     }
 

@@ -36,6 +36,12 @@ let package = Package(
         .testTarget(
             name: "SteinregenCoreTests",
             dependencies: ["SteinregenCore"]
+        ),
+        // Tests der Render-/Spielloop-Schicht (Lock-Delay-Verhalten u.ae.). Braucht SpriteKit,
+        // laeuft daher nur mit der Xcode-Toolchain (DEVELOPER_DIR=… xcrun swift test).
+        .testTarget(
+            name: "SteinregenRenderTests",
+            dependencies: ["SteinregenRender", "SteinregenCore"]
         )
     ]
 )
