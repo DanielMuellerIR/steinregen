@@ -84,6 +84,12 @@ public final class GameScene: SKScene {
     /// bleiben, aber eine kurze Last-Minute-Korrektur ist noch moeglich (gewuenschter Kompromiss).
     private let hardDropLockDelay: TimeInterval = 0.21
     private var lockDelayAccumulator: TimeInterval = 0
+    /// Wie oft das Lock-Delay-Fenster im AKTUELL aufgesetzten Zustand schon aufgefrischt wurde.
+    /// Gedeckelt (`maxLockResets`), damit man den Einrast-Zeitpunkt nicht durch schnelles Dauer-
+    /// Rotieren/-Schieben unendlich hinauszoegern kann (klassischer „Infinity"-Bug). Wird 0, sobald
+    /// der Stein wieder faellt (Reihe gewonnen) oder eine neue Saeule/ein neuer Vierling erscheint.
+    private var lockResets = 0
+    private let maxLockResets = 15
     /// true, solange die aktuelle Saeule per Leertaste heruntergelassen wurde → kuerzeres Fenster.
     private var hardDropped = false
 
@@ -175,6 +181,7 @@ public final class GameScene: SKScene {
         isResolving = false
         fallAccumulator = 0
         lockDelayAccumulator = 0
+        lockResets = 0
         hardDropped = false
         lastUpdateTime = 0
         softDropActive = false
@@ -451,6 +458,7 @@ public final class GameScene: SKScene {
         if engine.canFall() {
             // Normales Fallen. (Hat die Saeule durch Schieben wieder Luft, läuft das Lock-Delay nicht.)
             lockDelayAccumulator = 0
+            lockResets = 0             // wieder Luft → Auffrisch-Deckel neu (frischer aufgesetzter Zustand)
             fallAccumulator += dt
             // Bei konstantem Tempo („Endlos") zaehlt die Start-Tempostufe, nicht das gestiegene Level.
             let speedLevel = constantTempo ? startTempoLevel : engine.level
@@ -497,9 +505,24 @@ public final class GameScene: SKScene {
     // Zusaetzlich wird hardDropped = false gesetzt: nach einem Hard-Drop gilt das halbe Korrektur-
     // Fenster (hardDropLockDelay). Eine erfolgreiche Korrektur soll aber das VOLLE Fenster geben —
     // sonst bekommt der Spieler nach Leertaste + seitlicher Korrektur nur noch 0,21 statt 0,42 s.
-    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true); hardDropped = false; lockDelayAccumulator = 0 } }
-    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true); hardDropped = false; lockDelayAccumulator = 0 } }
-    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate(); hardDropped = false; lockDelayAccumulator = 0 } }
+    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true); hardDropped = false; refreshLockDelay() } }
+    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true); hardDropped = false; refreshLockDelay() } }
+    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate(); hardDropped = false; refreshLockDelay() } }
+
+    /// Frischt nach einer gelungenen Korrektur (Schieben/Drehen) das Lock-Delay-Fenster auf — aber
+    /// GEDECKELT: im aufgesetzten Zustand nur bis `maxLockResets` Mal. Danach laeuft das Fenster ab
+    /// und der Stein rastet ein, auch wenn weiter rotiert wird (verhindert das unendliche Hinaus-
+    /// zoegern durch Dauer-Rotieren). Im freien Fall ist der Akku ohnehin 0 → dort unbegrenzt harmlos.
+    private func refreshLockDelay() {
+        guard let engine else { return }
+        if engine.canFall() {
+            lockDelayAccumulator = 0
+        } else if lockResets < maxLockResets {
+            lockDelayAccumulator = 0
+            lockResets += 1
+        }
+        // sonst: Fenster NICHT mehr auffrischen — es laeuft ab, der Stein fixiert
+    }
 
     /// Beginnt das horizontale Halten in `dir` (-1 links, +1 rechts): ein sofortiger erster Schritt,
     /// danach uebernimmt der Auto-Repeat im `update(_:)` (siehe moveDAS/moveARR).
@@ -680,6 +703,7 @@ public final class GameScene: SKScene {
         updateHUD()
         isResolving = false
         fallAccumulator = 0
+        lockResets = 0             // frische Saeule → Auffrisch-Deckel neu
         hardDropped = false        // frische Saeule → wieder volles Korrektur-Fenster
     }
 
