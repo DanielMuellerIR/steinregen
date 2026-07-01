@@ -115,6 +115,28 @@ final class LockDelayTests: XCTestCase {
         XCTAssertLessThan(elapsed, 1.5, "Einrasten dauerte zu lange (\(elapsed)s)")
     }
 
+    /// Wie testDauerRotationRastetEin, aber mit SEITLICHEM Dauer-Bewegen (links/rechts abwechselnd):
+    /// auch Schieben darf das Fenster nicht verlaengern. Der Stein rastet im 0,21-s-Fenster ein.
+    func testDauerBewegenRastetEin() {
+        let scene = makeScene()
+        var t = 0.0
+        t += frame; scene.update(t)
+        scene.inputHardDrop()
+        t += frame; scene.update(t)
+
+        let groundRow = scene.testActiveBottomRow ?? 0
+        var elapsed = 0.0
+        var locked = false
+        for i in 0..<600 {
+            if i % 2 == 0 { scene.inputLeft() } else { scene.inputRight() }  // hin-und-her ziehen
+            t += frame; scene.update(t)
+            elapsed += frame
+            if let r = scene.testActiveBottomRow, r >= groundRow + 6 { locked = true; break }
+        }
+        XCTAssertTrue(locked, "Stein rastete trotz Dauer-Bewegen nicht ein")
+        XCTAssertLessThan(elapsed, 0.35, "Einrasten dauerte zu lange (\(elapsed)s) — Bewegen weicht das Fenster auf")
+    }
+
     /// Gegenprobe: OHNE Eingriff rastet der Stein nach dem Hard-Drop ebenfalls ein (reguläres
     /// Lock-Delay unbeschaedigt) — stellt sicher, dass der Fix das normale Einrasten nicht bricht.
     func testOhneEingriffRastetEin() {

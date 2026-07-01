@@ -200,7 +200,7 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
 - **Game Over**: Einwurf-Spalte (Mitte) oben blockiert.
 - **Lock-Delay** (einfache, feste Regel — Stand v0.23.14): Sobald der Stein zum ersten Mal nicht
   mehr fallen kann (Berührung), startet `settleTimer` in `GameScene`. Er läuft in Echtzeit und wird
-  von **nichts** zurückgesetzt — Drehen/Schieben ändern ihn nicht. Nach `lockDelay` (0,42 s) rastet
+  von **nichts** zurückgesetzt — Drehen/Schieben ändern ihn nicht. Nach `lockDelay` (0,6 s) rastet
   der Stein ein, bzw. nach `hardDropLockDelay` (0,21 s), wenn er per **Hard-Drop** (Leertaste)
   gesetzt wurde. **Drehen bremst das Fallen nicht** (Schwerkraft läuft im `update` unabhängig weiter);
   hat der Stein bei Ablauf noch Luft (Drehung hob ihn kurz an), wird er erst abgesetzt, dann fixiert.

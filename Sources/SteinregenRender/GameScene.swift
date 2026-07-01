@@ -73,13 +73,12 @@ public final class GameScene: SKScene {
     private var constantTempo = false
     /// Start-Tempostufe der laufenden Partie — bei konstantem Tempo bestimmt sie die Fallgeschwindigkeit.
     private var startTempoLevel = 1
-    /// Lock-Delay (Sega-Style): kurzes Korrektur-Fenster, in dem eine aufgesetzte Saeule noch
-    /// geschoben/gedreht werden kann, bevor sie fixiert. Verschiebt man sie so, dass sie wieder
-    /// fallen kann, geht es normal weiter. Wert in Sekunden — bewusst etwas laenger als die reine
-    /// Reaktionszeit, damit das Fenster auch dann komfortabel zu treffen ist, wenn das Aufsetzen
-    /// kaum sichtbar ist. Zusaetzlich frischt jede gelungene Korrektur das Fenster wieder auf
-    /// (siehe `inputLeft`/`inputRight`/`inputRotate`).
-    private let lockDelay: TimeInterval = 0.42
+    /// Lock-Delay: kurzes Korrektur-Fenster ab der ersten Beruehrung, in dem der aufgesetzte Stein
+    /// noch geschoben ODER gedreht werden kann, bevor er fixiert. Verschiebt man ihn so, dass er
+    /// wieder fallen kann, faellt er normal weiter. Wert in Sekunden — bewusst spuerbar lang, damit
+    /// eine schnelle Last-Minute-Korrektur (ein Stueck zur Seite ziehen) komfortabel moeglich ist.
+    /// Das Fenster wird NICHT aufgefrischt (siehe `settleTimer`), laeuft also ab der Beruehrung fest ab.
+    private let lockDelay: TimeInterval = 0.6
     /// Nach einem Hard-Drop (Leertaste) gilt bewusst nur das halbe Fenster.
     private let hardDropLockDelay: TimeInterval = 0.21
     /// Lock-Delay als EINFACHE Regel (Wunsch Daniel): Sobald der Stein zum ersten Mal nicht mehr
