@@ -3,6 +3,13 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.25.0]
+
+- New fourth game mode **Crushed** (pentominoes): the brutal five-block variant of Entombed —
+  all 18 one-sided pentomino shapes, full rows clear, five rows at once score 1200 × level.
+  Default board 12×20, configurable 10–16 × 16–26.
+- The mode picker is now a 2×2 grid of chips.
+
 ## [0.24.0]
 
 - New third game mode **Blood Clots** (Puyo-style): pairs of stones fall and rotate around a

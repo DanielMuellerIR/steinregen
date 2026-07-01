@@ -180,6 +180,7 @@ struct RootView: View {
                 switch m {
                 case "verschuettet": gameMode = .verschuettet
                 case "klumpen":      gameMode = .klumpen
+                case "fuenfling":    gameMode = .fuenfling
                 default:             gameMode = .saeulen
                 }
             }
@@ -312,15 +313,17 @@ struct StartView: View {
             Spacer()   // macOS: flexibler Abstand Logo → Modus (zieht die Gruppen auseinander)
             #endif
 
-            // Spielmodus — drei Chips (Steinschlag / Eingemauert / Blutklumpen). Auf macOS
-            // zusätzlich per ↑ ↓ wählbar (← → bleiben fürs Tempo), auf iOS per Tap.
+            // Spielmodus — vier Chips im 2×2-Raster (Steinschlag / Eingemauert / Blutklumpen /
+            // Erdrückt): vier nebeneinander würden selbst auf macOS zu schmal. Auf macOS
+            // zusätzlich per ↑ ↓ zyklisch wählbar (← → bleiben fürs Tempo), auf iOS per Tap.
             VStack(spacing: 10) {
                 Text(L10n.t("Modus", "Mode"))
                     .font(.custom(Theme.blackletterBoldPostScript, size: 28)).foregroundStyle(.secondary)
-                HStack(spacing: 14) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible())],
+                          spacing: 10) {
                     ForEach(GameMode.allCases, id: \.self) { m in modeChip(m) }
                 }
-                .frame(maxWidth: 598)        // macOS: 3×190 + Abstände; schmales iPhone: Chips schrumpfen mit
+                .frame(maxWidth: 394)        // macOS: 2×190 je Zeile; schmales iPhone: Chips schrumpfen mit
                 Text(mode.hint)
                     .font(.custom(Theme.blackletterFamily, size: 20)).foregroundStyle(.tertiary)
                     .lineLimit(1).minimumScaleFactor(0.6)   // einzeilig halten — notfalls kleiner statt umbrechen
@@ -542,6 +545,8 @@ struct SettingsView: View {
     @AppStorage(BoardConfig.verschuettetHeightKey) private var verschuettetH = 0
     @AppStorage(BoardConfig.klumpenWidthKey)       private var klumpenW = 0
     @AppStorage(BoardConfig.klumpenHeightKey)      private var klumpenH = 0
+    @AppStorage(BoardConfig.fuenflingWidthKey)     private var fuenflingW = 0
+    @AppStorage(BoardConfig.fuenflingHeightKey)    private var fuenflingH = 0
     let onClose: () -> Void
 
     // Aktuelle (geklemmte) Maße des gewählten Modus + Schreib-Bindings, die den Modus-Standard
@@ -553,6 +558,7 @@ struct SettingsView: View {
         case .saeulen:      saeulenW = v
         case .verschuettet: verschuettetW = v
         case .klumpen:      klumpenW = v
+        case .fuenfling:    fuenflingW = v
         }
     }
     private func setHeight(_ v: Int) {
@@ -560,6 +566,7 @@ struct SettingsView: View {
         case .saeulen:      saeulenH = v
         case .verschuettet: verschuettetH = v
         case .klumpen:      klumpenH = v
+        case .fuenfling:    fuenflingH = v
         }
     }
 

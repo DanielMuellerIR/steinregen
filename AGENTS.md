@@ -162,9 +162,10 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`/`freedoom`)
 - `STEINREGEN_MODE=<modus>` — Spielmodus (`saeulen` = Columns, im Menü „Steinschlag"; `verschuettet`
-  = Vierlinge, im Menü „Eingemauert"; `klumpen` = Steinpaare, im Menü „Blutklumpen"; Default
-  `saeulen`). Die env-/UserDefaults-IDs bleiben bewusst `saeulen`/`verschuettet`/`klumpen` — nur die
-  Anzeige-Namen heißen Steinschlag/Eingemauert/Blutklumpen.
+  = Vierlinge, im Menü „Eingemauert"; `klumpen` = Steinpaare, im Menü „Blutklumpen"; `fuenfling` =
+  Pentominoes, im Menü „Erdrückt"; Default `saeulen`). Die env-/UserDefaults-IDs bleiben bewusst
+  `saeulen`/`verschuettet`/`klumpen`/`fuenfling` — nur die Anzeige-Namen heißen
+  Steinschlag/Eingemauert/Blutklumpen/Erdrückt.
 - `STEINREGEN_ENDLESS=1` — konstantes Tempo (Fallgeschwindigkeit bleibt auf der Start-Tempostufe)
 - `STEINREGEN_MUSIC=<0|1>` — Musik aus (`0`) bzw. erzwungen an (`1`); ohne die Variable gilt der
   persistierte Default (an). Praktisch für stille Screenshot-/Smoke-Test-Läufe.
@@ -228,7 +229,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-02, v0.24.0)
+## 5. Status (Stand 2026-07-02, v0.25.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -558,6 +559,23 @@ dokumentiert: SKActions laufen headless nicht → Engine-Score-Diagnose `testEng
 auf macOS (Menü 3 Chips, Gameplay, Räumung mit Punkten via Seed 12, Game-Over, Settings-Karte) und
 iOS-Simulator (Menü englisch „Blood Clots", Klumpen-Gameplay mit Touch-Leiste).
 
+**v0.25.0 — vierter Modus „Erdrückt" (Pentominoes):** die brutale Fünfling-Variante des
+Eingemauert-Modus — **gleiche Engine**, die `TetrominoEngine` bekommt ihren Formen-Satz jetzt
+injiziert (`types:`, Default die 7 Vierlinge; der Bag zieht generisch jede Form einmal pro Beutel).
+`TetrominoType` um die **18 einseitigen Fünflinge** erweitert (Drehungen erlaubt, Spiegelungen
+eigene Formen — das Spiel kennt nur Drehen; Box-Größen 3/4/5, Skizzen als Kommentar an den
+`spawnOffsets`). `linePoints` um die fünfte Stufe ergänzt (5 Reihen = 1200 × Level — nur mit dem
+senkrechten I5 möglich); bestehende Stufen unverändert. Brett-Default **12×20** (Spanne 10–16 /
+16–26, Schlüssel `steinregen.dim.fuenfling.*`), Anzeige „Erdrückt"/„Crushed", Naht
+`STEINREGEN_MODE=fuenfling`. **Menü: die Modus-Chips stehen jetzt im 2×2-Raster** (vier
+nebeneinander wären zu schmal); HUD-Vorschau skaliert auf 5 Zellen Breite (Vierling-Vorschau
+pixelgleich). Tests: 8 neue (`PentominoTests`: 18 Formen × 5 Zellen in der Box, zusammenhängend,
+paarweise verschieden, 4×-Rotation, 18er-Bag, Determinismus, Fünffach-Räumung 1200, Punktetabelle);
+zwei bestehende Vierling-Tests von `allCases` auf `.tetrominoes` umgestellt. Verifiziert auf macOS
+(Menü 2×2, Gameplay 12×20 mit 5er-Vorschau, Settings-Karte) und iPhone-Simulator (Menü + Gameplay;
+Hinweis: bei 12+ Spalten werden die Seiten-Panels auf dem iPhone sichtbar schmal — gleiche
+Eigenschaft wie bei breiten Eingemauert-Brettern, keine Layout-Änderung ohne Auftrag).
+
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag
 zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Simulator bestätigt.
@@ -603,9 +621,8 @@ Black-Metal-Ton):
    statt nur Endlos — hat das Spiel bisher gar nicht. Sehr guter Fit: Paar-Mechanik aus
    `PairEngine` wiederverwendbar (Linien- statt Gruppen-Matching, seed-deterministische
    Vorbefüllung). Zu klären: Level-Progression (mehr Zielsteine je Stufe), Punkteschema.
-2. **Pentomino-Variante** — die `TetrominoEngine` mit 5er-Formen füttern (18 Formen statt 7).
-   Fast geschenkt, brutal schwer; evtl. nur ein Schalter im Eingemauert-Modus statt eigener
-   Modus. Zu klären: eigener Modus-Chip vs. Option, Brett-Defaults (breiter?).
+2. ✅ **Pentomino-Variante** — erledigt als „Erdrückt" (v0.25.0, eigener Modus-Chip,
+   `TetrominoEngine` mit `types: TetrominoType.pentominoes`).
 3. **Lumines-Stil** — 2×2-Blöcke aus zwei Sorten; gleichfarbige 2×2-Quadrate werden markiert
    und von einer **wandernden Sweep-Linie** abgeräumt. Sweep muss tick-basiert im Core laufen
    (deterministisch machbar, KEINE Wanduhr — Regel 2); Musik-Kopplung des Originals bewusst

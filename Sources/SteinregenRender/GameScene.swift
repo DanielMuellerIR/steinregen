@@ -173,6 +173,12 @@ public final class GameScene: SKScene {
             engine = PairEngine(seed: seed, startLevel: startLevel,
                                 width: width ?? Board.defaultWidth,
                                 height: height ?? Board.defaultHeight)
+        case .fuenfling:
+            // Gleiche Engine wie „Verschuettet", nur mit dem Fuenfling-Formen-Satz gefuettert.
+            engine = TetrominoEngine(seed: seed, startLevel: startLevel,
+                                     width: width ?? TetrominoEngine.pentominoDefaultWidth,
+                                     height: height ?? TetrominoEngine.pentominoDefaultHeight,
+                                     types: TetrominoType.pentominoes)
         }
         // Brettmaße + Knoten-Raster an die tatsaechliche Brettgroesse anpassen.
         boardWidth = engine!.board.width
@@ -840,8 +846,9 @@ public final class GameScene: SKScene {
 
         let cols = (cells.map(\.col).max() ?? 0) + 1
         let rows = (cells.map(\.row).max() ?? 0) + 1
-        // Kachel so, dass die breiteste Form (4 Zellen) bequem ins Panel passt.
-        let t = min(tile * 0.72, previewPanelWidth * 0.9 / 4)
+        // Kachel so, dass die breiteste Form bequem ins Panel passt (Vierlinge bis 4 Zellen,
+        // der Fuenfling I5 ist 5 breit — der max() laesst die Vierling-Vorschau unveraendert).
+        let t = min(tile * 0.72, previewPanelWidth * 0.9 / CGFloat(max(4, cols)))
         let totalW = CGFloat(cols) * t
         let leftCenterX = previewCenterX - totalW / 2 + t / 2     // Mitte der linken Zellspalte
         let topCenterY = previewAreaTopY - t / 2                  // Mitte der obersten Zellreihe

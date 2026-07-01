@@ -8,7 +8,8 @@ final class TetrominoEngineTests: XCTestCase {
     // MARK: - Form & Drehung (rein geometrisch)
 
     func testEachTypeHasFourDistinctCells() {
-        for type in TetrominoType.allCases {
+        // Nur die sieben Vierlinge — die Fuenflinge (5 Zellen) prueft PentominoTests.
+        for type in TetrominoType.tetrominoes {
             let t = Tetromino(type: type, col: 0, row: 0)
             XCTAssertEqual(t.offsets.count, 4, "\(type) sollte vier Zellen haben")
             XCTAssertEqual(Set(t.offsets).count, 4, "\(type) Zellen muessen verschieden sein")
@@ -161,7 +162,7 @@ final class TetrominoEngineTests: XCTestCase {
         // Die ersten sieben Formen sind ein vollstaendiger Beutel — jede Form genau einmal.
         let first7 = playTypes(seed: 42, count: 7, height: 24)
         XCTAssertEqual(first7.count, 7)
-        XCTAssertEqual(Set(first7), Set(TetrominoType.allCases))
+        XCTAssertEqual(Set(first7), Set(TetrominoType.tetrominoes))
     }
 
     func testDifferentSeedsDiffer() {

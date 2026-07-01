@@ -9,33 +9,50 @@
 
 // MARK: - Form
 
-/// Die sieben klassischen Vierling-Formen. Die zugeordnete `gem`-Sorte ist rein kosmetisch:
-/// im „Verschuettet"-Modus zaehlen NUR volle Reihen, nicht Farb-Drillinge — die Steine tragen
-/// also nur zur Optik bei (jedes Set zeichnet sie wie gewohnt).
+/// Die Formen der beiden Reihen-Raeum-Modi: die sieben klassischen Vierlinge („Verschuettet")
+/// UND die achtzehn einseitigen Fuenflinge (Pentominoes, Modus „Fuenfling"/„Erdrueckt" — einseitig
+/// = Drehungen erlaubt, Spiegelungen sind EIGENE Formen, weil das Spiel nur Drehen kennt).
+/// Die zugeordnete `gem`-Sorte ist rein kosmetisch: in beiden Modi zaehlen NUR volle Reihen,
+/// nicht Farb-Drillinge — die Steine tragen also nur zur Optik bei.
 public enum TetrominoType: UInt8, CaseIterable, Sendable {
+    // Die sieben Vierlinge.
     case i, o, t, l, j, s, z
+    // Die achtzehn einseitigen Fuenflinge (Standard-Buchstaben; `M` = gespiegelte Variante).
+    case f5, f5M, i5, l5, l5M, n5, n5M, p5, p5M, t5, u5, v5, w5, x5, y5, y5M, z5, z5M
 
-    /// Kantenlaenge der quadratischen Rotations-Box: I dreht in 4×4, O in 2×2, der Rest in 3×3.
-    /// In dieser Box wird gedreht — so bleiben die Formen beim Drehen sauber auf dem Raster.
+    /// Die sieben Vierling-Formen (Formen-Satz des Modus „Verschuettet").
+    public static let tetrominoes: [TetrominoType] = [.i, .o, .t, .l, .j, .s, .z]
+
+    /// Die achtzehn Fuenfling-Formen (Formen-Satz des Modus „Fuenfling").
+    public static let pentominoes: [TetrominoType] = [.f5, .f5M, .i5, .l5, .l5M, .n5, .n5M,
+                                                      .p5, .p5M, .t5, .u5, .v5, .w5, .x5,
+                                                      .y5, .y5M, .z5, .z5M]
+
+    /// Kantenlaenge der quadratischen Rotations-Box (in ihr wird gedreht — so bleiben die Formen
+    /// beim Drehen sauber auf dem Raster): Vierlinge wie gehabt (I 4×4, O 2×2, Rest 3×3);
+    /// Fuenflinge brauchen 5×5 (I5), 4×4 (die langen L/N/Y-Varianten) oder 3×3 (der Rest).
     public var boxSize: Int {
         switch self {
         case .i: return 4
         case .o: return 2
+        case .i5: return 5
+        case .l5, .l5M, .n5, .n5M, .y5, .y5M: return 4
         default: return 3
         }
     }
 
-    /// Kosmetische Stein-Sorte. Sieben Formen auf sechs Sorten abgebildet (eine Sorte wird doppelt
-    /// genutzt) — egal fuers Spiel, da Treffer reihen- und nicht farbbasiert sind.
+    /// Kosmetische Stein-Sorte. Die Formen werden zyklisch auf die sechs Sorten abgebildet —
+    /// egal fuers Spiel, da Treffer reihen- und nicht farbbasiert sind.
     public var gem: Gem {
         Gem.colors[Int(rawValue) % Gem.colors.count]
     }
 
-    /// Die vier belegten Zellen im Spawn-Zustand, als (Spalte, Reihe)-Offsets INNERHALB der Box
-    /// (row nach oben). Aus diesem Zustand werden die Drehungen rechnerisch erzeugt (siehe
-    /// `Tetromino.rotatedOffsets`), darum genuegt hier die Grund-Ausrichtung.
+    /// Die belegten Zellen im Spawn-Zustand (vier bzw. fuenf), als (Spalte, Reihe)-Offsets
+    /// INNERHALB der Box (row nach oben). Aus diesem Zustand werden die Drehungen rechnerisch
+    /// erzeugt (siehe `Tetromino.rotatedOffsets`), darum genuegt hier die Grund-Ausrichtung.
     public var spawnOffsets: [(col: Int, row: Int)] {
         switch self {
+        // — Vierlinge —
         case .i: return [(0, 2), (1, 2), (2, 2), (3, 2)]            // waagerechte Vierer-Linie
         case .o: return [(0, 0), (1, 0), (0, 1), (1, 1)]            // 2×2-Block (dreht sich nicht)
         case .t: return [(0, 1), (1, 1), (2, 1), (1, 2)]            // T, Spitze oben
@@ -43,6 +60,25 @@ public enum TetrominoType: UInt8, CaseIterable, Sendable {
         case .l: return [(0, 1), (1, 1), (2, 1), (2, 2)]            // L, Nase oben rechts
         case .s: return [(0, 1), (1, 1), (1, 2), (2, 2)]            // S
         case .z: return [(0, 2), (1, 2), (1, 1), (2, 1)]            // Z (Spiegel von S)
+        // — Fuenflinge (Skizzen: oberste Zeile = groesste row) —
+        case .f5:  return [(1, 2), (2, 2), (0, 1), (1, 1), (1, 0)]  // .XX / XX. / .X.
+        case .f5M: return [(0, 2), (1, 2), (1, 1), (2, 1), (1, 0)]  // XX. / .XX / .X.
+        case .i5:  return [(0, 2), (1, 2), (2, 2), (3, 2), (4, 2)]  // waagerechte Fuenfer-Linie
+        case .l5:  return [(0, 3), (0, 2), (0, 1), (0, 0), (1, 0)]  // X. ×3 / XX
+        case .l5M: return [(1, 3), (1, 2), (1, 1), (1, 0), (0, 0)]  // .X ×3 / XX
+        case .n5:  return [(1, 3), (1, 2), (0, 1), (1, 1), (0, 0)]  // .X / .X / XX / X.
+        case .n5M: return [(0, 3), (0, 2), (0, 1), (1, 1), (1, 0)]  // X. / X. / XX / .X
+        case .p5:  return [(0, 2), (1, 2), (0, 1), (1, 1), (0, 0)]  // XX / XX / X.
+        case .p5M: return [(0, 2), (1, 2), (0, 1), (1, 1), (1, 0)]  // XX / XX / .X
+        case .t5:  return [(0, 2), (1, 2), (2, 2), (1, 1), (1, 0)]  // XXX / .X. / .X.
+        case .u5:  return [(0, 1), (2, 1), (0, 0), (1, 0), (2, 0)]  // X.X / XXX
+        case .v5:  return [(0, 2), (0, 1), (0, 0), (1, 0), (2, 0)]  // X.. / X.. / XXX
+        case .w5:  return [(0, 2), (0, 1), (1, 1), (1, 0), (2, 0)]  // X.. / XX. / .XX
+        case .x5:  return [(1, 2), (0, 1), (1, 1), (2, 1), (1, 0)]  // Plus-Kreuz
+        case .y5:  return [(1, 3), (0, 2), (1, 2), (1, 1), (1, 0)]  // .X / XX / .X / .X
+        case .y5M: return [(0, 3), (0, 2), (1, 2), (0, 1), (0, 0)]  // X. / XX / X. / X.
+        case .z5:  return [(0, 2), (1, 2), (1, 1), (1, 0), (2, 0)]  // XX. / .X. / .XX
+        case .z5M: return [(1, 2), (2, 2), (1, 1), (0, 0), (1, 0)]  // .XX / .X. / XX.
         }
     }
 }

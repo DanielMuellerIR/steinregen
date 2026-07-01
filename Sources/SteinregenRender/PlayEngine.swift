@@ -18,20 +18,23 @@ import SteinregenCore
 /// Die waehlbaren Spielmodi. „Saeulen" = der klassische Columns-Modus (fallende Dreier-
 /// Saeulen, ≥3 gleiche in Linie). „Verschuettet" = der Vierling-Modus (sieben Formen, volle Reihen
 /// raeumen). „Klumpen" = der Steinpaar-Modus (fallende Zweier-Paare, Gruppen ab 4 verbundenen
-/// gleichen Steinen raeumen). Bewusst markenfrei benannt.
+/// gleichen Steinen raeumen). „Fuenfling" = die brutale Pentomino-Variante des Vierling-Modus
+/// (achtzehn Fuenfer-Formen, gleiche Engine, gleiche Regeln). Bewusst markenfrei benannt.
 public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
     case saeulen
     case verschuettet
     case klumpen
+    case fuenfling
 
-    /// Anzeigename im Menue/Dialog. (Die internen case-Namen `saeulen`/`verschuettet`/`klumpen`
-    /// und die env-/UserDefaults-Schluessel bleiben aus Persistenz-/Naht-Gruenden unveraendert —
-    /// nur diese Anzeige-Strings tragen die gewuenschten Anzeige-Namen.)
+    /// Anzeigename im Menue/Dialog. (Die internen case-Namen `saeulen`/`verschuettet`/`klumpen`/
+    /// `fuenfling` und die env-/UserDefaults-Schluessel bleiben aus Persistenz-/Naht-Gruenden
+    /// unveraendert — nur diese Anzeige-Strings tragen die gewuenschten Anzeige-Namen.)
     public var title: String {
         switch self {
         case .saeulen:      return L10n.t("Steinschlag", "Rockfall")
         case .verschuettet: return L10n.t("Eingemauert", "Entombed")
         case .klumpen:      return L10n.t("Blutklumpen", "Blood Clots")
+        case .fuenfling:    return L10n.t("Erdrückt", "Crushed")
         }
     }
 
@@ -44,35 +47,42 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
                                           "falling four-block pieces · clear full rows")
         case .klumpen:      return L10n.t("fallende Zweier-Paare · 4 verbundene gleiche räumen",
                                           "falling stone pairs · clear 4 connected alike")
+        case .fuenfling:    return L10n.t("fallende Fünflinge · volle Reihen räumen · brutal",
+                                          "falling five-block pieces · clear full rows · brutal")
         }
     }
 
-    /// Standard-Brettmaße des Modus (Säulen und Klumpen 6×13, Verschüttet 10×18).
+    /// Standard-Brettmaße des Modus (Säulen und Klumpen 6×13, Verschüttet 10×18, Fünfling 12×20).
     public var defaultWidth: Int {
         switch self {
         case .saeulen, .klumpen: return Board.defaultWidth
         case .verschuettet:      return TetrominoEngine.defaultWidth
+        case .fuenfling:         return TetrominoEngine.pentominoDefaultWidth
         }
     }
     public var defaultHeight: Int {
         switch self {
         case .saeulen, .klumpen: return Board.defaultHeight
         case .verschuettet:      return TetrominoEngine.defaultHeight
+        case .fuenfling:         return TetrominoEngine.pentominoDefaultHeight
         }
     }
 
     /// Erlaubte Spanne der einstellbaren Brettmaße (Säulen/Verschüttet bestätigt 2026-06-24;
-    /// Klumpen nutzt dieselbe Spanne wie die Säulen — gleiche Brett-Geometrie).
+    /// Klumpen nutzt dieselbe Spanne wie die Säulen — gleiche Brett-Geometrie. Fünfling braucht
+    /// mehr Raum als die Vierlinge: die 18 Formen sind bis zu 5 Zellen breit).
     public var widthRange: ClosedRange<Int> {
         switch self {
         case .saeulen, .klumpen: return 5...12
         case .verschuettet:      return 8...14
+        case .fuenfling:         return 10...16
         }
     }
     public var heightRange: ClosedRange<Int> {
         switch self {
         case .saeulen, .klumpen: return 10...24
         case .verschuettet:      return 14...24
+        case .fuenfling:         return 16...26
         }
     }
 }
@@ -91,12 +101,15 @@ public enum BoardConfig {
     public static let verschuettetHeightKey = "steinregen.dim.verschuettet.h"
     public static let klumpenWidthKey       = "steinregen.dim.klumpen.w"
     public static let klumpenHeightKey      = "steinregen.dim.klumpen.h"
+    public static let fuenflingWidthKey     = "steinregen.dim.fuenfling.w"
+    public static let fuenflingHeightKey    = "steinregen.dim.fuenfling.h"
 
     public static func widthKey(_ m: GameMode) -> String {
         switch m {
         case .saeulen:      return saeulenWidthKey
         case .verschuettet: return verschuettetWidthKey
         case .klumpen:      return klumpenWidthKey
+        case .fuenfling:    return fuenflingWidthKey
         }
     }
     public static func heightKey(_ m: GameMode) -> String {
@@ -104,6 +117,7 @@ public enum BoardConfig {
         case .saeulen:      return saeulenHeightKey
         case .verschuettet: return verschuettetHeightKey
         case .klumpen:      return klumpenHeightKey
+        case .fuenfling:    return fuenflingHeightKey
         }
     }
 

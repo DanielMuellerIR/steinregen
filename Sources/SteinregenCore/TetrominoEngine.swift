@@ -1,9 +1,11 @@
 // TetrominoEngine.swift
-// Deterministische Spiel-Engine des zweiten Modus „Verschuettet" (Vierlinge, volle-Reihen-Raeumen).
+// Deterministische Spiel-Engine der Reihen-Raeum-Modi: „Verschuettet" (Vierlinge) UND — mit dem
+// Fuenfling-Formen-Satz gefuettert — „Fuenfling"/„Erdrueckt" (Pentominoes). Der Formen-Satz wird
+// beim Erzeugen injiziert (`types`), die Spielregeln sind identisch (volle Reihen raeumen).
 //
 // Determinismus-Regel (CLAUDE.md): KEIN globaler Zufall, KEINE Wanduhr. Die Stein-Reihenfolge
-// laeuft ueber den injizierten, seed-bestimmten `Xoshiro256StarStar` (als „7-bag": jede der
-// sieben Formen kommt pro Beutel genau einmal, Beutel deterministisch gemischt). Gleicher Seed
+// laeuft ueber den injizierten, seed-bestimmten `Xoshiro256StarStar` (als „Bag": jede Form des
+// Formen-Satzes kommt pro Beutel genau einmal, Beutel deterministisch gemischt). Gleicher Seed
 // + gleiche Eingaben ⇒ gleicher Verlauf.
 //
 // Die Columns-`Engine` bleibt voellig unberuehrt — dieser Modus ist eine eigene, parallele Engine,
@@ -18,9 +20,12 @@ public struct TetrominoEngine: Sendable {
 
     // MARK: Konstanten
 
-    /// Standard-Brettmaße des Modus (breiter/hoeher als die Saeulen, gutes Vierling-Gefuehl).
+    /// Standard-Brettmaße des Vierling-Modus (breiter/hoeher als die Saeulen, gutes Vierling-Gefuehl).
     public static let defaultWidth = 10
     public static let defaultHeight = 18
+    /// Standard-Brettmaße des Fuenfling-Modus (noch breiter/hoeher — die groesseren Formen brauchen Raum).
+    public static let pentominoDefaultWidth = 12
+    public static let pentominoDefaultHeight = 20
     /// So viele geraeumte Reihen heben das Level um eins (klassisch: zehn).
     public static let linesPerLevel = 10
 
@@ -36,9 +41,11 @@ public struct TetrominoEngine: Sendable {
     public let startLevel: Int
     public private(set) var phase: Phase
     public let seed: UInt64
+    /// Der Formen-Satz dieser Partie (Vierlinge oder Fuenflinge) — Grundmenge des Beutels.
+    public let types: [TetrominoType]
 
     private var rng: Xoshiro256StarStar
-    /// Aktueller „Beutel" noch nicht gezogener Formen (7-bag). Leer ⇒ beim naechsten Zug neu mischen.
+    /// Aktueller „Beutel" noch nicht gezogener Formen. Leer ⇒ beim naechsten Zug neu mischen.
     private var bag: [TetrominoType]
 
     /// Aktuelles Level: steigt mit der Zahl geraeumter Reihen, beginnend bei `startLevel`.
@@ -48,20 +55,22 @@ public struct TetrominoEngine: Sendable {
 
     public init(seed: UInt64, startLevel: Int = 0,
                 width: Int = TetrominoEngine.defaultWidth,
-                height: Int = TetrominoEngine.defaultHeight) {
+                height: Int = TetrominoEngine.defaultHeight,
+                types: [TetrominoType] = TetrominoType.tetrominoes) {
         self.seed = seed
         self.startLevel = max(0, startLevel)
         self.board = Board(width: width, height: height)
         self.score = 0
         self.linesCleared = 0
         self.phase = .falling
+        self.types = types
 
-        // Erste Form + Vorschau aus dem 7-bag ziehen. Statisch gezogen, weil im Initializer noch
+        // Erste Form + Vorschau aus dem Bag ziehen. Statisch gezogen, weil im Initializer noch
         // nicht alle gespeicherten Felder gesetzt sind (keine Instanz-Methoden moeglich).
         var r = Xoshiro256StarStar(seed: seed)
         var b: [TetrominoType] = []
-        let firstType = TetrominoEngine.draw(&b, &r)
-        self.nextType = TetrominoEngine.draw(&b, &r)
+        let firstType = TetrominoEngine.draw(&b, from: types, &r)
+        self.nextType = TetrominoEngine.draw(&b, from: types, &r)
         self.rng = r
         self.bag = b
 
@@ -71,7 +80,8 @@ public struct TetrominoEngine: Sendable {
     }
 
     /// Test-Initialisierer: setzt Brett, aktuellen Vierling und naechste Form direkt.
-    init(board: Board, current: Tetromino, next: TetrominoType, seed: UInt64 = 1, startLevel: Int = 0) {
+    init(board: Board, current: Tetromino, next: TetrominoType, seed: UInt64 = 1, startLevel: Int = 0,
+         types: [TetrominoType] = TetrominoType.tetrominoes) {
         self.seed = seed
         self.startLevel = max(0, startLevel)
         self.board = board
@@ -80,6 +90,7 @@ public struct TetrominoEngine: Sendable {
         self.score = 0
         self.linesCleared = 0
         self.phase = .falling
+        self.types = types
         self.rng = Xoshiro256StarStar(seed: seed)
         self.bag = []
     }
@@ -176,12 +187,12 @@ public struct TetrominoEngine: Sendable {
             return false
         }
         current = piece
-        nextType = TetrominoEngine.draw(&bag, &rng)
+        nextType = TetrominoEngine.draw(&bag, from: types, &rng)
         phase = .falling
         return true
     }
 
-    // MARK: Hilfen (Kollision, volle Reihen, 7-bag, Punkte)
+    // MARK: Hilfen (Kollision, volle Reihen, Bag, Punkte)
 
     /// Passen die Offsets bei (col, row) ins Brett (im Feld UND alle Zielzellen leer)?
     private func fits(offsets: [Cell], col: Int, row: Int) -> Bool {
@@ -223,11 +234,13 @@ public struct TetrominoEngine: Sendable {
         return clearedCells
     }
 
-    /// Zieht die naechste Form aus dem 7-bag. Ist der Beutel leer, wird er mit allen sieben Formen
-    /// neu gefuellt und deterministisch (Fisher-Yates ueber den injizierten PRNG) gemischt.
-    static func draw(_ bag: inout [TetrominoType], _ rng: inout Xoshiro256StarStar) -> TetrominoType {
+    /// Zieht die naechste Form aus dem Bag. Ist der Beutel leer, wird er mit ALLEN Formen des
+    /// Formen-Satzes neu gefuellt und deterministisch (Fisher-Yates ueber den injizierten PRNG)
+    /// gemischt — jede Form kommt pro Beutel genau einmal (7-bag bzw. 18-bag).
+    static func draw(_ bag: inout [TetrominoType], from types: [TetrominoType],
+                     _ rng: inout Xoshiro256StarStar) -> TetrominoType {
         if bag.isEmpty {
-            bag = TetrominoType.allCases
+            bag = types
             var i = bag.count - 1
             while i > 0 {
                 let j = Int(rng.next() % UInt64(i + 1))
@@ -239,10 +252,11 @@ public struct TetrominoEngine: Sendable {
     }
 
     /// Punkte fuer gleichzeitig geraeumte Reihen (moderne Richtlinie), mit dem Level multipliziert.
-    /// 1/2/3/4 Reihen = 100/300/500/800 × Level (Vierfach-Raeumung wird klar belohnt).
+    /// 1/2/3/4/5 Reihen = 100/300/500/800/1200 × Level (Mehrfach-Raeumung wird klar belohnt;
+    /// die fuenfte Stufe erreicht nur der Fuenfling-Modus mit dem senkrechten I5).
     public static func linePoints(lines: Int, level: Int) -> Int {
-        let base = [0, 100, 300, 500, 800]
-        let n = min(max(lines, 0), 4)
+        let base = [0, 100, 300, 500, 800, 1200]
+        let n = min(max(lines, 0), 5)
         return base[n] * max(1, level)
     }
 }
