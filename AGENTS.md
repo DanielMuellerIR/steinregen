@@ -590,6 +590,37 @@ zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Sim
 - **Git-History bereinigen vor Erstveröffentlichung** — History auf persönliche/private Daten
   durchsuchen, dann gezielt entfernen (history-rewrite) oder vor dem ersten Public-Push squashen.
 
+**Weitere Spielmodi (Ideen, zu prüfen — Stand 2026-07-02, evtl. zeitnah):** Kandidaten aus dem
+Genre „fallende Steine", sortiert nach Architektur-Fit (das `PlayEngine`-Protokoll + der
+deterministische PRNG machen neue Modi inzwischen billig: eigene Core-Engine schreiben,
+`PlayEngine`-Conformance + ein `GameMode`-Case ergänzen — Muster: `PairEngine`/„Blutklumpen",
+v0.24.0). Namen wie immer **markenfrei** (Gattungsbegriffe intern, eigene Anzeige-Namen im
+Black-Metal-Ton):
+
+1. **Dr.-Mario-Stil** (Arbeitstitel „Austreibung") — 2er-Kapseln fallen auf ein Brett mit
+   **vorplatzierten Zielsteinen** (thematisch: eingemauerte Flüche/Schädel), 4 in einer Reihe
+   räumt. Bringt als Erstes einen **Modus mit Sieg-Bedingung** (Brett leergeräumt = gewonnen)
+   statt nur Endlos — hat das Spiel bisher gar nicht. Sehr guter Fit: Paar-Mechanik aus
+   `PairEngine` wiederverwendbar (Linien- statt Gruppen-Matching, seed-deterministische
+   Vorbefüllung). Zu klären: Level-Progression (mehr Zielsteine je Stufe), Punkteschema.
+2. **Pentomino-Variante** — die `TetrominoEngine` mit 5er-Formen füttern (18 Formen statt 7).
+   Fast geschenkt, brutal schwer; evtl. nur ein Schalter im Eingemauert-Modus statt eigener
+   Modus. Zu klären: eigener Modus-Chip vs. Option, Brett-Defaults (breiter?).
+3. **Lumines-Stil** — 2×2-Blöcke aus zwei Sorten; gleichfarbige 2×2-Quadrate werden markiert
+   und von einer **wandernden Sweep-Linie** abgeräumt. Sweep muss tick-basiert im Core laufen
+   (deterministisch machbar, KEINE Wanduhr — Regel 2); Musik-Kopplung des Originals bewusst
+   weglassen. Optisch mit den Sigillen sehr stimmig. Mittlerer Aufwand.
+4. **Klax-Stil** — Steine kullern ein Band herab, man **fängt** sie mit einer Schaufel (Stapel
+   bis 5) und wirft sie ins Brett; 3er-Reihen räumen. Anderes Eingabe-Paradigma (Fangen statt
+   Steuern) → eigener Renderer-/Input-Pfad nötig, passt nur teilweise in `PlayEngine`. Größerer
+   Umbau, erst nach 1–3 angehen.
+5. **Panel-de-Pon-Stil** (Tetris Attack) — Stapel wächst von UNTEN, Cursor tauscht horizontal
+   benachbarte Steine, ≥3 räumen. Großartig, aber invertierte Richtung + Cursor-Steuerung =
+   am weitesten weg vom bestehenden Code (eigene Engine UND eigene Szene-Logik). Nur prüfen,
+   wenn 1–4 durch sind.
+
+✅ **Puyo-Stil** — erledigt als „Blutklumpen" (v0.24.0, `PairEngine`).
+
 **Naheliegende nächste Schritte (Ideen, nicht beauftragt):** persistenter Highscore (UserDefaults),
 Seed-Anzeige/-Eingabe wie in Zaubersteine (Crockford-Base32), Sound (`AVFoundation`), Pause.
 (Developer-ID-Signatur + Notarisierung ist ab v0.20.0 als `tools/make-notarized.sh` verfügbar —
