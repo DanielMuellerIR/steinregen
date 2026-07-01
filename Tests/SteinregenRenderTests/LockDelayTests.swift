@@ -46,7 +46,9 @@ final class LockDelayTests: XCTestCase {
             if let r = scene.testActiveBottomRow, r >= groundRow + 6 { locked = true; break }
         }
         XCTAssertTrue(locked, "Stein rastete trotz Dauer-Rotation nicht ein (Infinity-Spin-Bug)")
-        XCTAssertLessThan(elapsed, 1.0, "Einrasten dauerte zu lange (\(elapsed)s) — Fenster wird verlaengert")
+        // Per Instant-Fall gesetzt → 0,21-s-Fenster. Dauer-Rotation darf es NICHT auf 0,42 s
+        // aufweichen (rotate laesst `hardDropped` unberuehrt). < 0,35 s beweist: kein Aufweichen.
+        XCTAssertLessThan(elapsed, 0.35, "Einrasten dauerte zu lange (\(elapsed)s) — Rotation weicht das 0,21-s-Fenster auf")
     }
 
     /// Haerterer Fall: von Anfang an JEDEN Frame rotieren, waehrend der Stein (per Softdrop schnell)
@@ -71,7 +73,7 @@ final class LockDelayTests: XCTestCase {
             }
         }
         XCTAssertTrue(locked, "Stein rastete unter Dauer-Rotation im Fall nicht ein (Wippen-Exploit)")
-        XCTAssertLessThan(elapsed, 3.0, "Einrasten dauerte zu lange (\(elapsed)s)")
+        XCTAssertLessThan(elapsed, 1.6, "Einrasten dauerte zu lange (\(elapsed)s)")
     }
 
     /// Aktuellen Stein `abs(shift)` Schritte schieben, hart fallen lassen und vorspulen, bis der
@@ -110,7 +112,7 @@ final class LockDelayTests: XCTestCase {
             }
         }
         XCTAssertTrue(locked, "Stein rastete beim Dauer-Rotieren auf unebenem Stapel nicht ein (Wippen-Exploit)")
-        XCTAssertLessThan(elapsed, 2.0, "Einrasten dauerte zu lange (\(elapsed)s)")
+        XCTAssertLessThan(elapsed, 1.5, "Einrasten dauerte zu lange (\(elapsed)s)")
     }
 
     /// Gegenprobe: OHNE Eingriff rastet der Stein nach dem Hard-Drop ebenfalls ein (reguläres

@@ -80,16 +80,16 @@ public final class GameScene: SKScene {
     /// kaum sichtbar ist. Zusaetzlich frischt jede gelungene Korrektur das Fenster wieder auf
     /// (siehe `inputLeft`/`inputRight`/`inputRotate`).
     private let lockDelay: TimeInterval = 0.42
-    /// Nach einem Hard-Drop (Leertaste) gilt bewusst nur das halbe Fenster: der Slam soll knackig
-    /// bleiben, aber eine kurze Last-Minute-Korrektur ist noch moeglich (gewuenschter Kompromiss).
+    /// Nach einem Hard-Drop (Leertaste) gilt bewusst nur das halbe Fenster.
     private let hardDropLockDelay: TimeInterval = 0.21
-    private var lockDelayAccumulator: TimeInterval = 0
-    /// Tiefste Reihe (kleinster row-Index; Boden = 0), die der aktuelle Stein bisher erreicht hat.
-    /// Das Lock-Delay-Fenster wird NUR bei ECHTEM Fall-Fortschritt (neue, tiefere Reihe) zurueck-
-    /// gesetzt — nicht durch Drehen/Schieben und auch nicht durch das kurze Anheben, das eine Drehung
-    /// am Boden ausloest. So laesst sich der Einrast-Zeitpunkt weder durch Dauer-Rotieren (stationaer)
-    /// noch durch Auf-und-ab-„Wippen" unendlich hinauszoegern. Startwert Int.max = „noch nichts".
-    private var lockLowestRow = Int.max
+    /// Lock-Delay als EINFACHE Regel (Wunsch Daniel): Sobald der Stein zum ersten Mal nicht mehr
+    /// fallen kann (Beruehrung), startet `settleTimer`. Er laeuft in Echtzeit weiter und wird von
+    /// NICHTS zurueckgesetzt — nicht durch Drehen, Schieben oder das kurze Anheben beim Rotieren.
+    /// Nach `lockDelay` (bzw. `hardDropLockDelay` nach Instant-Fall) rastet der Stein ein. Drehen
+    /// bremst das Fallen nicht (Schwerkraft laeuft unabhaengig). Kein „neue tiefste Reihe"-Reset,
+    /// keine Obergrenze — der Zeitpunkt ist ab der ersten Beruehrung fix.
+    private var settling = false
+    private var settleTimer: TimeInterval = 0
     /// true, solange die aktuelle Saeule per Leertaste heruntergelassen wurde → kuerzeres Fenster.
     private var hardDropped = false
 
@@ -180,8 +180,8 @@ public final class GameScene: SKScene {
         lastLevel = engine!.level          // kein „Level geschafft" beim Start
         isResolving = false
         fallAccumulator = 0
-        lockDelayAccumulator = 0
-        lockLowestRow = Int.max
+        settling = false
+        settleTimer = 0
         hardDropped = false
         lastUpdateTime = 0
         softDropActive = false
@@ -455,24 +455,14 @@ public final class GameScene: SKScene {
             }
         }
 
-        // Lock-Delay-Uhr: sie laeuft JEDEN Frame weiter und wird NUR bei ECHTEM Fall-Fortschritt auf 0
-        // gesetzt — naemlich wenn der Stein eine neue, tiefere Reihe (kleinerer row-Index) erreicht.
-        // Weder Drehen/Schieben noch das kurze Anheben, das eine Drehung am Boden ausloest (canFall wird
-        // kurz true), zaehlen als Fortschritt. Dadurch tickt die Uhr auch beim Auf-ab-„Wippen" weiter
-        // und der Stein rastet nach ~lockDelay ein — kein unendliches Hinauszoegern durch Dauer-Rotieren.
-        // Im echten freien Fall setzt jeder Schwerkraft-Schritt eine neue tiefste Reihe → Uhr bleibt 0.
-        let bottomRow = engine.activeCells.map { $0.cell.row }.min() ?? lockLowestRow
-        if bottomRow < lockLowestRow {
-            lockLowestRow = bottomRow
-            lockDelayAccumulator = 0
-        } else {
-            lockDelayAccumulator += dt
-        }
+        // Lock-Delay als einfache Regel: Ab der ERSTEN Beruehrung (Stein kann nicht mehr fallen)
+        // laeuft `settleTimer`; er wird von nichts zurueckgesetzt. Drehen/Schieben aendern ihn nicht.
+        if !engine.canFall() && !settling { settling = true; settleTimer = 0 }
+        if settling { settleTimer += dt }
 
+        // Schwerkraft laeuft UNABHAENGIG weiter — Drehen bremst das Fallen nicht. Hat der Stein (wieder)
+        // Luft, faellt er im Level-Takt (bzw. schnell bei Softdrop). Der settleTimer laeuft parallel.
         if engine.canFall() {
-            // Noch Luft unter dem Stein → weiter fallen. (Gesperrt wird nur im aufgesetzten Zustand;
-            // ist die Uhr durch Wippen schon ueber dem Limit, rastet der Stein im naechsten aufgesetzten
-            // Frame ein.)
             fallAccumulator += dt
             // Bei konstantem Tempo („Endlos") zaehlt die Start-Tempostufe, nicht das gestiegene Level.
             let speedLevel = constantTempo ? startTempoLevel : engine.level
@@ -482,13 +472,16 @@ public final class GameScene: SKScene {
                 stepGravity()
             }
         } else {
-            // Aufgesetzt → nach Ablauf des Korrektur-Fensters fixieren.
             fallAccumulator = 0
-            // Per Leertaste aufgesetzt → halbes Fenster; normales Aufsetzen → volles Fenster.
+        }
+
+        // Fenster abgelaufen → fixieren. Per Leertaste aufgesetzt → halbes Fenster, sonst volles.
+        // Falls der Stein in diesem Moment noch Luft hat (durch Drehen kurz angehoben), erst absetzen.
+        if settling {
             let limit = hardDropped ? hardDropLockDelay : lockDelay
-            if lockDelayAccumulator >= limit {
-                lockDelayAccumulator = 0
-                stepGravity()          // canFall() ist false → step() setzt jetzt auf
+            if settleTimer >= limit {
+                while self.engine!.canFall() { _ = self.engine!.step() }  // an die tiefste erreichbare Stelle
+                stepGravity()                                            // canFall == false → fixiert
             }
         }
     }
@@ -511,16 +504,14 @@ public final class GameScene: SKScene {
 
     // MARK: - Eingaben (von SwiftUI weitergereicht)
 
-    // Wichtig: Schieben/Drehen frischt das Lock-Delay-Fenster NICHT auf. Sonst liesse sich der
-    // Einrast-Zeitpunkt durch schnelles Dauer-Rotieren unendlich hinauszoegern (klassischer
-    // „Infinity"-Bug — ein Move-Reset-Deckel half nicht, weil Rotieren dem Stein oft kurz Luft gibt
-    // und der freie-Fall-Zweig den Deckel zuruecksetzte). Das Fenster laeuft jetzt ab dem Aufsetzen
-    // fest ab (~lockDelay); nur echtes Fallen (Stein hat Luft, canFall) haelt/erneuert es. `hardDropped
-    // = false` bleibt: eine Korrektur nach Hard-Drop gibt das volle statt des halben Fensters — das ist
-    // eine EINMALIGE Verlaengerung auf ~lockDelay (kein Reset), nicht ausnutzbar.
-    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true); hardDropped = false } }
-    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true); hardDropped = false } }
-    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate(); hardDropped = false } }
+    // Wichtig: Schieben/Drehen fasst den Lock-Delay-Timer GAR NICHT an (kein Reset, keine
+    // Fenster-Umschaltung). Der Einrast-Zeitpunkt steht ab der ersten Beruehrung fest (siehe
+    // `settleTimer` in `update`). So kann Dauer-Rotieren das Einrasten nicht hinauszoegern, und
+    // ein per Instant-Fall gesetzter Stein behaelt sein kurzes 0,21-s-Fenster auch beim Drehen.
+    // Drehen bremst das Fallen nicht: die Schwerkraft laeuft im `update` unabhaengig weiter.
+    public func inputLeft()  { guard canInput() else { return }; if engine!.moveLeft()  { renderPiece(animated: true) } }
+    public func inputRight() { guard canInput() else { return }; if engine!.moveRight() { renderPiece(animated: true) } }
+    public func inputRotate(){ guard canInput() else { return }; if engine!.rotate()    { renderPiece(); bumpPiece(); SoundFX.rotate() } }
 
     /// Beginnt das horizontale Halten in `dir` (-1 links, +1 rechts): ein sofortiger erster Schritt,
     /// danach uebernimmt der Auto-Repeat im `update(_:)` (siehe moveDAS/moveARR).
@@ -546,7 +537,10 @@ public final class GameScene: SKScene {
         // Schritt (canFall == false) bewusst NICHT ausfuehren — das uebernimmt erst das Lock-Delay.
         while engine!.canFall() { _ = engine!.step() }
         hardDropped = true
-        lockDelayAccumulator = 0
+        // Kuerzeres 0,21-s-Fenster ab dem Slam. Lief der Timer schon (Stein lag bereits auf und wird
+        // jetzt per Leertaste „bestaetigt"), NICHT zuruecksetzen — sonst liesse sich per Leertaste-
+        // Spam verlaengern; das gegen `hardDropLockDelay` laufende Fenster rastet dann eben frueher.
+        if !settling { settling = true; settleTimer = 0 }
         renderPiece()          // sofort an die Aufsetz-Position (knackiger Slam)
     }
 
@@ -709,7 +703,8 @@ public final class GameScene: SKScene {
         updateHUD()
         isResolving = false
         fallAccumulator = 0
-        lockLowestRow = Int.max     // frische Saeule → Fall-Fortschritt neu messen
+        settling = false            // frische Saeule → Beruehrungs-Timer neu
+        settleTimer = 0
         hardDropped = false        // frische Saeule → wieder volles Korrektur-Fenster
     }
 

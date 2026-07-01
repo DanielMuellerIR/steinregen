@@ -198,12 +198,16 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
 - **Level/Tempo**: Start-Tempostufe wählbar (1–10, 1-basiert). Das Level steigt mit der Zahl geräumter Steine
   (je 30 Steine +1); die Fallgeschwindigkeit nimmt mit dem Level zu (Mapping in `GameScene`).
 - **Game Over**: Einwurf-Spalte (Mitte) oben blockiert.
-- **Lock-Delay** (Sega-Style): nach dem Aufsetzen ein kurzes Korrektur-Fenster (`lockDelay`, aktuell
-  0,42 s in `GameScene`), in dem die Säule noch geschoben/gedreht werden kann; bekommt sie dabei
-  wieder Luft, fällt sie normal weiter. **Jede gelungene Korrektur frischt das Fenster auf**
-  (Move-Reset: `lockDelayAccumulator = 0` in `inputLeft/Right/Rotate`). **Hard-Drop** (Leertaste)
-  fixiert nicht sofort, sondern öffnet das **halbe Fenster** (`hardDropLockDelay`, 0,21 s) für eine
-  Last-Minute-Korrektur. Core-Abfrage: `Engine.canFall()`.
+- **Lock-Delay** (einfache, feste Regel — Stand v0.23.14): Sobald der Stein zum ersten Mal nicht
+  mehr fallen kann (Berührung), startet `settleTimer` in `GameScene`. Er läuft in Echtzeit und wird
+  von **nichts** zurückgesetzt — Drehen/Schieben ändern ihn nicht. Nach `lockDelay` (0,42 s) rastet
+  der Stein ein, bzw. nach `hardDropLockDelay` (0,21 s), wenn er per **Hard-Drop** (Leertaste)
+  gesetzt wurde. **Drehen bremst das Fallen nicht** (Schwerkraft läuft im `update` unabhängig weiter);
+  hat der Stein bei Ablauf noch Luft (Drehung hob ihn kurz an), wird er erst abgesetzt, dann fixiert.
+  **Bewusst KEIN Move-Reset, keine „neue tiefste Reihe"-Ausnahme, keine Obergrenze** — der Zeitpunkt
+  steht ab der ersten Berührung fest (sonst ließe sich das Einrasten durch Dauer-Rotieren beliebig
+  hinauszögern; Wunsch Daniel 2026-07-01). Core-Abfrage: `Engine.canFall()`. Headless-Tests:
+  `Tests/SteinregenRenderTests/LockDelayTests.swift`.
 
 ### Steuerung
 
