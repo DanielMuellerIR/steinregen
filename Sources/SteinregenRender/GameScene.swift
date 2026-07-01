@@ -462,6 +462,9 @@ public final class GameScene: SKScene {
         // Schwerkraft laeuft UNABHAENGIG weiter — Drehen bremst das Fallen nicht. Hat der Stein (wieder)
         // Luft, faellt er im Level-Takt (bzw. schnell bei Softdrop). Der settleTimer laeuft parallel.
         if engine.canFall() {
+            // Stein hat Luft → NORMAL weiterfallen. Bewusst NICHT fixieren, auch wenn settleTimer schon
+            // abgelaufen ist: zieht man ihn neben einen Stein, soll er dort normal weiterschweben statt
+            // instant zu droppen. Fixiert wird erst, wenn er wieder wirklich aufliegt (else-Zweig).
             fallAccumulator += dt
             // Bei konstantem Tempo („Endlos") zaehlt die Start-Tempostufe, nicht das gestiegene Level.
             let speedLevel = constantTempo ? startTempoLevel : engine.level
@@ -471,16 +474,13 @@ public final class GameScene: SKScene {
                 stepGravity()
             }
         } else {
+            // Aufgesetzt → nach Ablauf des Fensters fixieren. Instant-Fall → halbes Fenster, sonst volles.
             fallAccumulator = 0
-        }
-
-        // Fenster abgelaufen → fixieren. Per Leertaste aufgesetzt → halbes Fenster, sonst volles.
-        // Falls der Stein in diesem Moment noch Luft hat (durch Drehen kurz angehoben), erst absetzen.
-        if settling {
-            let limit = hardDropped ? hardDropLockDelay : lockDelay
-            if settleTimer >= limit {
-                while self.engine!.canFall() { _ = self.engine!.step() }  // an die tiefste erreichbare Stelle
-                stepGravity()                                            // canFall == false → fixiert
+            if settling {
+                let limit = hardDropped ? hardDropLockDelay : lockDelay
+                if settleTimer >= limit {
+                    stepGravity()          // canFall == false → step() fixiert
+                }
             }
         }
     }

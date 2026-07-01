@@ -202,8 +202,10 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
   mehr fallen kann (Berührung), startet `settleTimer` in `GameScene`. Er läuft in Echtzeit und wird
   von **nichts** zurückgesetzt — Drehen/Schieben ändern ihn nicht. Nach `lockDelay` (0,6 s) rastet
   der Stein ein, bzw. nach `hardDropLockDelay` (0,21 s), wenn er per **Hard-Drop** (Leertaste)
-  gesetzt wurde. **Drehen bremst das Fallen nicht** (Schwerkraft läuft im `update` unabhängig weiter);
-  hat der Stein bei Ablauf noch Luft (Drehung hob ihn kurz an), wird er erst abgesetzt, dann fixiert.
+  gesetzt wurde. **Drehen bremst das Fallen nicht** (Schwerkraft läuft im `update` unabhängig weiter).
+  Fixiert wird **nur, wenn der Stein wirklich aufliegt** (`canFall == false`): hat er bei Ablauf noch
+  Luft (z. B. zur Seite neben einen Stein gezogen), fällt er **normal weiter** und rastet erst am
+  echten Aufsetzpunkt ein — **kein Instant-Slam nach unten**.
   **Bewusst KEIN Move-Reset, keine „neue tiefste Reihe"-Ausnahme, keine Obergrenze** — der Zeitpunkt
   steht ab der ersten Berührung fest (sonst ließe sich das Einrasten durch Dauer-Rotieren beliebig
   hinauszögern; Wunsch Daniel 2026-07-01). Core-Abfrage: `Engine.canFall()`. Headless-Tests:

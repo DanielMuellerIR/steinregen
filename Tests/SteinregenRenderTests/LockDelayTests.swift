@@ -137,6 +137,49 @@ final class LockDelayTests: XCTestCase {
         XCTAssertLessThan(elapsed, 0.35, "Einrasten dauerte zu lange (\(elapsed)s) — Bewegen weicht das Fenster auf")
     }
 
+    /// Der Float-down-Bug (Daniel): Stein liegt erhoeht auf einem Stapel; zieht man ihn dann zur Seite
+    /// ins Freie, soll er dort NORMAL weiterfallen (Schwerkraft), nicht instant nach unten geslammt
+    /// werden. Nachweis ueber Timing: bei Level 1 (langsames Fallen) und OHNE Softdrop braucht der
+    /// echte Fall vom Stapel zum Boden mehrere Sekunden — ein Slam wuerde dagegen im Fenster (~0,6 s)
+    /// einrasten. Wir pruefen: nach der Seitwaerts-Korrektur rastet der Stein NICHT innerhalb von 1,2 s
+    /// ein (faellt also gradlinig) und erreicht dabei eine tiefere Reihe als die Auflage.
+    func testKorrekturNebenStein_faelltNormalStattSlam() {
+        let scene = GameScene(size: CGSize(width: 600, height: 800))
+        scene.model = GameModel()
+        scene.start(seed: 3, startLevel: 1, mode: .verschuettet)   // Seed 3: Stapel gibt Luft nach rechts
+        var t = 0.0
+        t += frame; scene.update(t)
+
+        scene.setSoftDrop(true)                                    // zuegig aufbauen/absinken
+        for _ in 0..<3 { placePiece(scene, &t, shift: -10) }       // kleiner Stapel links
+        for _ in 0..<10 { scene.inputLeft() }                      // Test-Stein links auf den Stapel
+
+        var restRow = 16, stable = 0
+        for _ in 0..<120 {
+            t += frame; scene.update(t)
+            let r = scene.testActiveBottomRow ?? 16
+            if r == restRow { stable += 1 } else { stable = 0; restRow = r }
+            if stable >= 6 { break }                               // liegt auf dem Stapel
+        }
+        XCTAssertGreaterThan(restRow, 2, "Test-Setup ungueltig: Stein liegt nicht erhoeht auf dem Stapel")
+
+        scene.setSoftDrop(false)                                   // Level-1-Schwerkraft: Fall dauert, Slam nicht
+        for _ in 0..<9 { scene.inputRight() }                      // vom Stapel ins Freie ziehen → Luft darunter
+
+        var framesUntilLock = 0
+        var minRow = restRow
+        var locked = false
+        for i in 0..<72 {                                          // 1,2 s beobachten
+            t += frame; scene.update(t)
+            framesUntilLock = i + 1
+            guard let r = scene.testActiveBottomRow else { locked = true; break }
+            if r >= 14 { locked = true; break }                    // neuer Stein = eingerastet
+            minRow = min(minRow, r)
+        }
+        XCTAssertFalse(locked, "Stein rastete nach der Seitwaerts-Korrektur zu frueh ein (\(framesUntilLock) Frames) — Slam statt normalem Fall")
+        XCTAssertLessThan(minRow, restRow, "Stein ist nach der Korrektur nicht gefallen — Test-Setup gab keine Luft")
+    }
+
     /// Gegenprobe: OHNE Eingriff rastet der Stein nach dem Hard-Drop ebenfalls ein (reguläres
     /// Lock-Delay unbeschaedigt) — stellt sicher, dass der Fix das normale Einrasten nicht bricht.
     func testOhneEingriffRastetEin() {
