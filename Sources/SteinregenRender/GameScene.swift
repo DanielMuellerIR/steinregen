@@ -400,9 +400,14 @@ public final class GameScene: SKScene {
             let target = cellCenter(col: cell.col, row: cell.row)
             // Nur im Brett animieren; eine noch unsichtbare Zelle wird direkt an ihre Position ueber
             // dem Brett geparkt — taucht sie eine Reihe tiefer auf, gleitet sie von dort herein.
+            // Die Gleit-Aktion bekommt den Key "move", damit ein direktes Setzen (Rotieren/Hard-Drop,
+            // else-Zweig) einen noch LAUFENDEN Gleit-Effekt abbricht. Sonst ueberschrieb die anonyme
+            // move-Aktion die frisch gesetzte Position weiter Richtung altem Ziel — die Rotation wirkte
+            // dann verzoegert ("schnappt zurueck"), man drueckte nach und drehte eine Stufe zu weit.
             if animated && onBoard {
-                node.run(SKAction.move(to: target, duration: 0.06))
+                node.run(SKAction.move(to: target, duration: 0.06), withKey: "move")
             } else {
+                node.removeAction(forKey: "move")   // laufenden Gleit-Effekt abbrechen → sitzt sofort
                 node.position = target
             }
         }
