@@ -103,7 +103,8 @@ steinregen/                   (SwiftPM-Workspace)
 - **Musik (ab v0.21.0)**: drei instrumentale Stücke (Downfall-of-Gaia-Stil, lokal mit ACE-Step
   erzeugt, kommerziell unbedenklich) als `musik-1.mp3`/`musik-2.mp3`/`musik-3.mp3` im Bundle,
   abgespielt über `MusicPlayer` (eigene Datei, `AVAudioPlayer` + Delegate). Laufen NACHEINANDER in
-  Schleife, pro Partie zufälliger Einstieg. **Getrennt von den Soundeffekten**: eigener Schalter
+  Schleife, pro Partie zufälliger Einstieg. Ab v0.27.2 werden die Stücke **automatisch entdeckt**
+  (alle lückenlos nummerierten `musik-N.mp3` — ein weiteres ins Bundle legen genügt). **Getrennt von den Soundeffekten**: eigener Schalter
   (UserDefaults `steinregen.musik.aus`, Taste **M**, Einstellungs-Karte „Musik"), **standardmäßig
   AN**, spielt aber **nur im laufenden Spiel** (nicht im Menü) — die App-Schicht ruft
   `MusicPlayer.shared.gameStarted()` beim Levelbeginn (`startGame`) und `gameEnded()` bei der
@@ -233,7 +234,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-02, v0.27.1)
+## 5. Status (Stand 2026-07-02, v0.27.2)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -629,6 +630,16 @@ beim Verlassen, Rand-/Wrap-Ernte, Nachfallen + Neu-Markierung, Game-Over, Determ
 Zwei-Sorten). Verifiziert auf macOS (Menü 3×2, Gameplay 12×12: wandernde Sense, schimmerndes
 Quadrat, Ernte mit Punkten, Grid-Vorschau zweifarbig).
 
+**v0.27.2 — Musikstücke automatisch entdeckt:** `MusicPlayer` lädt jetzt ALLE lückenlos
+nummerierten `musik-N.mp3` aus dem Bundle (neue statische, getestete Funktion
+`discoverTracks(in:)` — gleiches Muster wie `Theme.backdropImages()`) statt der festen
+Dreier-Namensliste. Für den Musik-Nachschub (siehe TODO „Mehr Musik VOR der
+GitHub-Veröffentlichung") genügt damit das Ablegen weiterer Stücke im Bundle, keine
+Code-Änderung. Nebenbei: `Theme.resourceBundle` kennt als zusätzlichen Kandidaten den
+Ordner NEBEN dem eigenen Bundle — so finden auch `swift test`-Läufe das Ressourcen-Bundle
+(vorher liefen Ressourcen-Zugriffe in Tests ins Leere). +2 Render-Tests (`MusicPlayerTests`:
+Bundle-Reihenfolge, Lücke stoppt die Suche); 101 Tests grün.
+
 **v0.27.1 — Spielregeln für alle sechs Modi:** der Spielregeln-Dialog (`RulesSheet`, Menü-Button
 „Spielregeln") erklärte bis dahin NUR den Steinschlag-Modus — jetzt hat **jeder Modus eine eigene
 Sektion** (Überschrift = `GameMode.title`, 2–5 Sätze, anfängerfreundlich ohne Genre-Vorwissen,
@@ -662,8 +673,8 @@ zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Sim
   Die drei vorhandenen Stücke (v0.21.0, ACE-Step) sind an sich in Ordnung, wiederholen sich
   beim Testspielen aber zu schnell und werden dann rasch nervig. Also erst weitere Stücke
   besorgen bzw. generieren (Weg wie v0.21.0: lokal per ACE-Step auf dem M5, Skill `musicgen`).
-  Achtung: neue `musik-N.mp3` ins Bundle legen UND in `MusicPlayer.trackNames` eintragen —
-  die Liste ist FEST (anders als die Hintergrundbilder wird sie nicht automatisch entdeckt).
+  Ein neues Stück als `musik-N.mp3` (lückenlos nummeriert) ins Bundle legen genügt — der
+  `MusicPlayer` entdeckt alle Stücke automatisch (ab v0.27.2, wie die Hintergrundbilder).
   Daniel kommt erst später dazu — bis dahin kein GitHub-Release/DMG-Publish.
 - **Veröffentlichbarkeit prüfen** — ✅ auditiert (Stand 2026-06-22), Bestandsaufnahme in
   [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md). **Non-kommerziell ist sauber** (eigener Code MIT;

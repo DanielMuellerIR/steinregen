@@ -140,6 +140,9 @@ public enum Theme {
         bases.append(Bundle.main.bundleURL)
         if let u = selfBundle.resourceURL { bases.append(u) }
         bases.append(selfBundle.bundleURL)
+        // Test-Runner (swift test): das SwiftPM-Ressourcen-Bundle liegt NEBEN dem
+        // .xctest-Bundle im Build-Ordner, nicht darin.
+        bases.append(selfBundle.bundleURL.deletingLastPathComponent())
         if let exe = Bundle.main.executableURL?.deletingLastPathComponent() { bases.append(exe) }
         for base in bases {
             if let b = Bundle(url: base.appendingPathComponent(name)) { return b }

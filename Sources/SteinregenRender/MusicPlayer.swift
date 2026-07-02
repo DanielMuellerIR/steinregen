@@ -1,11 +1,14 @@
 // MusicPlayer.swift
 // Hintergrundmusik — bewusst GETRENNT von den Soundeffekten (SoundFX).
 //
-// Drei instrumentale Stücke (Downfall-of-Gaia-Stil, lokal mit ACE-Step erzeugt) laufen
+// Instrumentale Stücke (Downfall-of-Gaia-Stil, lokal mit ACE-Step erzeugt) laufen
 // NACHEINANDER in Endlosschleife: beim Spielstart wird zufällig eines als Einstieg gewählt
-// („zufälliger Anfang"), danach geht es der Reihe nach weiter (musik-1 → musik-2 → musik-3 →
-// musik-1 …). Musik ist standardmäßig AN, lässt sich aber unabhängig von den Soundeffekten
-// ausschalten — eigener UserDefaults-Schlüssel, im Spiel Taste M, in den Einstellungen.
+// („zufälliger Anfang"), danach geht es der Reihe nach weiter (musik-1 → musik-2 → … →
+// musik-1 …). Die Stücke werden AUTOMATISCH entdeckt (gleiches Muster wie die
+// Hintergrundbilder): alle lückenlos nummerierten `musik-N.mp3` im Bundle — ein weiteres
+// Stück ins Bundle legen genügt, keine Code-Änderung nötig. Musik ist standardmäßig AN,
+// lässt sich aber unabhängig von den Soundeffekten ausschalten — eigener
+// UserDefaults-Schlüssel, im Spiel Taste M, in den Einstellungen.
 //
 // Wichtig: Musik spielt NUR im laufenden Spiel, NICHT im Hauptmenü. Die App-Schicht ruft
 // `gameStarted()` beim Levelbeginn und `gameEnded()` bei der Rückkehr ins Menü.
@@ -30,11 +33,7 @@ public final class MusicPlayer: NSObject {
     /// Lautstärke der Musik — bewusst unter den Soundeffekten, damit diese gut durchkommen.
     private let volume: Float = 0.5
 
-    /// Dateinamen der Musikstücke (ohne Endung), in fester Abspiel-Reihenfolge. Die zugehörigen
-    /// `.mp3` liegen im Ressourcen-Bundle (geteilt mit macOS und iOS).
-    private let trackNames = ["musik-1", "musik-2", "musik-3"]
-
-    /// Aufgelöste Datei-URLs der vorhandenen Stücke (fehlende werden still übersprungen).
+    /// Aufgelöste Datei-URLs der vorhandenen Stücke, in Abspiel-Reihenfolge (musik-1, -2, …).
     private var tracks: [URL] = []
     /// Der aktuell laufende Player (genau ein Stück gleichzeitig) oder nil (Musik steht).
     private var player: AVAudioPlayer?
@@ -47,11 +46,22 @@ public final class MusicPlayer: NSObject {
     private override init() {
         super.init()
         // URLs einmalig aus dem Bundle auflösen.
-        for name in trackNames {
-            if let url = Theme.resourceBundle.url(forResource: name, withExtension: "mp3") {
-                tracks.append(url)
-            }
+        tracks = MusicPlayer.discoverTracks(in: Theme.resourceBundle)
+    }
+
+    /// Findet alle Musikstücke im Bundle: `musik-1.mp3`, `musik-2.mp3`, … in lückenlos
+    /// aufsteigender Nummerierung (die erste Lücke beendet die Suche — gleiches Muster wie
+    /// `Theme.backdropImages()`). So genügt es, ein weiteres Stück als `musik-N.mp3` ins
+    /// Bundle zu legen. Statisch + parameterisiert, damit Tests sie direkt prüfen können.
+    static func discoverTracks(in bundle: Bundle) -> [URL] {
+        var urls: [URL] = []
+        var n = 1
+        while let url = bundle.url(forResource: "musik-\(n)", withExtension: "mp3") {
+            urls.append(url)
+            n += 1
+            if n > 64 { break }   // Sicherheitsdeckel gegen eine versehentliche Endlosschleife
         }
+        return urls
     }
 
     /// Ist Musik gewünscht? Liest direkt aus UserDefaults, damit der Einstellungs-Schalter

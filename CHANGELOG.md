@@ -3,6 +3,12 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.2]
+
+- Music tracks are now discovered automatically: drop another gaplessly numbered
+  `musik-N.mp3` into the bundle and it joins the playlist — no code change needed
+  (previously the track list was hard-coded).
+
 ## [0.27.1]
 
 - The "How to play" dialog now explains **all six game modes**, each in its own section,
