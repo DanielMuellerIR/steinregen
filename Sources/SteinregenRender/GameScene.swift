@@ -54,6 +54,9 @@ public final class GameScene: SKScene {
     private var levelLabel = SKLabelNode()
     private var nextLabel = SKLabelNode()
     private var previewNodes: [SKSpriteNode] = []
+    /// Die Sense des Schnitter-Modus: eine senkrechte, gluehende Linie an der zuletzt
+    /// ueberstrichenen Spalte. Bei Modi ohne Sense (sweepColumn == nil) nicht vorhanden.
+    private var sweepNode: SKShapeNode?
     /// Geometrie des Vorschau-Bereichs im rechten Panel (in `buildHUD` gesetzt) — der
     /// Verschuettet-Vorschau-Pfad in `updateHUD` baut die Vierling-Form anhand dieser Werte auf.
     private var previewCenterX: CGFloat = 0
@@ -98,6 +101,12 @@ public final class GameScene: SKScene {
     /// true, solange die aktuelle Saeule per Leertaste heruntergelassen wurde → kuerzeres Fenster.
     private var hardDropped = false
 
+    /// Sense-Takt (Schnitter-Modus): so lange dauert EIN kompletter Durchlauf der Sweep-Linie
+    /// uebers Brett — unabhaengig von der Brettbreite (das Intervall je Spalte ergibt sich
+    /// daraus). Reines Render-Timing; der deterministische Schritt lebt im Core (`sweepTick`).
+    private let sweepDuration: TimeInterval = 2.4
+    private var sweepAccumulator: TimeInterval = 0
+
     /// Horizontaler Auto-Repeat: gehaltene Links/Rechts-Taste verschiebt die Saeule in fester,
     /// snappy Rate — bewusst UNABHAENGIG von der OS-Tastenwiederholung (sonst haengt das Tempo an
     /// den Systemeinstellungen). `moveDir` ist -1 (links), +1 (rechts) oder 0 (keine Taste).
@@ -131,13 +140,13 @@ public final class GameScene: SKScene {
             hudLayer.zPosition = 100
         }
         layout()
-        if let engine { renderBoardInstant(engine.board); renderPiece(); updateHUD() }
+        if let engine { renderBoardInstant(engine.board); renderPiece(); updateSweepNode(); updateHUD() }
     }
 
     public override func didChangeSize(_ oldSize: CGSize) {
         guard backgroundLayer.parent != nil else { return }
         layout()
-        if let engine { renderBoardInstant(engine.board); renderPiece(); updateHUD() }
+        if let engine { renderBoardInstant(engine.board); renderPiece(); updateSweepNode(); updateHUD() }
     }
 
     // MARK: - Spielstart
@@ -189,6 +198,10 @@ public final class GameScene: SKScene {
             engine = CapsuleEngine(seed: seed, startLevel: startLevel,
                                    width: width ?? CapsuleEngine.defaultWidth,
                                    height: height ?? CapsuleEngine.defaultHeight)
+        case .schnitter:
+            engine = SquareEngine(seed: seed, startLevel: startLevel,
+                                  width: width ?? SquareEngine.defaultWidth,
+                                  height: height ?? SquareEngine.defaultHeight)
         }
         // Brettmaße + Knoten-Raster an die tatsaechliche Brettgroesse anpassen.
         boardWidth = engine!.board.width
@@ -208,11 +221,13 @@ public final class GameScene: SKScene {
         moveDir = 0
         moveRepeatAccumulator = 0
         moveDASStarted = false
+        sweepAccumulator = 0
         model?.reset()
         if backgroundLayer.parent != nil {
             layout()
             renderBoardInstant(engine!.board)
             renderPiece()
+            updateSweepNode()
             updateHUD()
         }
     }
@@ -346,11 +361,13 @@ public final class GameScene: SKScene {
         previewPanelWidth = size.width - (boardOriginX + boardW) - outerPad
 
         // Saeulen-Vorschau: drei feste Knoten senkrecht (Index 0 = unten). Pixelgleich zu frueher,
-        // damit der Saeulen-Modus optisch unveraendert bleibt. Verschuettet baut seine Form dagegen
-        // pro Stein frisch in updateHUD auf (die Form wechselt) → hier keine festen Knoten anlegen.
-        let isTetromino: Bool
-        if case .tetromino = engine?.preview { isTetromino = true } else { isTetromino = false }
-        guard !isTetromino else { return }
+        // damit der Saeulen-Modus optisch unveraendert bleibt. Verschuettet/Schnitter bauen ihre
+        // Form dagegen pro Stein frisch in updateHUD auf (Form/Farben wechseln) → hier keine
+        // festen Knoten anlegen.
+        switch engine?.preview {
+        case .tetromino, .grid: return
+        default: break
+        }
 
         // Drei Steine senkrecht gestapelt: Index 0 = unterster Stein der Säule → unten, Index 2 → oben.
         let pSize = min(tile * 0.86, previewPanelWidth * 0.78)
@@ -384,6 +401,11 @@ public final class GameScene: SKScene {
     /// Setzt das ganze Brett ohne Animation neu (initial + Resync nach Kaskade).
     private func renderBoardInstant(_ board: Board) {
         boardLayer.removeAllChildren()
+        // Hervorhebungen (Schnitter: wartende Quadrat-Zellen) immer frisch aus der Engine —
+        // sie aendern sich mit jedem Aufsetzen/Ernten. Waehrend einer Aufsetz-Animation kann
+        // der Schimmer dem gezeigten Zwischenstand minimal vorauseilen (der Engine-Stand ist
+        // schon final) — akzeptierter Kompromiss, der finale Resync stimmt immer.
+        let highlighted = engine?.highlightedCells ?? []
         for col in 0..<boardWidth {
             for row in 0..<boardHeight {
                 gemNodes[col][row] = nil
@@ -392,6 +414,7 @@ public final class GameScene: SKScene {
                     node.position = cellCenter(col: col, row: row)
                     // Flueche (Kapsel-Modus) sichtbar markieren — sie sind das Ziel des Modus.
                     if scenePinned.contains(Cell(col: col, row: row)) { decorateCurse(node) }
+                    if highlighted.contains(Cell(col: col, row: row)) { decorateHighlight(node) }
                     boardLayer.addChild(node)
                     gemNodes[col][row] = node
                 }
@@ -414,6 +437,21 @@ public final class GameScene: SKScene {
         ring.run(SKAction.repeatForever(SKAction.sequence([
             SKAction.fadeAlpha(to: 0.55, duration: 0.7),
             SKAction.fadeAlpha(to: 1.0, duration: 0.7)
+        ])))
+    }
+
+    /// Hervorhebung wartender Quadrat-Zellen (Schnitter-Modus): ein additiver, pulsierender
+    /// Schimmer UEBER dem Stein — „glueht", bis die Sense erntet. Bewusst anders als der
+    /// Fluch-Ring des Kapsel-Modus (Ring = Ziel, Schimmer = gleich geerntet).
+    private func decorateHighlight(_ node: SKSpriteNode) {
+        let glow = SKSpriteNode(color: Theme.bone.sk, size: node.size)
+        glow.blendMode = .add
+        glow.alpha = 0.28
+        glow.zPosition = 1
+        node.addChild(glow)
+        glow.run(SKAction.repeatForever(SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.12, duration: 0.45),
+            SKAction.fadeAlpha(to: 0.34, duration: 0.45)
         ])))
     }
 
@@ -495,6 +533,20 @@ public final class GameScene: SKScene {
             }
         }
 
+        // Sense-Takt (nur Schnitter-Modus, sweepColumn != nil): die Sweep-Linie wandert in
+        // festem Rhythmus Spalte fuer Spalte weiter — unabhaengig vom Fall-Takt. Liefert ein
+        // Schritt eine Ernte, animiert `stepSweep` sie (kurze Aufloese-Pause wie beim Aufsetzen).
+        if engine.sweepColumn != nil {
+            sweepAccumulator += dt
+            let interval = sweepDuration / Double(max(1, boardWidth))
+            if sweepAccumulator >= interval {
+                sweepAccumulator = 0
+                stepSweep()
+                // Die Ernte kann isResolving setzen — dann diesen Frame nicht weiter ticken.
+                if isResolving { return }
+            }
+        }
+
         // Lock-Delay als einfache Regel: Ab der ERSTEN Beruehrung (Stein kann nicht mehr fallen)
         // laeuft `settleTimer`; er wird von nichts zurueckgesetzt. Drehen/Schieben aendern ihn nicht.
         if !engine.canFall() && !settling { settling = true; settleTimer = 0 }
@@ -540,6 +592,55 @@ public final class GameScene: SKScene {
         case .locked(let before, let steps, let magicLanding):
             beginResolution(before: before, steps: steps, magicLanding: magicLanding)
         }
+    }
+
+    /// Ein Sense-Schritt (Schnitter-Modus): bewegt die Sweep-Linie im Core eine Spalte weiter
+    /// und animiert eine gelieferte Ernte (Aufblitzen → Nachrutschen → Resync). Waehrend der
+    /// kurzen Ernte-Animation ist `isResolving` gesetzt — Fall und Eingaben pausieren wie bei
+    /// einer Aufsetz-Kaskade (bewusst einfach gehalten; die Pause ist ~0,3 s).
+    private func stepSweep() {
+        guard engine != nil else { return }
+        let step = engine!.sweepTick()
+        updateSweepNode()
+        guard let step else { return }
+        isResolving = true
+        showCombo(chain: step.chain, count: step.cells.count)
+        flashAndRemove(step.cells) { [weak self] in
+            self?.compactColumnsAnimated {
+                guard let self else { return }
+                if let engine = self.engine {
+                    // Voller Resync: raeumt auch die Markierungs-Schimmer der geernteten
+                    // Zellen ab und zeigt frisch entstandene Markierungen sofort.
+                    self.renderBoardInstant(engine.board)
+                }
+                self.updateHUD()
+                self.isResolving = false
+            }
+        }
+    }
+
+    /// Zeichnet/verschiebt die Sense (senkrechte, gluehende Linie an der rechten Kante der
+    /// zuletzt ueberstrichenen Spalte). Bei Modi ohne Sense wird der Knoten entfernt.
+    private func updateSweepNode() {
+        guard let engine, let col = engine.sweepColumn else {
+            sweepNode?.removeFromParent()
+            sweepNode = nil
+            return
+        }
+        if sweepNode == nil {
+            let n = SKShapeNode()
+            n.zPosition = 12                       // ueber Brett-Steinen, unter dem HUD
+            n.strokeColor = Theme.bone.sk(0.7)
+            n.lineWidth = 2
+            n.glowWidth = 4
+            pieceLayer.addChild(n)
+            sweepNode = n
+        }
+        let x = boardOriginX + CGFloat(col + 1) * tile
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: x, y: boardOriginY))
+        path.addLine(to: CGPoint(x: x, y: boardOriginY + CGFloat(boardHeight) * tile))
+        sweepNode!.path = path
     }
 
     // MARK: - Eingaben (von SwiftUI weitergereicht)
@@ -873,6 +974,7 @@ public final class GameScene: SKScene {
         switch engine.preview {
         case .columns(let gems):       renderColumnsPreview(gems)
         case .tetromino(let cells, let gem): renderTetrominoPreview(cells: cells, gem: gem)
+        case .grid(let cells):         renderGridPreview(cells)
         }
     }
 
@@ -898,24 +1000,32 @@ public final class GameScene: SKScene {
         }
     }
 
-    /// Verschuettet-Vorschau: die naechste Vierling-Form in einer kleinen Box zeichnen. Die Form
-    /// wechselt je Stein, darum werden die Knoten hier frisch aufgebaut (Zellen in Brett-Koordinaten:
-    /// row 0 = unten). Zentriert im rechten Panel unter dem „als Naechstes"-Label.
+    /// Verschuettet-Vorschau: die naechste Vierling-Form in einer kleinen Box zeichnen — alle
+    /// Zellen tragen dieselbe Sorte; das Zeichnen uebernimmt der generische Raster-Pfad unten.
     private func renderTetrominoPreview(cells: [Cell], gem: Gem) {
+        renderGridPreview(cells.map { (cell: $0, gem: gem) })
+    }
+
+    /// Generische Raster-Vorschau: Zellen mit INDIVIDUELLER Farbe (Schnitter-2×2 mit zwei
+    /// Sorten; auch der Vierling-Pfad laeuft hierueber). Die Knoten werden pro Stein frisch
+    /// aufgebaut (Zellen in Brett-Koordinaten: row 0 = unten), zentriert im rechten Panel
+    /// unter dem „als Naechstes"-Label.
+    private func renderGridPreview(_ cells: [(cell: Cell, gem: Gem)]) {
         for n in previewNodes { n.removeFromParent() }
         previewNodes.removeAll()
         guard !cells.isEmpty else { return }
 
-        let cols = (cells.map(\.col).max() ?? 0) + 1
-        let rows = (cells.map(\.row).max() ?? 0) + 1
+        let cols = (cells.map(\.cell.col).max() ?? 0) + 1
+        let rows = (cells.map(\.cell.row).max() ?? 0) + 1
         // Kachel so, dass die breiteste Form bequem ins Panel passt (Vierlinge bis 4 Zellen,
-        // der Fuenfling I5 ist 5 breit — der max() laesst die Vierling-Vorschau unveraendert).
+        // der Fuenfling I5 ist 5 breit — der max() laesst die Vierling-Vorschau unveraendert;
+        // der 2×2-Block des Schnitters wird dadurch einfach kompakt klein gezeichnet).
         let t = min(tile * 0.72, previewPanelWidth * 0.9 / CGFloat(max(4, cols)))
         let totalW = CGFloat(cols) * t
         let leftCenterX = previewCenterX - totalW / 2 + t / 2     // Mitte der linken Zellspalte
         let topCenterY = previewAreaTopY - t / 2                  // Mitte der obersten Zellreihe
         let node0 = CGSize(width: t * 0.94, height: t * 0.94)
-        for cell in cells {
+        for (cell, gem) in cells {
             let n = SKSpriteNode(texture: GemTextures.texture(for: gem), size: node0)
             // row waechst nach oben → groesste row liegt ganz oben.
             n.position = CGPoint(x: leftCenterX + CGFloat(cell.col) * t,

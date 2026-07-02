@@ -32,8 +32,9 @@ steinregen/                   (SwiftPM-Workspace)
 ├── project.yml               (xcodegen-Spec der iOS-App; .xcodeproj wird daraus erzeugt, git-ignoriert)
 ├── Sources/
 │   ├── SteinregenCore/       (reine, deterministische Spiellogik + PRNG + Modelle — plattformneutral;
-│   │                          VIER Engines: Engine = Säulen/Columns, TetrominoEngine = Verschüttet,
-│   │                          PairEngine = Klumpen/Steinpaare, CapsuleEngine = Kapseln/Austreibung)
+│   │                          FÜNF Engines: Engine = Säulen/Columns, TetrominoEngine = Verschüttet,
+│   │                          PairEngine = Klumpen/Steinpaare, CapsuleEngine = Kapseln/Austreibung,
+│   │                          SquareEngine = 2×2-Blöcke/Schnitter)
 │   ├── SteinregenRender/     (SpriteKit-Szene, Spielloop, Theme = Palette/Fonts/Korn/Nebel,
 │   │                          PlayEngine = modusneutrales Protokoll über alle Engines (GameScene
 │   │                          treibt Säulen + Verschüttet + Klumpen mit einem Code-Pfad),
@@ -164,9 +165,10 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_MODE=<modus>` — Spielmodus (`saeulen` = Columns, im Menü „Steinschlag"; `verschuettet`
   = Vierlinge, im Menü „Eingemauert"; `klumpen` = Steinpaare, im Menü „Blutklumpen"; `fuenfling` =
   Pentominoes, im Menü „Erdrückt"; `kapseln` = Kapsel-Paare mit Sieg-Bedingung, im Menü
-  „Austreibung"; Default `saeulen`). Die env-/UserDefaults-IDs bleiben bewusst
-  `saeulen`/`verschuettet`/`klumpen`/`fuenfling`/`kapseln` — nur die Anzeige-Namen heißen
-  Steinschlag/Eingemauert/Blutklumpen/Erdrückt/Austreibung.
+  „Austreibung"; `schnitter` = 2×2-Blöcke mit Sense, im Menü „Schnitter"; Default `saeulen`).
+  Die env-/UserDefaults-IDs bleiben bewusst
+  `saeulen`/`verschuettet`/`klumpen`/`fuenfling`/`kapseln`/`schnitter` — nur die Anzeige-Namen
+  heißen Steinschlag/Eingemauert/Blutklumpen/Erdrückt/Austreibung/Schnitter.
 - `STEINREGEN_ENDLESS=1` — konstantes Tempo (Fallgeschwindigkeit bleibt auf der Start-Tempostufe)
 - `STEINREGEN_MUSIC=<0|1>` — Musik aus (`0`) bzw. erzwungen an (`1`); ohne die Variable gilt der
   persistierte Default (an). Praktisch für stille Screenshot-/Smoke-Test-Läufe.
@@ -230,7 +232,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-02, v0.26.0)
+## 5. Status (Stand 2026-07-02, v0.27.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -597,6 +599,35 @@ h/v/diagonal-negativ, pinned-settle, deterministische/gedeckelte/tripel-freie Vo
 Fluch-Bonus, Kette über klebendem Fluch, Sieg, Game-Over, Determinismus, Drei-Farben). Verifiziert
 auf macOS (Menü 5 Chips, Gameplay 8×16 mit Fluch-Ringen, Seed 42/Level 5).
 
+**v0.27.0 — sechster Modus „Schnitter" (Lumines-Stil):** neue, eigene Core-Engine
+**`SquareEngine`** (+ `Square.swift`-Typen): es fällt ein **2×2-Block aus zwei Sorten**
+(kontrastreichstes Paar `ruby`/`diamond`; Drehen rotiert nur die vier FARBEN im Uhrzeigersinn —
+die Form kollidiert nie). Beim Aufsetzen zerfallen die beiden Blockspalten unabhängig
+(`postLockSettle`), **geräumt wird beim Aufsetzen NIE**: gleichfarbige **2×2-Quadrate** werden
+nur **markiert** (`marked`, Überlappungen zählen — ein 3×2 markiert alle sechs Zellen) und von
+der **Sense** geerntet — einer Sweep-Linie, die **tick-basiert** (Regel 2: `sweepTick()` im Core
+ist der deterministische Schritt, der Echtzeit-TAKT lebt in der Szene: `sweepDuration` 2,4 s pro
+Durchlauf, brettbreiten-unabhängig) zyklisch von links nach rechts wandert. Ernte-Regel: verlässt
+die Sense das rechte Ende einer markierten Spalten-Sektion (nächste Spalte unmarkiert oder
+Brett-Ende), wird die **komplette zusammenhängende Sektion** geerntet (bewusste Vereinfachung
+gegenüber dem Original: auch während des Überstreichens entstandene Teile — großzügig zum
+Spieler, kein Sammel-Zustand mit Randfällen). Danach rutscht alles nach, Markierungen werden neu
+berechnet (keine Ketten-Kaskade — neue Quadrate warten auf die nächste Runde). Punkte je Ernte =
+Zellen × 10, Level wie Säulen (30 Steine je Stufe). Render: PlayEngine-Nähte
+**`highlightedCells`** (additiver Puls-Schimmer auf wartenden Quadrat-Zellen),
+**`sweepColumn`**/**`sweepTick()`** (glühende Sense-Linie, `updateSweepNode`; die Ernte-Animation
+läuft über `isResolving` — Fall/Eingaben pausieren ~0,3 s wie bei einer Aufsetz-Kaskade); neue
+Vorschau-Variante **`PreviewShape.grid`** (2×2 mit individueller Farbe je Zelle;
+`renderTetrominoPreview` läuft jetzt über den generischen Raster-Pfad `renderGridPreview` —
+Vierling-Vorschau pixelgleich). **Menü: sechs Chips im sauberen 3×2-Raster.** Brett-Default
+**12×12** (das Genre-Original ist quer 16×10 — unsere Fenster sind hochkant; Spanne 8–16 / 8–16
+erlaubt die Original-Proportion, Schlüssel `steinregen.dim.schnitter.*`), Naht
+`STEINREGEN_MODE=schnitter`. Tests: 14 neue (`SquareEngineTests`: Farb-Rotation, Markierung inkl.
+Überlappung/Schachbrett-negativ, unabhängige Spalten, kein Räumen beim Lock, Sektion-Ernte exakt
+beim Verlassen, Rand-/Wrap-Ernte, Nachfallen + Neu-Markierung, Game-Over, Determinismus,
+Zwei-Sorten). Verifiziert auf macOS (Menü 3×2, Gameplay 12×12: wandernde Sense, schimmerndes
+Quadrat, Ernte mit Punkten, Grid-Vorschau zweifarbig).
+
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag
 zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Simulator bestätigt.
@@ -641,10 +672,8 @@ Black-Metal-Ton):
    Punkte = Säulen-Schema + 100 je Fluch).
 2. ✅ **Pentomino-Variante** — erledigt als „Erdrückt" (v0.25.0, eigener Modus-Chip,
    `TetrominoEngine` mit `types: TetrominoType.pentominoes`).
-3. **Lumines-Stil** — 2×2-Blöcke aus zwei Sorten; gleichfarbige 2×2-Quadrate werden markiert
-   und von einer **wandernden Sweep-Linie** abgeräumt. Sweep muss tick-basiert im Core laufen
-   (deterministisch machbar, KEINE Wanduhr — Regel 2); Musik-Kopplung des Originals bewusst
-   weglassen. Optisch mit den Sigillen sehr stimmig. Mittlerer Aufwand.
+3. ✅ **Lumines-Stil** — erledigt als „Schnitter" (v0.27.0, `SquareEngine`, tick-basierte
+   Sense im Core, Musik-Kopplung wie geplant weggelassen).
 4. **Klax-Stil** — Steine kullern ein Band herab, man **fängt** sie mit einer Schaufel (Stapel
    bis 5) und wirft sie ins Brett; 3er-Reihen räumen. Anderes Eingabe-Paradigma (Fangen statt
    Steuern) → eigener Renderer-/Input-Pfad nötig, passt nur teilweise in `PlayEngine`. Größerer

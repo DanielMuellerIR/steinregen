@@ -20,17 +20,21 @@ import SteinregenCore
 /// raeumen). „Klumpen" = der Steinpaar-Modus (fallende Zweier-Paare, Gruppen ab 4 verbundenen
 /// gleichen Steinen raeumen). „Fuenfling" = die brutale Pentomino-Variante des Vierling-Modus
 /// (achtzehn Fuenfer-Formen, gleiche Engine, gleiche Regeln). „Kapseln" = der Kapsel-Modus mit
-/// Sieg-Bedingung (vorplatzierte Flueche tilgen, 4 in Reihe/Spalte). Bewusst markenfrei benannt.
+/// Sieg-Bedingung (vorplatzierte Flueche tilgen, 4 in Reihe/Spalte). „Schnitter" = der
+/// 2×2-Block-Modus mit wandernder Sense (gleichfarbige Quadrate bilden, die Sense erntet sie).
+/// Bewusst markenfrei benannt.
 public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
     case saeulen
     case verschuettet
     case klumpen
     case fuenfling
     case kapseln
+    case schnitter
 
     /// Anzeigename im Menue/Dialog. (Die internen case-Namen `saeulen`/`verschuettet`/`klumpen`/
-    /// `fuenfling`/`kapseln` und die env-/UserDefaults-Schluessel bleiben aus Persistenz-/Naht-
-    /// Gruenden unveraendert — nur diese Anzeige-Strings tragen die gewuenschten Anzeige-Namen.)
+    /// `fuenfling`/`kapseln`/`schnitter` und die env-/UserDefaults-Schluessel bleiben aus
+    /// Persistenz-/Naht-Gruenden unveraendert — nur diese Anzeige-Strings tragen die
+    /// gewuenschten Anzeige-Namen.)
     public var title: String {
         switch self {
         case .saeulen:      return L10n.t("Steinschlag", "Rockfall")
@@ -38,6 +42,7 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
         case .klumpen:      return L10n.t("Blutklumpen", "Blood Clots")
         case .fuenfling:    return L10n.t("Erdrückt", "Crushed")
         case .kapseln:      return L10n.t("Austreibung", "Exorcism")
+        case .schnitter:    return L10n.t("Schnitter", "Reaper")
         }
     }
 
@@ -54,17 +59,20 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
                                           "falling five-block pieces · clear full rows · brutal")
         case .kapseln:      return L10n.t("Kapsel-Paare · 4 in Reihe · alle Flüche tilgen = Sieg",
                                           "capsule pairs · 4 in a row · purge all curses to win")
+        case .schnitter:    return L10n.t("2×2-Blöcke · gleiche Quadrate bilden · die Sense erntet",
+                                          "2×2 blocks · form matching squares · the scythe reaps")
         }
     }
 
     /// Standard-Brettmaße des Modus (Säulen und Klumpen 6×13, Verschüttet 10×18, Fünfling 12×20,
-    /// Kapseln 8×16).
+    /// Kapseln 8×16, Schnitter 12×12).
     public var defaultWidth: Int {
         switch self {
         case .saeulen, .klumpen: return Board.defaultWidth
         case .verschuettet:      return TetrominoEngine.defaultWidth
         case .fuenfling:         return TetrominoEngine.pentominoDefaultWidth
         case .kapseln:           return CapsuleEngine.defaultWidth
+        case .schnitter:         return SquareEngine.defaultWidth
         }
     }
     public var defaultHeight: Int {
@@ -73,6 +81,7 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
         case .verschuettet:      return TetrominoEngine.defaultHeight
         case .fuenfling:         return TetrominoEngine.pentominoDefaultHeight
         case .kapseln:           return CapsuleEngine.defaultHeight
+        case .schnitter:         return SquareEngine.defaultHeight
         }
     }
 
@@ -86,6 +95,8 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
         case .verschuettet:      return 8...14
         case .fuenfling:         return 10...16
         case .kapseln:           return 6...12
+        // Schnitter: das Genre-Original ist QUER (16×10) — die Spanne erlaubt es nachzustellen.
+        case .schnitter:         return 8...16
         }
     }
     public var heightRange: ClosedRange<Int> {
@@ -94,6 +105,7 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
         case .verschuettet:      return 14...24
         case .fuenfling:         return 16...26
         case .kapseln:           return 12...24
+        case .schnitter:         return 8...16
         }
     }
 }
@@ -116,6 +128,8 @@ public enum BoardConfig {
     public static let fuenflingHeightKey    = "steinregen.dim.fuenfling.h"
     public static let kapselnWidthKey       = "steinregen.dim.kapseln.w"
     public static let kapselnHeightKey      = "steinregen.dim.kapseln.h"
+    public static let schnitterWidthKey     = "steinregen.dim.schnitter.w"
+    public static let schnitterHeightKey    = "steinregen.dim.schnitter.h"
 
     public static func widthKey(_ m: GameMode) -> String {
         switch m {
@@ -124,6 +138,7 @@ public enum BoardConfig {
         case .klumpen:      return klumpenWidthKey
         case .fuenfling:    return fuenflingWidthKey
         case .kapseln:      return kapselnWidthKey
+        case .schnitter:    return schnitterWidthKey
         }
     }
     public static func heightKey(_ m: GameMode) -> String {
@@ -133,6 +148,7 @@ public enum BoardConfig {
         case .klumpen:      return klumpenHeightKey
         case .fuenfling:    return fuenflingHeightKey
         case .kapseln:      return kapselnHeightKey
+        case .schnitter:    return schnitterHeightKey
         }
     }
 
@@ -160,6 +176,9 @@ public enum PreviewShape: Sendable {
     /// Verschuettet: die naechste Vierling-Form als auf (0,0) normalisierte Zell-Offsets + Sorte
     /// (alle vier Zellen tragen dieselbe kosmetische Sorte).
     case tetromino(cells: [Cell], gem: Gem)
+    /// Schnitter: ein kleines Zell-Raster mit INDIVIDUELLER Farbe je Zelle (der 2×2-Block
+    /// besteht aus zwei Sorten — eine uniforme Form-Vorschau wie beim Vierling reicht nicht).
+    case grid(cells: [(cell: Cell, gem: Gem)])
 }
 
 // MARK: - Ergebnis eines Schwerkraft-Schritts
@@ -216,11 +235,28 @@ protocol PlayEngine {
     /// Nachrutschen nie nach unten und wirken als Barriere; der Renderer zeichnet sie markiert
     /// (Fluch-Ring) und laesst seine Nachrutsch-Animation an ihnen anhalten. Default: leer.
     var pinnedCells: Set<Cell> { get }
+
+    /// HERVORGEHOBENE Zellen (Schnitter-Modus: Teile gleichfarbiger 2×2-Quadrate, die auf die
+    /// Sense warten). Rein optisch — der Renderer legt einen hellen Schimmer darueber. Anders
+    /// als `pinnedCells` aendern sie sich laufend und werden immer frisch gelesen. Default: leer.
+    var highlightedCells: Set<Cell> { get }
+
+    /// Aktuelle Spalte der Sense (Schnitter-Modus) — der Renderer zeichnet dort die Sweep-Linie
+    /// und treibt `sweepTick()` im Takt. nil = dieser Modus hat keine Sense. Default: nil.
+    var sweepColumn: Int? { get }
+
+    /// Ein Sense-Schritt (Schnitter-Modus): bewegt die Sweep-Linie um eine Spalte und liefert
+    /// ggf. die geerntete Raeum-Welle. Der TAKT lebt in der Szene (Echtzeit), der Schritt im
+    /// Core (deterministisch). Default: tut nichts und liefert nil.
+    mutating func sweepTick() -> ClearStep?
 }
 
 extension PlayEngine {
     var postLockSettle: Bool { false }
     var pinnedCells: Set<Cell> { [] }
+    var highlightedCells: Set<Cell> { [] }
+    var sweepColumn: Int? { nil }
+    mutating func sweepTick() -> ClearStep? { nil }
 }
 
 // MARK: - Conformance: Saeulen (Columns)
@@ -299,6 +335,44 @@ extension CapsuleEngine: PlayEngine {
         case .locked(let r):
             // Kapseln kennen keine Magic-Steine → nie eine Magic-Landeanimation.
             return .locked(before: r.boardBefore, steps: r.steps, magicLanding: nil)
+        }
+    }
+}
+
+// MARK: - Conformance: Schnitter (2×2-Bloecke + Sense)
+
+extension SquareEngine: PlayEngine {
+    /// Die vier Brett-Zellen des Blocks mit ihrer Farbe. Die obere Block-Reihe kann beim
+    /// Einschweben ueber dem Brett liegen (row >= height) — der Renderer blendet sie aus.
+    var activeCells: [(cell: Cell, gem: Gem)] { current.cells }
+
+    /// Vorschau als kleines 2×2-Raster mit individueller Farbe je Zelle
+    /// (`nextGems`-Reihenfolge: [unten-links, unten-rechts, oben-rechts, oben-links]).
+    var preview: PreviewShape {
+        .grid(cells: [(Cell(col: 0, row: 0), nextGems[0]),
+                      (Cell(col: 1, row: 0), nextGems[1]),
+                      (Cell(col: 1, row: 1), nextGems[2]),
+                      (Cell(col: 0, row: 1), nextGems[3])])
+    }
+
+    /// Nach dem Aufsetzen zerfallen die beiden Blockspalten unabhaengig → die Szene animiert
+    /// zuerst dieses Nachfallen (Raeum-Wellen gibt es beim Aufsetzen nie).
+    var postLockSettle: Bool { true }
+
+    /// Die auf die Sense wartenden Quadrat-Zellen — heller Schimmer im Renderer.
+    var highlightedCells: Set<Cell> { marked }
+
+    /// Sense-Position + -Schritt: `sweepTick()` kommt bereits aus dem Core und erfuellt die
+    /// Protokoll-Anforderung direkt; hier ist nur die Spalte zu veroeffentlichen.
+    var sweepColumn: Int? { sweepCol }
+
+    mutating func step() -> StepResult {
+        switch gravityTick() {
+        case .moved:
+            return .moved
+        case .locked(let r):
+            // Beim Aufsetzen wird nie geraeumt (steps leer) — das Ernten macht die Sense.
+            return .locked(before: r.boardBefore, steps: [], magicLanding: nil)
         }
     }
 }

@@ -182,6 +182,7 @@ struct RootView: View {
                 case "klumpen":      gameMode = .klumpen
                 case "fuenfling":    gameMode = .fuenfling
                 case "kapseln":      gameMode = .kapseln
+                case "schnitter":    gameMode = .schnitter
                 default:             gameMode = .saeulen
                 }
             }
@@ -550,6 +551,8 @@ struct SettingsView: View {
     @AppStorage(BoardConfig.fuenflingHeightKey)    private var fuenflingH = 0
     @AppStorage(BoardConfig.kapselnWidthKey)       private var kapselnW = 0
     @AppStorage(BoardConfig.kapselnHeightKey)      private var kapselnH = 0
+    @AppStorage(BoardConfig.schnitterWidthKey)     private var schnitterW = 0
+    @AppStorage(BoardConfig.schnitterHeightKey)    private var schnitterH = 0
     let onClose: () -> Void
 
     // Aktuelle (geklemmte) Maße des gewählten Modus + Schreib-Bindings, die den Modus-Standard
@@ -563,6 +566,7 @@ struct SettingsView: View {
         case .klumpen:      klumpenW = v
         case .fuenfling:    fuenflingW = v
         case .kapseln:      kapselnW = v
+        case .schnitter:    schnitterW = v
         }
     }
     private func setHeight(_ v: Int) {
@@ -572,6 +576,7 @@ struct SettingsView: View {
         case .klumpen:      klumpenH = v
         case .fuenfling:    fuenflingH = v
         case .kapseln:      kapselnH = v
+        case .schnitter:    schnitterH = v
         }
     }
 
