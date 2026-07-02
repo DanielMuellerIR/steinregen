@@ -3,6 +3,12 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.1]
+
+- The "How to play" dialog now explains **all six game modes**, each in its own section,
+  followed by mode-neutral controls and speed/end notes — no genre knowledge required.
+  (Previously it only covered Rockfall.)
+
 ## [0.27.0]
 
 - New sixth game mode **Reaper** (Lumines-style): 2×2 blocks of two stone kinds fall and

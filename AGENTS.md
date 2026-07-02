@@ -175,6 +175,7 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_LANG=<de|en>` — erzwingt die Sprache (sonst System-Sprache bzw. gespeicherte Wahl).
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start direkt den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start direkt den Friedhof (Bestenliste)
+- `STEINREGEN_RULES=1` — öffnet beim Start direkt die Spielregeln
 
 Fenster-gezielter Screenshot ohne Fokus-Klau: Window-ID per CoreGraphics holen, dann
 `screencapture -x -o -l <id>` (kein Fenster-nach-vorn nötig).
@@ -232,7 +233,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-02, v0.27.0)
+## 5. Status (Stand 2026-07-02, v0.27.1)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -627,6 +628,14 @@ erlaubt die Original-Proportion, Schlüssel `steinregen.dim.schnitter.*`), Naht
 beim Verlassen, Rand-/Wrap-Ernte, Nachfallen + Neu-Markierung, Game-Over, Determinismus,
 Zwei-Sorten). Verifiziert auf macOS (Menü 3×2, Gameplay 12×12: wandernde Sense, schimmerndes
 Quadrat, Ernte mit Punkten, Grid-Vorschau zweifarbig).
+
+**v0.27.1 — Spielregeln für alle sechs Modi:** der Spielregeln-Dialog (`RulesSheet`, Menü-Button
+„Spielregeln") erklärte bis dahin NUR den Steinschlag-Modus — jetzt hat **jeder Modus eine eigene
+Sektion** (Überschrift = `GameMode.title`, 2–5 Sätze, anfängerfreundlich ohne Genre-Vorwissen,
+de/en, markenfrei), gefolgt von den gemeinsamen Sektionen „Steuerung" (modusneutral umformuliert —
+was Drehen bewirkt, steht beim jeweiligen Modus) und „Tempo & Ende" (inkl. Hinweis: nur die
+Austreibung ist gewinnbar, ihr Level bleibt konstant). Neue Automations-Naht `STEINREGEN_RULES=1`
+(öffnet den Dialog direkt). Verifiziert per Screenshot de + en; 99 Tests grün.
 
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag
