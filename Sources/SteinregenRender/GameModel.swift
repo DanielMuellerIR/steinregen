@@ -10,6 +10,10 @@ import SwiftUI
 public final class GameModel {
     /// Wird true, sobald der Einwurf blockiert ist (Spiel vorbei).
     public var isGameOver: Bool = false
+    /// true, wenn die Partie GEWONNEN endete (Kapsel-Modus: alle Flueche getilgt).
+    /// `isGameOver` wird dabei ebenfalls true (das Overlay erscheint auf demselben Weg) —
+    /// dieses Flag schaltet nur Titel/Farbe auf die Sieg-Variante um.
+    public var isVictory: Bool = false
     /// Punktestand bei Spielende (fuer das Game-Over-Overlay / den Friedhof-Eintrag).
     public var finalScore: Int = 0
     /// Level bei Spielende („Verreckt in Level …").
@@ -23,6 +27,7 @@ public final class GameModel {
 
     public func reset() {
         isGameOver = false
+        isVictory = false
         finalScore = 0
         finalLevel = 0
         score = 0

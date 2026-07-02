@@ -32,8 +32,8 @@ steinregen/                   (SwiftPM-Workspace)
 ├── project.yml               (xcodegen-Spec der iOS-App; .xcodeproj wird daraus erzeugt, git-ignoriert)
 ├── Sources/
 │   ├── SteinregenCore/       (reine, deterministische Spiellogik + PRNG + Modelle — plattformneutral;
-│   │                          DREI Engines: Engine = Säulen/Columns, TetrominoEngine = Verschüttet,
-│   │                          PairEngine = Klumpen/Steinpaare)
+│   │                          VIER Engines: Engine = Säulen/Columns, TetrominoEngine = Verschüttet,
+│   │                          PairEngine = Klumpen/Steinpaare, CapsuleEngine = Kapseln/Austreibung)
 │   ├── SteinregenRender/     (SpriteKit-Szene, Spielloop, Theme = Palette/Fonts/Korn/Nebel,
 │   │                          PlayEngine = modusneutrales Protokoll über alle Engines (GameScene
 │   │                          treibt Säulen + Verschüttet + Klumpen mit einem Code-Pfad),
@@ -163,9 +163,10 @@ Die App liest beim Start Umgebungsvariablen (für automatische Screenshots / Smo
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil`/`doom`/`zaubersteine`/`g20`/`juwelen`/`freedoom`)
 - `STEINREGEN_MODE=<modus>` — Spielmodus (`saeulen` = Columns, im Menü „Steinschlag"; `verschuettet`
   = Vierlinge, im Menü „Eingemauert"; `klumpen` = Steinpaare, im Menü „Blutklumpen"; `fuenfling` =
-  Pentominoes, im Menü „Erdrückt"; Default `saeulen`). Die env-/UserDefaults-IDs bleiben bewusst
-  `saeulen`/`verschuettet`/`klumpen`/`fuenfling` — nur die Anzeige-Namen heißen
-  Steinschlag/Eingemauert/Blutklumpen/Erdrückt.
+  Pentominoes, im Menü „Erdrückt"; `kapseln` = Kapsel-Paare mit Sieg-Bedingung, im Menü
+  „Austreibung"; Default `saeulen`). Die env-/UserDefaults-IDs bleiben bewusst
+  `saeulen`/`verschuettet`/`klumpen`/`fuenfling`/`kapseln` — nur die Anzeige-Namen heißen
+  Steinschlag/Eingemauert/Blutklumpen/Erdrückt/Austreibung.
 - `STEINREGEN_ENDLESS=1` — konstantes Tempo (Fallgeschwindigkeit bleibt auf der Start-Tempostufe)
 - `STEINREGEN_MUSIC=<0|1>` — Musik aus (`0`) bzw. erzwungen an (`1`); ohne die Variable gilt der
   persistierte Default (an). Praktisch für stille Screenshot-/Smoke-Test-Läufe.
@@ -229,7 +230,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-02, v0.25.0)
+## 5. Status (Stand 2026-07-02, v0.26.0)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -576,6 +577,26 @@ zwei bestehende Vierling-Tests von `allCases` auf `.tetrominoes` umgestellt. Ver
 Hinweis: bei 12+ Spalten werden die Seiten-Panels auf dem iPhone sichtbar schmal — gleiche
 Eigenschaft wie bei breiten Eingemauert-Brettern, keine Layout-Änderung ohne Auftrag).
 
+**v0.26.0 — fünfter Modus „Austreibung" (Dr.-Mario-Stil):** der erste Modus mit **Sieg-Bedingung**.
+Neue, eigene Core-Engine **`CapsuleEngine`** (+ `Capsule.swift`-Ergebnistypen) — die Paar-Geometrie
+(`PairPiece`/`PairOrientation` samt Dreh-Kick) wird aus dem Klumpen-Modus **wiederverwendet**, nicht
+dupliziert. Das Brett ist mit **Flüchen** vorbefüllt (seed-deterministisch, untere ~60 % der Reihen,
+4 je Start-Tempostufe, gedeckelt auf die halbe Bereichs-Kapazität; nie so platziert, dass anfangs
+drei gleiche in Reihe/Spalte liegen). **Nur drei Farben**; geräumt werden Läufe ab **4 gleichen in
+Reihe ODER Spalte** (neues `findLines` in `Matching.swift` — keine Diagonalen), je getilgtem Fluch
+**+100 Bonuspunkte**. Die Flüche **kleben**: neues `settle(pinned:)` lässt Steine nur bis AUF den
+nächsten Fluch rutschen (nie vorbei), die Szene spiegelt das in `compactColumnsAnimated` über die
+mitgepflegte Menge `scenePinned`. **Alle Flüche getilgt ⇒ gewonnen**: neuer `Phase`-Case `.won`,
+Banner „Ausgetrieben"/„Exorcised" (knochenweiß), Sieg-Variante des Overlays (`GameModel.isVictory`,
+Grabspruch „Die Flüche sind gebannt"), Friedhof-Eintrag wie gehabt. Das Level ist in diesem Modus
+**konstant** die Start-Tempostufe (bestimmt Fluch-Anzahl UND Tempo — ein Regler, kein Anstieg).
+Optik: Flüche tragen einen pulsierenden, glühenden Knochen-Ring (`decorateCurse`). Brett-Default
+**8×16** (Spanne 6–12 / 12–24, Schlüssel `steinregen.dim.kapseln.*`), PlayEngine-Naht
+`pinnedCells`, env-Naht `STEINREGEN_MODE=kapseln`. Tests: 15 neue (`CapsuleEngineTests`: findLines
+h/v/diagonal-negativ, pinned-settle, deterministische/gedeckelte/tripel-freie Vorbefüllung,
+Fluch-Bonus, Kette über klebendem Fluch, Sieg, Game-Over, Determinismus, Drei-Farben). Verifiziert
+auf macOS (Menü 5 Chips, Gameplay 8×16 mit Fluch-Ringen, Seed 42/Level 5).
+
 **Design-Entscheidung (Stand 2026-06-22): iOS-/iPad-Optik ist abgenommen** — Layout, Größen,
 Logo- und Button-Maße auf iPhone UND iPad sind so gewollt und **nicht ohne ausdrücklichen Auftrag
 zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Simulator bestätigt.
@@ -615,12 +636,9 @@ deterministische PRNG machen neue Modi inzwischen billig: eigene Core-Engine sch
 v0.24.0). Namen wie immer **markenfrei** (Gattungsbegriffe intern, eigene Anzeige-Namen im
 Black-Metal-Ton):
 
-1. **Dr.-Mario-Stil** (Arbeitstitel „Austreibung") — 2er-Kapseln fallen auf ein Brett mit
-   **vorplatzierten Zielsteinen** (thematisch: eingemauerte Flüche/Schädel), 4 in einer Reihe
-   räumt. Bringt als Erstes einen **Modus mit Sieg-Bedingung** (Brett leergeräumt = gewonnen)
-   statt nur Endlos — hat das Spiel bisher gar nicht. Sehr guter Fit: Paar-Mechanik aus
-   `PairEngine` wiederverwendbar (Linien- statt Gruppen-Matching, seed-deterministische
-   Vorbefüllung). Zu klären: Level-Progression (mehr Zielsteine je Stufe), Punkteschema.
+1. ✅ **Dr.-Mario-Stil** — erledigt als „Austreibung" (v0.26.0, `CapsuleEngine`, klebende
+   Flüche, Sieg-Bedingung; Level-Progression = Start-Tempostufe bestimmt Fluch-Anzahl,
+   Punkte = Säulen-Schema + 100 je Fluch).
 2. ✅ **Pentomino-Variante** — erledigt als „Erdrückt" (v0.25.0, eigener Modus-Chip,
    `TetrominoEngine` mit `types: TetrominoType.pentominoes`).
 3. **Lumines-Stil** — 2×2-Blöcke aus zwei Sorten; gleichfarbige 2×2-Quadrate werden markiert

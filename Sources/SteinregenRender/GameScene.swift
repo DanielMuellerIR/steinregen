@@ -41,6 +41,12 @@ public final class GameScene: SKScene {
     /// Brett-Knoten, indiziert [col][row]; nil = leere Zelle.
     private var gemNodes: [[SKSpriteNode?]] =
         Array(repeating: Array(repeating: nil, count: Board.defaultHeight), count: Board.defaultWidth)
+    /// Festgenagelte Zellen (Kapsel-Modus: die Flueche) im AKTUELL GEZEIGTEN Brett-Zwischenstand.
+    /// Die Engine kennt nur den End-Stand nach der ganzen Kaskade — waehrend die Szene die Wellen
+    /// nacheinander animiert, pflegt sie diese Menge selbst mit: `start()` uebernimmt den
+    /// Anfangsbestand, `flashAndRemove` streicht geraeumte Zellen, `endResolution` gleicht mit der
+    /// Engine ab. (Flueche wandern nie — sie koennen nur verschwinden.) Bei den anderen Modi leer.
+    private var scenePinned: Set<Cell> = []
     /// Die drei Knoten der aktiven Saeule.
     private var pieceNodes: [SKSpriteNode] = []
 
@@ -179,10 +185,15 @@ public final class GameScene: SKScene {
                                      width: width ?? TetrominoEngine.pentominoDefaultWidth,
                                      height: height ?? TetrominoEngine.pentominoDefaultHeight,
                                      types: TetrominoType.pentominoes)
+        case .kapseln:
+            engine = CapsuleEngine(seed: seed, startLevel: startLevel,
+                                   width: width ?? CapsuleEngine.defaultWidth,
+                                   height: height ?? CapsuleEngine.defaultHeight)
         }
         // Brettmaße + Knoten-Raster an die tatsaechliche Brettgroesse anpassen.
         boardWidth = engine!.board.width
         boardHeight = engine!.board.height
+        scenePinned = engine!.pinnedCells      // Anfangsbestand der Flueche (andere Modi: leer)
         gemNodes = Array(repeating: Array(repeating: nil, count: boardHeight), count: boardWidth)
         pieceLayer.removeAllChildren()     // alte Saeulen-/Vierling-Knoten (evtl. andere Anzahl) verwerfen
         pieceNodes.removeAll()
@@ -379,11 +390,31 @@ public final class GameScene: SKScene {
                 if let gem = board[col, row] {
                     let node = makeGemNode(gem)
                     node.position = cellCenter(col: col, row: row)
+                    // Flueche (Kapsel-Modus) sichtbar markieren — sie sind das Ziel des Modus.
+                    if scenePinned.contains(Cell(col: col, row: row)) { decorateCurse(node) }
                     boardLayer.addChild(node)
                     gemNodes[col][row] = node
                 }
             }
         }
+    }
+
+    /// Fluch-Markierung (Kapsel-Modus): ein kraeftiger, leicht gluehender knochenweisser Ring um
+    /// den Stein, der langsam pulsiert — deutlich vom normalen Stein unterscheidbar, ohne die
+    /// Sigille zu verdecken. Als KIND des Stein-Knotens wandert er bei allen Animationen
+    /// (Blitzen, Rutschen) mit.
+    private func decorateCurse(_ node: SKSpriteNode) {
+        let ring = SKShapeNode(circleOfRadius: gemSize.width * 0.46)
+        ring.strokeColor = Theme.bone.sk(0.95)
+        ring.lineWidth = 3
+        ring.glowWidth = 2
+        ring.fillColor = .clear
+        ring.zPosition = 1
+        node.addChild(ring)
+        ring.run(SKAction.repeatForever(SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.55, duration: 0.7),
+            SKAction.fadeAlpha(to: 1.0, duration: 0.7)
+        ])))
     }
 
     /// Positioniert/texturiert die Knoten des aktiven Steins (Saeule = 3 Zellen, Vierling = 4).
@@ -625,6 +656,7 @@ public final class GameScene: SKScene {
     /// Laesst die getroffenen Zellen aufblitzen und verschwinden.
     private func flashAndRemove(_ cells: [Cell], completion: @escaping () -> Void) {
         SoundFX.clear()                // eine Räum-Welle (Steine lösen sich auf)
+        scenePinned.subtract(cells)    // geraeumte Flueche sind keine Barriere mehr (Kapsel-Modus)
         let flash = SKAction.group([
             SKAction.scale(to: 1.35, duration: 0.14),
             SKAction.fadeOut(withDuration: 0.16)
@@ -640,11 +672,19 @@ public final class GameScene: SKScene {
     }
 
     /// Laesst die uebrigen Steine spaltenweise nach unten nachrutschen (analog zu `settle`).
+    /// Festgenagelte Zellen (`scenePinned`, Kapsel-Flueche) bleiben stehen und wirken als
+    /// Barriere — exakt die Regel von `settle(pinned:)` im Core, nur auf den Knoten. Bei den
+    /// anderen Modi ist die Menge leer und das Verhalten unveraendert.
     private func compactColumnsAnimated(completion: @escaping () -> Void) {
         var maxDuration: TimeInterval = 0
         for col in 0..<boardWidth {
             var writeRow = 0
             for row in 0..<boardHeight {
+                if scenePinned.contains(Cell(col: col, row: row)) {
+                    // Fluch klebt: alles Weitere in dieser Spalte landet OBERHALB von ihm.
+                    writeRow = row + 1
+                    continue
+                }
                 if let node = gemNodes[col][row] {
                     if writeRow != row {
                         gemNodes[col][writeRow] = node
@@ -710,9 +750,19 @@ public final class GameScene: SKScene {
 
     private func endResolution() {
         guard let engine else { return }
+        scenePinned = engine.pinnedCells            // Abgleich mit dem finalen Engine-Stand
         renderBoardInstant(engine.board)            // finaler, garantiert korrekter Stand
         if self.engine!.spawnNext() {
             renderPiece()
+        } else if self.engine!.phase == .won {
+            // Sieg (nur Kapsel-Modus): alle Flueche getilgt — statt „Verreckt" ein Sieg-Banner,
+            // das Overlay uebernimmt den Rest (Friedhof-Eintrag wie beim Game Over).
+            model?.finalScore = self.engine!.score
+            model?.finalLevel = self.engine!.level
+            model?.isVictory = true
+            model?.isGameOver = true
+            SoundFX.levelUp()
+            showVictoryBanner()
         } else {
             model?.finalScore = self.engine!.score
             model?.finalLevel = self.engine!.level
@@ -732,6 +782,18 @@ public final class GameScene: SKScene {
         let label = makeLabel(size: 46, bold: true)
         label.text = L10n.t("Verreckt", "Perished")
         label.fontColor = Theme.blood.sk
+        label.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        label.alpha = 0
+        label.zPosition = 20
+        hudLayer.addChild(label)
+        label.run(SKAction.fadeIn(withDuration: 0.4))
+    }
+
+    /// Sieg-Banner des Kapsel-Modus (analog zum Game-Over-Banner, aber knochenweiss statt blutrot).
+    private func showVictoryBanner() {
+        let label = makeLabel(size: 46, bold: true)
+        label.text = L10n.t("Ausgetrieben", "Exorcised")
+        label.fontColor = Theme.bone.sk
         label.position = CGPoint(x: size.width / 2, y: size.height / 2)
         label.alpha = 0
         label.zPosition = 20

@@ -181,6 +181,7 @@ struct RootView: View {
                 case "verschuettet": gameMode = .verschuettet
                 case "klumpen":      gameMode = .klumpen
                 case "fuenfling":    gameMode = .fuenfling
+                case "kapseln":      gameMode = .kapseln
                 default:             gameMode = .saeulen
                 }
             }
@@ -547,6 +548,8 @@ struct SettingsView: View {
     @AppStorage(BoardConfig.klumpenHeightKey)      private var klumpenH = 0
     @AppStorage(BoardConfig.fuenflingWidthKey)     private var fuenflingW = 0
     @AppStorage(BoardConfig.fuenflingHeightKey)    private var fuenflingH = 0
+    @AppStorage(BoardConfig.kapselnWidthKey)       private var kapselnW = 0
+    @AppStorage(BoardConfig.kapselnHeightKey)      private var kapselnH = 0
     let onClose: () -> Void
 
     // Aktuelle (geklemmte) Maße des gewählten Modus + Schreib-Bindings, die den Modus-Standard
@@ -559,6 +562,7 @@ struct SettingsView: View {
         case .verschuettet: verschuettetW = v
         case .klumpen:      klumpenW = v
         case .fuenfling:    fuenflingW = v
+        case .kapseln:      kapselnW = v
         }
     }
     private func setHeight(_ v: Int) {
@@ -567,6 +571,7 @@ struct SettingsView: View {
         case .verschuettet: verschuettetH = v
         case .klumpen:      klumpenH = v
         case .fuenfling:    fuenflingH = v
+        case .kapseln:      kapselnH = v
         }
     }
 
@@ -892,6 +897,7 @@ struct GameplayView: View {
             if model.isGameOver {
                 GameOverOverlay(score: model.finalScore,
                                 level: model.finalLevel,
+                                victory: model.isVictory,
                                 onRetrySameSeed: onRetrySameSeed,
                                 onRetryNewSeed: onRetryNewSeed,
                                 onExit: onExit)
@@ -964,6 +970,9 @@ struct GameplayView: View {
 struct GameOverOverlay: View {
     let score: Int
     let level: Int
+    /// true = die Partie wurde GEWONNEN (Kapsel-Modus: alle Flueche getilgt) — Titel/Farbe
+    /// wechseln auf die Sieg-Variante, alles andere (Friedhof-Eintrag, Knoepfe) bleibt gleich.
+    var victory: Bool = false
     let onRetrySameSeed: () -> Void
     let onRetryNewSeed: () -> Void
     let onExit: () -> Void
@@ -984,9 +993,10 @@ struct GameOverOverlay: View {
             Color.black.opacity(0.66).ignoresSafeArea()
             VStack(spacing: 12) {
                 VStack(spacing: 6) {
-                    Text(L10n.t("Verreckt", "Perished"))
+                    Text(victory ? L10n.t("Ausgetrieben", "Exorcised")
+                                 : L10n.t("Verreckt", "Perished"))
                         .font(.custom(Theme.blackletterBoldPostScript, size: 56))
-                        .foregroundStyle(Theme.blood.color)
+                        .foregroundStyle(victory ? Theme.bone.color : Theme.blood.color)
                     Text(L10n.t("Level \(level) · \(score) Punkte", "Level \(level) · \(score) points"))
                         .font(.custom(Theme.blackletterBoldPostScript, size: 22))
                         .foregroundStyle(Theme.bone.color)
@@ -1002,8 +1012,9 @@ struct GameOverOverlay: View {
 
                 buttons
 
-                // Grim-Zitat (Bethlehem) als Grabspruch — ganz unten, Schrift bewusst unverändert.
-                Text(L10n.t("Am Ende fällt jeder Stein", "In the end, every stone falls"))
+                // Grabspruch ganz unten — bei einem Sieg (Kapsel-Modus) die triumphale Variante.
+                Text(victory ? L10n.t("Die Flüche sind gebannt", "The curses are banished")
+                             : L10n.t("Am Ende fällt jeder Stein", "In the end, every stone falls"))
                     .font(.custom(Theme.blackletterFamily, size: 20))
                     .tracking(1)
                     .foregroundStyle(Theme.blood.color)

@@ -19,22 +19,25 @@ import SteinregenCore
 /// Saeulen, ≥3 gleiche in Linie). „Verschuettet" = der Vierling-Modus (sieben Formen, volle Reihen
 /// raeumen). „Klumpen" = der Steinpaar-Modus (fallende Zweier-Paare, Gruppen ab 4 verbundenen
 /// gleichen Steinen raeumen). „Fuenfling" = die brutale Pentomino-Variante des Vierling-Modus
-/// (achtzehn Fuenfer-Formen, gleiche Engine, gleiche Regeln). Bewusst markenfrei benannt.
+/// (achtzehn Fuenfer-Formen, gleiche Engine, gleiche Regeln). „Kapseln" = der Kapsel-Modus mit
+/// Sieg-Bedingung (vorplatzierte Flueche tilgen, 4 in Reihe/Spalte). Bewusst markenfrei benannt.
 public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
     case saeulen
     case verschuettet
     case klumpen
     case fuenfling
+    case kapseln
 
     /// Anzeigename im Menue/Dialog. (Die internen case-Namen `saeulen`/`verschuettet`/`klumpen`/
-    /// `fuenfling` und die env-/UserDefaults-Schluessel bleiben aus Persistenz-/Naht-Gruenden
-    /// unveraendert — nur diese Anzeige-Strings tragen die gewuenschten Anzeige-Namen.)
+    /// `fuenfling`/`kapseln` und die env-/UserDefaults-Schluessel bleiben aus Persistenz-/Naht-
+    /// Gruenden unveraendert — nur diese Anzeige-Strings tragen die gewuenschten Anzeige-Namen.)
     public var title: String {
         switch self {
         case .saeulen:      return L10n.t("Steinschlag", "Rockfall")
         case .verschuettet: return L10n.t("Eingemauert", "Entombed")
         case .klumpen:      return L10n.t("Blutklumpen", "Blood Clots")
         case .fuenfling:    return L10n.t("Erdrückt", "Crushed")
+        case .kapseln:      return L10n.t("Austreibung", "Exorcism")
         }
     }
 
@@ -49,15 +52,19 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
                                           "falling stone pairs · clear 4 connected alike")
         case .fuenfling:    return L10n.t("fallende Fünflinge · volle Reihen räumen · brutal",
                                           "falling five-block pieces · clear full rows · brutal")
+        case .kapseln:      return L10n.t("Kapsel-Paare · 4 in Reihe · alle Flüche tilgen = Sieg",
+                                          "capsule pairs · 4 in a row · purge all curses to win")
         }
     }
 
-    /// Standard-Brettmaße des Modus (Säulen und Klumpen 6×13, Verschüttet 10×18, Fünfling 12×20).
+    /// Standard-Brettmaße des Modus (Säulen und Klumpen 6×13, Verschüttet 10×18, Fünfling 12×20,
+    /// Kapseln 8×16).
     public var defaultWidth: Int {
         switch self {
         case .saeulen, .klumpen: return Board.defaultWidth
         case .verschuettet:      return TetrominoEngine.defaultWidth
         case .fuenfling:         return TetrominoEngine.pentominoDefaultWidth
+        case .kapseln:           return CapsuleEngine.defaultWidth
         }
     }
     public var defaultHeight: Int {
@@ -65,17 +72,20 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
         case .saeulen, .klumpen: return Board.defaultHeight
         case .verschuettet:      return TetrominoEngine.defaultHeight
         case .fuenfling:         return TetrominoEngine.pentominoDefaultHeight
+        case .kapseln:           return CapsuleEngine.defaultHeight
         }
     }
 
     /// Erlaubte Spanne der einstellbaren Brettmaße (Säulen/Verschüttet bestätigt 2026-06-24;
     /// Klumpen nutzt dieselbe Spanne wie die Säulen — gleiche Brett-Geometrie. Fünfling braucht
-    /// mehr Raum als die Vierlinge: die 18 Formen sind bis zu 5 Zellen breit).
+    /// mehr Raum als die Vierlinge: die 18 Formen sind bis zu 5 Zellen breit. Kapseln liegen
+    /// zwischen Säulen und Vierlingen — Paar-Geometrie, aber mehr Rangier-Raum noetig).
     public var widthRange: ClosedRange<Int> {
         switch self {
         case .saeulen, .klumpen: return 5...12
         case .verschuettet:      return 8...14
         case .fuenfling:         return 10...16
+        case .kapseln:           return 6...12
         }
     }
     public var heightRange: ClosedRange<Int> {
@@ -83,6 +93,7 @@ public enum GameMode: Sendable, Equatable, Hashable, CaseIterable {
         case .saeulen, .klumpen: return 10...24
         case .verschuettet:      return 14...24
         case .fuenfling:         return 16...26
+        case .kapseln:           return 12...24
         }
     }
 }
@@ -103,6 +114,8 @@ public enum BoardConfig {
     public static let klumpenHeightKey      = "steinregen.dim.klumpen.h"
     public static let fuenflingWidthKey     = "steinregen.dim.fuenfling.w"
     public static let fuenflingHeightKey    = "steinregen.dim.fuenfling.h"
+    public static let kapselnWidthKey       = "steinregen.dim.kapseln.w"
+    public static let kapselnHeightKey      = "steinregen.dim.kapseln.h"
 
     public static func widthKey(_ m: GameMode) -> String {
         switch m {
@@ -110,6 +123,7 @@ public enum BoardConfig {
         case .verschuettet: return verschuettetWidthKey
         case .klumpen:      return klumpenWidthKey
         case .fuenfling:    return fuenflingWidthKey
+        case .kapseln:      return kapselnWidthKey
         }
     }
     public static func heightKey(_ m: GameMode) -> String {
@@ -118,6 +132,7 @@ public enum BoardConfig {
         case .verschuettet: return verschuettetHeightKey
         case .klumpen:      return klumpenHeightKey
         case .fuenfling:    return fuenflingHeightKey
+        case .kapseln:      return kapselnHeightKey
         }
     }
 
@@ -196,10 +211,16 @@ protocol PlayEngine {
     /// animiert dann zuerst dieses Nachfallen. Saeulen setzen immer gestuetzt auf, Vierlinge
     /// duerfen ueberhaengen (kein Nachrutschen) — beide liefern den Default false.
     var postLockSettle: Bool { get }
+
+    /// Zellen, die FEST im Brett kleben (Kapsel-Modus: die Flueche): Sie rutschen beim
+    /// Nachrutschen nie nach unten und wirken als Barriere; der Renderer zeichnet sie markiert
+    /// (Fluch-Ring) und laesst seine Nachrutsch-Animation an ihnen anhalten. Default: leer.
+    var pinnedCells: Set<Cell> { get }
 }
 
 extension PlayEngine {
     var postLockSettle: Bool { false }
+    var pinnedCells: Set<Cell> { [] }
 }
 
 // MARK: - Conformance: Saeulen (Columns)
@@ -249,6 +270,34 @@ extension TetrominoEngine: PlayEngine {
             return .moved
         case .locked(let r):
             // Verschuettet kennt keine Magic-Steine → nie eine Magic-Landeanimation.
+            return .locked(before: r.boardBefore, steps: r.steps, magicLanding: nil)
+        }
+    }
+}
+
+// MARK: - Conformance: Kapseln (Austreibung)
+
+extension CapsuleEngine: PlayEngine {
+    /// Die beiden Brett-Zellen der Kapsel (Pivot + Satellit) mit ihrer Farbe — gleiche Geometrie
+    /// wie im Klumpen-Modus (der Satellit kann beim Einschweben ueber dem Brett liegen).
+    var activeCells: [(cell: Cell, gem: Gem)] { current.cells }
+
+    /// Vorschau als Zweier-Stapel (Pivot unten, Satellit oben) ueber den Saeulen-Zeichenpfad.
+    var preview: PreviewShape { .columns(nextGems) }
+
+    /// Nach dem Aufsetzen koennen die Haelften (fluch-bewusst) nachrutschen → die Szene animiert
+    /// zuerst dieses Nachfallen, dann die Raeum-Wellen.
+    var postLockSettle: Bool { true }
+
+    /// Die noch nicht getilgten Flueche: kleben fest, werden markiert gezeichnet.
+    var pinnedCells: Set<Cell> { curses }
+
+    mutating func step() -> StepResult {
+        switch gravityTick() {
+        case .moved:
+            return .moved
+        case .locked(let r):
+            // Kapseln kennen keine Magic-Steine → nie eine Magic-Landeanimation.
             return .locked(before: r.boardBefore, steps: r.steps, magicLanding: nil)
         }
     }

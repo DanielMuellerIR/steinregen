@@ -144,4 +144,6 @@ public enum Phase: Sendable, Equatable {
     case falling       // aktive Saeule faellt; Eingaben erlaubt
     case resolving     // Kaskade laeuft (Render animiert); keine Eingaben, kein Schwerkraft-Tick
     case gameOver
+    case won           // Sieg-Bedingung erfuellt (nur Modi MIT Sieg, z.B. „Austreibung": alle
+                       // Flueche getilgt). Die Endlos-Modi erreichen diesen Zustand nie.
 }
