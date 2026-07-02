@@ -657,6 +657,14 @@ zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Sim
   Asset-Tausch (bessere Kantenqualität), keine Code-Änderung.
 - **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
   eigenes Soundeffekt-Set erzeugen — Werkzeug wird ca. ab 2026-06-22 verfügbar sein.
+- **Mehr Musik VOR der GitHub-Veröffentlichung (Entscheidung Daniel, 2026-07-02):** Die
+  Veröffentlichung ist **aufgeschoben**, bis deutlich mehr Musikstücke im Spiel sind. Grund:
+  Die drei vorhandenen Stücke (v0.21.0, ACE-Step) sind an sich in Ordnung, wiederholen sich
+  beim Testspielen aber zu schnell und werden dann rasch nervig. Also erst weitere Stücke
+  besorgen bzw. generieren (Weg wie v0.21.0: lokal per ACE-Step auf dem M5, Skill `musicgen`).
+  Achtung: neue `musik-N.mp3` ins Bundle legen UND in `MusicPlayer.trackNames` eintragen —
+  die Liste ist FEST (anders als die Hintergrundbilder wird sie nicht automatisch entdeckt).
+  Daniel kommt erst später dazu — bis dahin kein GitHub-Release/DMG-Publish.
 - **Veröffentlichbarkeit prüfen** — ✅ auditiert (Stand 2026-06-22), Bestandsaufnahme in
   [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md). **Non-kommerziell ist sauber** (eigener Code MIT;
   FreeDoom-WAVs **und** -Grafiken BSD-3, Grenze Gotisch OFL, Edelstein-Assets Eigenwerk, Logo aus
