@@ -3,6 +3,24 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.0]
+
+- New sixth game mode **Reaper** (Lumines-style): 2×2 blocks of two stone kinds fall and
+  rotate their colors; same-colored 2×2 squares are highlighted and harvested by a scythe —
+  a sweep line that travels across the board and reaps marked sections as it passes their end.
+  Block columns settle independently on lock; nothing clears on lock itself.
+  Default board 12×12, configurable 8–16 × 8–16 (the genre's classic wide layout fits in).
+- The mode picker is now a 3×2 grid of chips.
+
+## [0.26.0]
+
+- New fifth game mode **Exorcism** (falling-capsule style) — the first mode with a win
+  condition: the board starts pre-seeded with **curses** (glowing ringed stones that stay
+  pinned in place); clear runs of four in a row or column to purge them. Purge all curses
+  and the game is **won** ("Exorcised"), with a bonus of 100 points per curse. Three colors,
+  capsule pairs rotating around a pivot. The starting speed level also sets the number of
+  curses (4 per level). Default board 8×16, configurable 6–12 × 12–24.
+
 ## [0.25.0]
 
 - New fourth game mode **Crushed** (pentominoes): the brutal five-block variant of Entombed —
