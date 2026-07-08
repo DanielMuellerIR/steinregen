@@ -5,6 +5,11 @@ Dieses Repository enthält **Steinregen**, einen nativen macOS-Klon des Sega-Kla
 
 ---
 
+## Typ & Zweck
+- **Typ:** Spiel (Puzzle)
+- **Zweck:** Nativer macOS-Klon des Sega-Klassikers Columns (Fallblock-Puzzle) mit deterministischer Engine.
+- **Plattform:** macOS-GUI, iOS
+
 ## 1. Wichtige Regeln für AI-Agenten
 
 1. **Git**: `git add`/`commit`/`push`/`reset` nur auf ausdrückliche Anweisung. Nie Wildcard-Adden
