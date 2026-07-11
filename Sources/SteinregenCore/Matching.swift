@@ -37,7 +37,9 @@ func findMatches(_ board: Board) -> [Cell] {
             }
         }
     }
-    return Array(marked)
+    // Sortiert zurueckgeben (nicht `Array(marked)`): Set-Reihenfolge ist prozess-zufaellig,
+    // die Brett-Reihenfolge haelt ClearStep.cells deterministisch (Regel 2).
+    return marked.sorted()
 }
 
 /// Findet alle Zellen, die zu einer GRUPPE aus mindestens `minSize` gleichfarbigen, direkt
@@ -107,7 +109,9 @@ func findLines(_ board: Board, minRun: Int) -> [Cell] {
             }
         }
     }
-    return Array(marked)
+    // Sortiert zurueckgeben (nicht `Array(marked)`): Set-Reihenfolge ist prozess-zufaellig,
+    // die Brett-Reihenfolge haelt ClearStep.cells deterministisch (Regel 2).
+    return marked.sorted()
 }
 
 /// Laesst in jeder Spalte alle Steine nach unten auf die freien Plaetze nachrutschen

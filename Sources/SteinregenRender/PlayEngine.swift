@@ -1,9 +1,9 @@
 // PlayEngine.swift
-// Schmale, modusneutrale Schnittstelle ueber BEIDE Spiel-Engines, damit die `GameScene` den
-// Saeulen-Modus (Columns, `Engine`) UND den Verschuettet-Modus (Vierlinge, `TetrominoEngine`) mit
-// EINEM Code-Pfad treiben kann. Die Engines selbst bleiben im Core unveraendert — hier liegt nur
-// die duenne Adapter-Schicht (retroaktive Conformance), die ihre jeweils eigene API auf eine
-// gemeinsame, vom Renderer benoetigte Form abbildet.
+// Schmale, modusneutrale Schnittstelle ueber ALLE fuenf Spiel-Engines (`Engine`,
+// `TetrominoEngine`, `PairEngine`, `CapsuleEngine`, `SquareEngine`), damit die `GameScene`
+// saemtliche Modi mit EINEM Code-Pfad treiben kann. Die Engines selbst bleiben im Core
+// unveraendert — hier liegt nur die duenne Adapter-Schicht (retroaktive Conformance), die ihre
+// jeweils eigene API auf eine gemeinsame, vom Renderer benoetigte Form abbildet.
 //
 // Warum hier (Render) und nicht im Core? Der Core soll modus-agnostisch und frei von
 // Render-Belangen bleiben. Das Protokoll buendelt genau das, was die SZENE braucht — also gehoert

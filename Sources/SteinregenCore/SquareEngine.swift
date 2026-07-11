@@ -229,7 +229,9 @@ public struct SquareEngine: Sendable {
         let pts = Engine.points(cleared: cells.count, chain: 1)
         score += pts
         gemsCleared += cells.count
-        return ClearStep(cells: Array(cells), kind: .match, color: nil,
+        // Sortiert (nicht `Array(cells)`): Set-Reihenfolge ist prozess-zufaellig, die
+        // Brett-Reihenfolge haelt ClearStep.cells deterministisch (Regel 2).
+        return ClearStep(cells: cells.sorted(), kind: .match, color: nil,
                          chain: 1, points: pts, boardAfter: board)
     }
 

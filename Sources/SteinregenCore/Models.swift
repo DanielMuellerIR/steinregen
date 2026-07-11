@@ -35,6 +35,17 @@ public struct Cell: Hashable, Sendable {
     }
 }
 
+// Feste Brett-Reihenfolge (erst Zeile, dann Spalte). Wichtig fuer den Determinismus:
+// Die Match-Finder sammeln intern in einem Set, und Swift-Sets iterieren pro Prozess
+// zufaellig — vor der Rueckgabe wird deshalb sortiert, damit z. B. `ClearStep.cells`
+// bei gleichem Seed ueber Laeufe/Prozesse hinweg exakt gleich aussieht (Replays, Tests).
+extension Cell: Comparable {
+    public static func < (lhs: Cell, rhs: Cell) -> Bool {
+        if lhs.row != rhs.row { return lhs.row < rhs.row }
+        return lhs.col < rhs.col
+    }
+}
+
 // MARK: - Spielfeld
 
 /// Das Spielraster. Die Maße sind frei waehlbar (pro Partie/Modus): `width` Spalten × `height`

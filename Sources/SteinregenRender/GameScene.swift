@@ -14,7 +14,7 @@ public final class GameScene: SKScene {
     public weak var model: GameModel?
 
     // MARK: Spielzustand
-    /// Die aktive Engine — modusneutral hinter `PlayEngine` (Saeulen oder Verschuettet).
+    /// Die aktive Engine — modusneutral hinter `PlayEngine` (eine der fuenf Core-Engines).
     private var engine: (any PlayEngine)?
     /// Brettmaße der laufenden Partie. Werden in `start()` aus der Engine uebernommen; alle Layout-
     /// und Render-Schleifen laufen ueber DIESE Werte (nicht ueber die Board-Defaults), damit

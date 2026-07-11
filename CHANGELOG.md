@@ -3,6 +3,13 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.3]
+
+- Determinism polish: match results (`findMatches`, `findLines`, Reaper harvests) now
+  return their cells in a fixed board order (row, then column) instead of Swift's
+  process-random set order. Game state was always deterministic; now the *order* of
+  cleared cells (and thus clear animations and future replays) is too.
+
 ## [0.27.2]
 
 - Music tracks are now discovered automatically: drop another gaplessly numbered
