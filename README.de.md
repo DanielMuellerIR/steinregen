@@ -1,9 +1,9 @@
 # Steinregen
 
-Ein natives macOS- und iOS-Spiel in roher Black-Metal-Ästhetik — zwei Spiel-Modi auf einer
-gemeinsamen Engine. Geschrieben in Swift mit SwiftUI und SpriteKit.
+Ein natives macOS- und iOS-Spiel in roher Black-Metal-Ästhetik — sechs Fallstein-Spielmodi auf
+einem gemeinsamen, deterministischen Kern. Geschrieben in Swift mit SwiftUI und SpriteKit.
 
-*(English version: [README.md](README.md))*
+**🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
 <p align="center">
   <img src="assets/sc0.jpg" width="32%" alt="Startbildschirm: Modus und Start-Tempo wählen">
@@ -24,9 +24,18 @@ Lieber aus dem Quellcode bauen, oder die iOS-App? Siehe [Bauen & Starten](#bauen
   die darüber liegenden nachrutschen, was Kettenreaktionen mit Bonuspunkten auslösen kann.
 - **Eingemauert** (Tetris-Art) — es fallen Tetrominos (Vier-Block-Formen). Eine ganze Reihe füllen
   räumt sie. Sieben Formen, ein 7-Beutel-Zufallsgeber, einfache Wall-Kicks.
+- **Blutklumpen** (Puyo-Art) — es fallen Zweier-Paare in vier Farben. Vier oder mehr gleiche,
+  seitlich verbundene Steine werden geräumt; die Hälften fallen unabhängig, Kaskaden ketten sich.
+- **Erdrückt** (Pentomino-Variante) — der brutale Bruder von Eingemauert: alle 18 einseitigen
+  Fünflinge (Fünf-Block-Formen) auf einem größeren Brett.
+- **Austreibung** (Dr.-Mario-Art) — das Brett beginnt mit festsitzenden Flüchen übersät. Drei
+  Farben; vier oder mehr in Reihe oder Spalte werden geräumt. Alle Flüche getilgt = **gewonnen** —
+  der einzige Modus mit Sieg-Bedingung.
+- **Schnitter** (Lumines-Art) — es fallen 2×2-Blöcke aus zwei Steinsorten. Gleichfarbige
+  2×2-Quadrate werden markiert und von einer Sense geerntet, die über das Brett streicht.
 
-Beide Modi laufen auf demselben Kern und teilen sich Optik, Ton, Musik und
-Bestenliste. Modus (und Brettgröße) wählt man im Startbildschirm.
+Alle sechs Modi laufen auf demselben deterministischen Kern und teilen sich Optik, Ton, Musik und
+Bestenliste. Modus (und Brettgröße je Modus) wählt man im Startbildschirm.
 
 ## Optik
 
@@ -51,15 +60,15 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 - **Soundeffekte** (lokal erzeugt) — Aufsetzen, Auflösen, Drehen, Level und Game-Over, mit
   mehreren zufälligen Varianten pro Ereignis. In den Einstellungen wählt man ein Klang-Set —
   Steinregen (die eigenen Klänge), Freedoom oder Mundtot (stumm); im Spiel schaltet **T** um.
-- **Musik** (lokal erzeugt) — drei ruhige, atmosphärische instrumentale Metal-Stücke, die nacheinander
+- **Musik** (lokal erzeugt) — ruhige, atmosphärische instrumentale Metal-Stücke, die nacheinander
   in Schleife laufen, pro Partie mit zufälligem Anfangsstück. Standardmäßig an, aber erst ab
   Levelbeginn (nicht im Menü); getrennt von den Soundeffekten ausschaltbar — in den Einstellungen
   oder im Spiel mit **M**.
 - **Hintergründe** — KI-generierte Nebel-bei-Nacht-Motive (Friedhof, toter Winterwald,
   Kathedralenruine, Nebelmoor, blutroter Mond); pro Partie ein anderes, nie dasselbe zweimal
   hintereinander.
-- **Magic Jewel** — eine seltene, helle Säule, die durch alle sechs Sigille pulsiert. Wo sie
-  aufsetzt, räumt sie brettweit die Sorte der Zelle direkt darunter weg.
+- **Magic Jewel** (Steinschlag) — eine seltene, helle Säule, die durch alle sechs Sigille
+  pulsiert. Wo sie aufsetzt, räumt sie brettweit die Sorte der Zelle direkt darunter weg.
 - **Reproduzierbar, seed-getrieben** — gleicher Seed spielt exakt dieselbe Partie nach, Zug für Zug.
 - **Läuft auf macOS** (Tastatur) **und iOS / iPad** (Touch), mit demselben Kern und Renderer.
 - **Deutsch und Englisch** — die Oberfläche folgt der System-Sprache und ist in den Einstellungen umschaltbar.
@@ -146,21 +155,25 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_LEVEL=<1..10>` — Start-Tempo
 - `STEINREGEN_SEED=<UInt64>` — fester Seed (sonst zufällig)
 - `STEINREGEN_SET=<id>` — Steine-Set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen` / `freedoom`)
-- `STEINREGEN_MODE=<saeulen|verschuettet>` — Modus (Steinschlag / Eingemauert)
+- `STEINREGEN_MODE=<id>` — Modus: `saeulen` (Steinschlag), `verschuettet` (Eingemauert),
+  `klumpen` (Blutklumpen), `fuenfling` (Erdrückt), `kapseln` (Austreibung), `schnitter` (Schnitter)
 - `STEINREGEN_ENDLESS=1` — konstantes Tempo
 - `STEINREGEN_MUSIC=<0|1>` — Musik aus / an erzwingen
+- `STEINREGEN_LANG=<de|en>` — erzwingt die Sprache (sonst System-Sprache bzw. gespeicherte Wahl)
 - `STEINREGEN_SETTINGS=1` — öffnet beim Start den Einstellungsdialog
 - `STEINREGEN_FRIEDHOF=1` — öffnet beim Start den Friedhof (Bestenliste)
+- `STEINREGEN_RULES=1` — öffnet beim Start die Spielregeln
 
 ## Architektur
 
 Drei Swift-Package-Manager-Module plus Tests:
 
-- **`SteinregenCore`** — reine Spiellogik. Zwei Engines (`Engine` für
-  Steinschlag, `TetrominoEngine` für Eingemauert), Brett, Treffer-Erkennung, Kaskaden, Magic
+- **`SteinregenCore`** — reine Spiellogik. Fünf Engines (`Engine` für Steinschlag,
+  `TetrominoEngine` für Eingemauert und Erdrückt, `PairEngine` für Blutklumpen, `CapsuleEngine`
+  für Austreibung, `SquareEngine` für Schnitter), Brett, Treffer-Erkennung, Kaskaden, Magic
   Jewel, Punkte. Kein globaler Zufall, keine Wanduhr; aller Zufall läuft über einen injizierten,
   seed-bestimmten PRNG, sodass ein gegebener Seed immer identisch nachspielt.
-- **`SteinregenRender`** — SpriteKit-Szene, die beide Modi über ein `PlayEngine`-Protokoll treibt:
+- **`SteinregenRender`** — SpriteKit-Szene, die alle Modi über ein `PlayEngine`-Protokoll treibt:
   Darstellung, Schwerkraft-/Animations-Loop, die prozedural gezeichneten Steine-Sets, das Theme
   (Palette/Fonts/Korn), Soundeffekte, der Musik-Player und die Magic-Jewel-Animation.
 - **`SteinregenApp`** — SwiftUI-Shell für macOS und iOS: Menüs, Einstellungen, Spielregeln,
@@ -173,10 +186,12 @@ stammen aus dem Schwester-Projekt *Zaubersteine*.
 ## Markenrechte
 
 Steinregen ist ein eigenständiges Projekt, steht in keiner Verbindung zu Dritten und wird von
-ihnen weder unterstützt noch gefördert. Seine zwei Modi sind von klassischen Fallstein-Spielen
-inspiriert und werden nur beschreibend zum Vergleich genannt: *Columns* ist eine Marke von Sega,
-*Tetris* eine eingetragene Marke der The Tetris Company, LLC. Steinregens eigene Modi heißen
-*Steinschlag* und *Eingemauert*; es verwendet weder *Columns* noch *Tetris* als eigenen Namen und
+ihnen weder unterstützt noch gefördert. Seine sechs Modi sind von klassischen Fallstein-Spielen
+inspiriert und werden nur beschreibend zum Vergleich genannt: *Columns* und *Puyo Puyo* sind
+Marken von Sega, *Tetris* ist eine eingetragene Marke der The Tetris Company, LLC, *Dr. Mario*
+eine Marke von Nintendo und *Lumines* eine Marke ihres jeweiligen Inhabers. Steinregens eigene
+Modi heißen *Steinschlag*, *Eingemauert*, *Blutklumpen*, *Erdrückt*, *Austreibung* und
+*Schnitter*; es verwendet keinen dieser Fremdnamen als eigenen Namen und
 liefert keine Grafiken, Klänge oder den Trade-Dress dieser Spiele mit. Spielmechaniken sind nicht
 urheberrechtlich schützbar, die Namen schon — sie erscheinen hier rein als beschreibende
 (nominative) Nennung.
@@ -193,7 +208,7 @@ Die „FreeDoom"-Steine-Sprites stammen aus dem
 kommerzielle Original-Doom-Material), lizenziert unter
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
-Die Soundeffekte wurden lokal mit einem offenen Audio-Modell (Stable Audio 3) erzeugt, die drei
+Die Soundeffekte wurden lokal mit einem offenen Audio-Modell (Stable Audio 3) erzeugt, die
 Musikstücke mit dem offenen **ACE-Step**-Modell, die Nebel-bei-Nacht-Hintergründe mit dem offenen
 **Qwen-Image**-Modell. Alle sind Teil dieses Projekts. Vollständige Attribution und Lizenzlage:
 [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).

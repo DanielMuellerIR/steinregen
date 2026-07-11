@@ -1,9 +1,9 @@
 # Steinregen
 
-A native macOS and iOS game in a raw black-metal style — two falling-block puzzle modes on one
-shared engine. Written in Swift with SwiftUI and SpriteKit.
+A native macOS and iOS game in a raw black-metal style — six falling-block puzzle modes on one
+shared, deterministic core. Written in Swift with SwiftUI and SpriteKit.
 
-*(Deutsche Version: [README.de.md](README.de.md))*
+**🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
 <p align="center">
   <img src="assets/sc0_en.jpg" width="32%" alt="Start screen: pick a mode and starting speed">
@@ -24,9 +24,18 @@ Prefer to build from source, or want the iOS app? See [Build & Run](#build--run)
   ones above fall, which can set off chain reactions for bonus points.
 - **Entombed** (Tetris-style) — falling tetromino pieces (four-block shapes). Fill a whole row to
   clear it. Seven shapes, a 7-bag randomizer, simple wall kicks.
+- **Blood Clots** (Puyo-style) — falling two-stone pairs in four colors. Four or more of the same
+  kind connected side by side clear; the halves fall independently, and cascades chain.
+- **Crushed** (pentomino variant) — Entombed's brutal sibling: all 18 one-sided pentominoes
+  (five-block shapes) on a bigger board.
+- **Exorcism** (Dr.-Mario-style) — the board starts littered with curses that stick in place.
+  Three colors; four or more in a row or column clear. Purge every curse and you **win** — the
+  only mode with a victory condition.
+- **Reaper** (Lumines-style) — falling 2×2 blocks of two stone kinds. Same-colored 2×2 squares
+  are marked and then harvested by a scythe line sweeping across the board.
 
-Both modes run on the same core and share the look, sound, music, and high-score
-list. Pick the mode (and board size) on the start screen.
+All six modes run on the same deterministic core and share the look, sound, music, and high-score
+list. Pick the mode (and per-mode board size) on the start screen.
 
 ## Look
 
@@ -50,14 +59,14 @@ backed by a muted, desaturated color tint.
 - **Sound effects** (locally generated) — landing, clearing, rotating, level-up and game-over
   cues, with several random variants per event. In Settings you can pick a sound set —
   Steinregen (the project's own cues), Freedoom, or Silenced; **T** toggles in-game.
-- **Music** (locally generated) — three calm, atmospheric instrumental metal tracks that play one
+- **Music** (locally generated) — calm, atmospheric instrumental metal tracks that play one
   after another in a loop, starting on a random track each game. On by default but only from the
   start of a level, not in the menu; toggled independently of the sound effects in Settings or
   with **M** in-game.
 - **Backgrounds** — AI-generated foggy-night motifs (graveyard, dead winter forest, ruined
   cathedral, foggy moor, blood-red moon); a different one each game, never the same twice in a row.
-- **Magic Jewel** — a rare, bright column pulsing through all six sigils. Where it lands it wipes
-  every stone of the kind directly beneath it from the board.
+- **Magic Jewel** (Rockfall) — a rare, bright column pulsing through all six sigils. Where it
+  lands it wipes every stone of the kind directly beneath it from the board.
 - **Reproducible, seed-driven** — the same seed replays the exact same game, move for move.
 - **Runs on macOS** (keyboard) **and iOS / iPad** (touch), sharing the same core and renderer.
 - **English and German** — the interface follows your system language and can be switched in Settings.
@@ -143,21 +152,25 @@ STEINREGEN_AUTOSTART=1 STEINREGEN_LEVEL=8 STEINREGEN_SEED=4242 swift run Steinre
 - `STEINREGEN_LEVEL=<1..10>` — starting speed
 - `STEINREGEN_SEED=<UInt64>` — fixed seed (otherwise random)
 - `STEINREGEN_SET=<id>` — stone set (`sigil` / `doom` / `zaubersteine` / `g20` / `juwelen` / `freedoom`)
-- `STEINREGEN_MODE=<saeulen|verschuettet>` — mode (Rockfall / Entombed)
+- `STEINREGEN_MODE=<id>` — mode: `saeulen` (Rockfall), `verschuettet` (Entombed),
+  `klumpen` (Blood Clots), `fuenfling` (Crushed), `kapseln` (Exorcism), `schnitter` (Reaper)
 - `STEINREGEN_ENDLESS=1` — constant tempo
 - `STEINREGEN_MUSIC=<0|1>` — force music off / on
+- `STEINREGEN_LANG=<de|en>` — force the language (otherwise system language / saved choice)
 - `STEINREGEN_SETTINGS=1` — open the settings dialog on launch
 - `STEINREGEN_FRIEDHOF=1` — open the Graveyard (high-score list) on launch
+- `STEINREGEN_RULES=1` — open the game-rules dialog on launch
 
 ## Architecture
 
 Three Swift Package Manager modules plus tests:
 
-- **`SteinregenCore`** — pure game logic. Two engines (`Engine` for Rockfall,
-  `TetrominoEngine` for Entombed), board, match detection, cascades, magic jewel, scoring. No
+- **`SteinregenCore`** — pure game logic. Five engines (`Engine` for Rockfall, `TetrominoEngine`
+  for Entombed and Crushed, `PairEngine` for Blood Clots, `CapsuleEngine` for Exorcism,
+  `SquareEngine` for Reaper), board, match detection, cascades, magic jewel, scoring. No
   global randomness and no wall-clock; all randomness flows through an injected, seeded PRNG, so a
   given seed always replays identically.
-- **`SteinregenRender`** — SpriteKit scene that drives both modes through one `PlayEngine`
+- **`SteinregenRender`** — SpriteKit scene that drives all modes through one `PlayEngine`
   protocol: rendering, the gravity/animation loop, the procedurally drawn stone sets, the theme
   (palette/fonts/grain), sound effects, the music player, and the magic-jewel animation.
 - **`SteinregenApp`** — SwiftUI shell for macOS and iOS: menus, settings, rules, the Graveyard, and
@@ -170,11 +183,12 @@ the sibling project *Zaubersteine*.
 ## Trademarks
 
 Steinregen is an independent project and is not affiliated with, endorsed by, or sponsored by
-anyone. Its two modes are inspired by classic falling-block puzzle games and are referred to only
-by descriptive comparison: *Columns* is a trademark of Sega, and *Tetris* is a registered
-trademark of The Tetris Company, LLC. Steinregen's own modes are named *Rockfall* and *Entombed*;
-it uses neither *Columns* nor *Tetris* as its own name and ships none of those games' graphics,
-sounds, or trade dress. Game mechanics are not copyrightable; the names are, and appear here
+anyone. Its six modes are inspired by classic falling-block puzzle games and are referred to only
+by descriptive comparison: *Columns* and *Puyo Puyo* are trademarks of Sega, *Tetris* is a
+registered trademark of The Tetris Company, LLC, *Dr. Mario* is a trademark of Nintendo, and
+*Lumines* is a trademark of its respective owner. Steinregen's own modes are named *Rockfall*,
+*Entombed*, *Blood Clots*, *Crushed*, *Exorcism*, and *Reaper*; it uses none of those third-party
+names as its own and ships none of those games' graphics, sounds, or trade dress. Game mechanics are not copyrightable; the names are, and appear here
 purely as nominative (descriptive) references.
 
 ## License
@@ -189,7 +203,7 @@ The "FreeDoom" stone-set sprites come from the
 commercial Doom material), licensed under
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
-The sound effects were generated locally with an open audio model (Stable Audio 3); the three
+The sound effects were generated locally with an open audio model (Stable Audio 3); the
 music tracks with the open **ACE-Step** model; the foggy-night background images with the open
 **Qwen-Image** model. All ship as part of this project. See
 [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md) for the full attribution and license overview.

@@ -13,7 +13,7 @@ situation is auditable before any (re)distribution.
 
 ## Sound effects & the "FreeDoom" stone set
 
-- **Freedoom sound effects** (`ds*.wav`) and the **"FreeDoom" stone-set sprites** (`fd_*.png`,
+- **Freedoom sound effects** (`ds*.m4a`) and the **"FreeDoom" stone-set sprites** (`fd_*.png`,
   cropped/scaled at runtime from original Freedoom sprites) — from the
   [Freedoom](https://github.com/freedoom/freedoom) project. BSD-3-Clause. License text:
   `Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt` (bundled). These are Freedoom's own
@@ -52,17 +52,20 @@ situation is auditable before any (re)distribution.
 
 ## Game design
 
-- Steinregen has two modes: **Rockfall** (a clone of the gameplay of Sega's *Columns*, 1990)
-  and **Entombed** (a falling-tetromino, fill-and-clear-rows mode in the long tradition of that
-  genre). Game mechanics and rules are not copyrightable. *Columns* and *Sega* are trademarks of
-  their respective owners; the falling-block genre's best-known name is likewise a registered
-  trademark of its owner. Steinregen uses none of those names for itself and is not affiliated with
-  or endorsed by anyone. The code deliberately uses the generic term "Tetromino".
+- Steinregen has six modes, each inspired by a classic falling-block genre: **Rockfall** (a clone
+  of the gameplay of Sega's *Columns*, 1990), **Entombed** (a falling-tetromino,
+  fill-and-clear-rows mode in the long tradition of that genre), **Blood Clots** (a
+  connected-groups pair mode in the *Puyo Puyo* tradition), **Crushed** (Entombed with
+  pentominoes), **Exorcism** (a clear-the-pre-seeded-board mode in the *Dr. Mario* tradition), and
+  **Reaper** (a timeline-sweep mode in the *Lumines* tradition). Game mechanics and rules are not
+  copyrightable. All referenced game names are trademarks of their respective owners; Steinregen
+  uses none of those names for itself and is not affiliated with or endorsed by anyone. The code
+  deliberately uses generic terms ("Tetromino", "Pair", "Capsule", "Square").
 
 ## In-game text
 
-- The game-over epitaph "Tod macht Fliegen aus uns allen" references a Bethlehem album/song title
-  (1994) and is therefore third-party text. See the open items below.
+- The game-over epitaph is Steinregen's own line since v0.23.0 ("Am Ende fällt jeder Stein" /
+  "In the end, every stone falls"); the earlier Bethlehem quote has been removed. ✅
 
 ---
 
@@ -74,8 +77,8 @@ blockers for that. They must be resolved before any commercial distribution:
 1. **logo.png** — FLUX.1 [dev] outputs are under a non-commercial license. Verify the exact
    output-rights terms with Black Forest Labs, obtain a commercial license, or replace the logo
    with a fully owned asset.
-2. **Bethlehem epitaph** — replace the quoted line with original text (or clear the rights). A
-   single short line is a weak claim, but the safe route for paid distribution is to remove it.
+2. **Bethlehem epitaph** — ✅ resolved in v0.23.0: the quoted line was replaced with an original
+   epitaph ("Am Ende fällt jeder Stein" / "In the end, every stone falls").
 3. **Sega/Columns trademark** — keep the "independent clone, not affiliated with Sega" disclaimer
    prominent (already stated above and in the README).
 4. **Tetromino mode (Entombed)** — the falling-block genre's market leader is aggressively
