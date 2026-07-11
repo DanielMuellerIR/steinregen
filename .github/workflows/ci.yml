@@ -1,0 +1,21 @@
+# CI: baut das Paket und lässt die Unit-Tests auf einem macOS-Runner laufen.
+# Auf den GitHub-Runnern ist volles Xcode vorinstalliert (xcode-select zeigt darauf),
+# darum genügt hier ein einfaches `swift test` — die lokale DEVELOPER_DIR-Krücke
+# aus dem README braucht nur Macs, auf denen bloß die CommandLineTools aktiv sind.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: swift test (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift-Version anzeigen
+        run: swift --version
+      - name: Bauen + Tests
+        run: swift test

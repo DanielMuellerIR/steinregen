@@ -1,5 +1,7 @@
 # Steinregen
 
+[![CI](https://github.com/DanielMuellerIR/steinregen/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielMuellerIR/steinregen/actions/workflows/ci.yml)
+
 A native macOS and iOS game in a raw black-metal style — six falling-block puzzle modes on one
 shared, deterministic core. Written in Swift with SwiftUI and SpriteKit.
 

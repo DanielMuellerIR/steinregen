@@ -1,5 +1,7 @@
 # Steinregen
 
+[![CI](https://github.com/DanielMuellerIR/steinregen/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielMuellerIR/steinregen/actions/workflows/ci.yml)
+
 Ein natives macOS- und iOS-Spiel in roher Black-Metal-Ästhetik — sechs Fallstein-Spielmodi auf
 einem gemeinsamen, deterministischen Kern. Geschrieben in Swift mit SwiftUI und SpriteKit.
 
