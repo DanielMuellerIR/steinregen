@@ -3,6 +3,14 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.5]
+
+- Internal: shared engine building blocks extracted — scoring/level pacing now live in a
+  mode-neutral `Scoring` namespace (previously hidden as statics on the Columns engine),
+  and the color draw, collision check (`Board.fits`), and cascade loop that Blood Clots /
+  Exorcism / Reaper had each duplicated verbatim are now single shared functions.
+  No behavior change; determinism tests confirm identical runs.
+
 ## [0.27.4]
 
 - Internal: the mode-neutral `PlayEngine` protocol is split into a display core

@@ -35,6 +35,21 @@ public struct Cell: Hashable, Sendable {
     }
 }
 
+extension Board {
+    /// Passt ein Stein mit diesen Zellen an seine Position? Alle Zellen muessen seitlich im
+    /// Feld liegen, nicht unter dem Boden sein und (falls im Brett) leer — Zellen OBERHALB des
+    /// Bretts gelten als frei (Steine schweben von oben ein; Drehen darf kurz ueber den Rand
+    /// hinaus). Geteilte Kollisionsregel von Klumpen, Austreibung und Schnitter — frueher in
+    /// jeder der drei Engines wortgleich als privates `fits(_:)`.
+    func fits(cells: [(cell: Cell, gem: Gem)]) -> Bool {
+        for (cell, _) in cells {
+            if cell.col < 0 || cell.col >= width || cell.row < 0 { return false }
+            if cell.row < height, self[cell.col, cell.row] != nil { return false }
+        }
+        return true
+    }
+}
+
 // Feste Brett-Reihenfolge (erst Zeile, dann Spalte). Wichtig fuer den Determinismus:
 // Die Match-Finder sammeln intern in einem Set, und Swift-Sets iterieren pro Prozess
 // zufaellig — vor der Rueckgabe wird deshalb sortiert, damit z. B. `ClearStep.cells`

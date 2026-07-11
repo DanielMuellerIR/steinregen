@@ -64,7 +64,7 @@ public struct SquareEngine: Sendable {
     private var rng: Xoshiro256StarStar
 
     /// Aktuelles Level: steigt mit der Zahl geraeumter Steine (30 je Stufe, wie die Saeulen).
-    public var level: Int { startLevel + gemsCleared / Engine.gemsPerLevel }
+    public var level: Int { startLevel + gemsCleared / Scoring.gemsPerLevel }
 
     // MARK: Initialisierung
 
@@ -226,7 +226,7 @@ public struct SquareEngine: Sendable {
         for cell in cells { board[cell.col, cell.row] = nil }
         settle(&board)
         recomputeMarks()
-        let pts = Engine.points(cleared: cells.count, chain: 1)
+        let pts = Scoring.points(cleared: cells.count, chain: 1)
         score += pts
         gemsCleared += cells.count
         // Sortiert (nicht `Array(cells)`): Set-Reihenfolge ist prozess-zufaellig, die
@@ -257,19 +257,14 @@ public struct SquareEngine: Sendable {
 
     // MARK: Hilfen (Kollision, Zufall)
 
-    /// Passt der Block an seine Position? Alle vier Zellen muessen seitlich im Feld liegen,
-    /// nicht unter dem Boden sein und (falls im Brett) leer — OBERHALB des Bretts gilt als
-    /// frei (der Block schwebt von oben ein).
+    /// Passt der Block an seine Position? — geteilte Kollisionsregel `Board.fits(cells:)`
+    /// (seitlich im Feld, nicht unter dem Boden, im Brett leer; OBERHALB gilt als frei).
     private func fits(_ piece: SquarePiece) -> Bool {
-        for (cell, _) in piece.cells {
-            if cell.col < 0 || cell.col >= board.width || cell.row < 0 { return false }
-            if cell.row < board.height, board[cell.col, cell.row] != nil { return false }
-        }
-        return true
+        board.fits(cells: piece.cells)
     }
 
     /// Zieht die vier Farben des naechsten Blocks (jede Zelle unabhaengig eine der zwei Sorten).
     static func drawBlock(_ rng: inout Xoshiro256StarStar) -> [Gem] {
-        (0..<4).map { _ in blockColors[Int(rng.next() % UInt64(blockColors.count))] }
+        draw(4, from: blockColors, using: &rng)
     }
 }

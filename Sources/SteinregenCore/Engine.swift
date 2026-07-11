@@ -16,9 +16,8 @@ public struct Engine: Sendable {
 
     // MARK: Konstanten
 
-    /// So viele geraeumte Steine heben das Level um eins.
-    public static let gemsPerLevel = 30
     /// Magic-Jewel-Haeufigkeit: im Schnitt 1 von `magicOdds` gezogenen Saeulen.
+    /// (Level-Takt und Punktwertung liegen modusuebergreifend in `Scoring`.)
     public static let magicOdds: UInt64 = 40
 
     /// Mittlere Spalte, in der jede neue Saeule erscheint — haengt von der Brettbreite ab.
@@ -45,7 +44,7 @@ public struct Engine: Sendable {
     private var rng: Xoshiro256StarStar
 
     /// Aktuelles Level: steigt mit der Zahl geraeumter Steine, beginnend bei `startLevel`.
-    public var level: Int { startLevel + gemsCleared / Engine.gemsPerLevel }
+    public var level: Int { startLevel + gemsCleared / Scoring.gemsPerLevel }
 
     // MARK: Initialisierung
 
@@ -149,7 +148,7 @@ public struct Engine: Sendable {
                 chain += 1
                 for cell in cells { board[cell.col, cell.row] = nil }
                 settle(&board)
-                let pts = Engine.points(cleared: cells.count, chain: chain)
+                let pts = Scoring.points(cleared: cells.count, chain: chain)
                 score += pts
                 gemsCleared += cells.count
                 steps.append(ClearStep(cells: cells, kind: .magic, color: target,
@@ -164,19 +163,12 @@ public struct Engine: Sendable {
             boardBefore = board
         }
 
-        // Treffer-Kaskade: solange Drillinge entstehen, raeumen + nachrutschen lassen.
-        while true {
-            let matches = findMatches(board)
-            if matches.isEmpty { break }
-            chain += 1
-            for cell in matches { board[cell.col, cell.row] = nil }
-            settle(&board)
-            let pts = Engine.points(cleared: matches.count, chain: chain)
-            score += pts
-            gemsCleared += matches.count
-            steps.append(ClearStep(cells: matches, kind: .match, color: nil,
-                                   chain: chain, points: pts, boardAfter: board))
-        }
+        // Treffer-Kaskade (geteilte Schleife in Matching.swift): solange Drillinge entstehen,
+        // raeumen + nachrutschen lassen. `startChain` setzt hinter dem Magic-Effekt fort.
+        steps += resolveCascade(&board, startChain: chain,
+                                find: { findMatches($0) },
+                                settleBoard: { settle(&$0) },
+                                score: &score, gemsCleared: &gemsCleared)
 
         phase = .resolving
         return LockResult(landed: landed, wasMagic: wasMagic, boardBefore: boardBefore, steps: steps)
@@ -203,11 +195,11 @@ public struct Engine: Sendable {
         return true
     }
 
-    // MARK: Zufall + Punkte (statisch, rein)
+    // MARK: Zufall (statisch, rein — Punktwertung liegt in `Scoring`)
 
-    /// Zieht drei normale Farben (nie Magic).
+    /// Zieht drei normale Farben (nie Magic) — ueber den geteilten Zieh-Baustein `draw`.
     static func drawColors(_ rng: inout Xoshiro256StarStar) -> [Gem] {
-        (0..<3).map { _ in Gem.colors[Int(rng.next() % UInt64(Gem.colors.count))] }
+        draw(3, from: Gem.colors, using: &rng)
     }
 
     /// Zieht eine Saeule; mit Wahrscheinlichkeit 1/`magicOdds` ein Magic Jewel (drei Magic-Steine).
@@ -216,11 +208,5 @@ public struct Engine: Sendable {
             return [.magic, .magic, .magic]
         }
         return drawColors(&rng)
-    }
-
-    /// Punkte einer Raeum-Welle: je Stein 10 Punkte, multipliziert mit der Kettenstufe
-    /// (Kettenreaktionen werden also stark belohnt).
-    static func points(cleared: Int, chain: Int) -> Int {
-        cleared * 10 * chain
     }
 }

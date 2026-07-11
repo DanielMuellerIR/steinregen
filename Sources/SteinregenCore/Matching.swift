@@ -114,6 +114,47 @@ func findLines(_ board: Board, minRun: Int) -> [Cell] {
     return marked.sorted()
 }
 
+/// Loest die Treffer-Kaskade vollstaendig auf: solange `find` Treffer liefert, werden sie
+/// geraeumt, das Brett rutscht per `settleBoard` nach, Punkte/Zaehler steigen, und je Welle
+/// entsteht ein `ClearStep`. Geteilt von Saeulen, Klumpen und Austreibung — frueher hatte
+/// jede der drei Engines diese Schleife wortgleich. (Der Schnitter raeumt nie beim Aufsetzen,
+/// Eingemauert/Erdrueckt raeumen volle Reihen ohne Kaskade — beide nutzen das hier nicht.)
+///
+/// - Parameters:
+///   - startChain: Kettenstufe VOR der ersten Welle (Saeulen: 1, wenn der Magic-Effekt schon
+///     eine Welle ausgeloest hat, sonst 0).
+///   - find: liefert die zu raeumenden Zellen des aktuellen Bretts (die Modus-Regel:
+///     `findMatches`, `findGroups` oder `findLines`).
+///   - settleBoard: laesst das Brett nach dem Raeumen nachrutschen (Austreibung: fluch-bewusst
+///     ueber `settle(pinned:)`).
+///   - bonus: Zusatzpunkte je Welle aus den geraeumten Zellen (Austreibung: Fluch-Bonus).
+///     Wird VOR dem Raeumen aufgerufen und darf im Aufrufer Zustand fortschreiben
+///     (z. B. getilgte Flueche austragen, die dann beim `settleBoard` nicht mehr kleben).
+func resolveCascade(_ board: inout Board,
+                    startChain: Int = 0,
+                    find: (Board) -> [Cell],
+                    settleBoard: (inout Board) -> Void,
+                    bonus: ([Cell]) -> Int = { _ in 0 },
+                    score: inout Int,
+                    gemsCleared: inout Int) -> [ClearStep] {
+    var steps: [ClearStep] = []
+    var chain = startChain
+    while true {
+        let matches = find(board)
+        if matches.isEmpty { break }
+        chain += 1
+        let extra = bonus(matches)
+        for cell in matches { board[cell.col, cell.row] = nil }
+        settleBoard(&board)
+        let pts = Scoring.points(cleared: matches.count, chain: chain) + extra
+        score += pts
+        gemsCleared += matches.count
+        steps.append(ClearStep(cells: matches, kind: .match, color: nil,
+                               chain: chain, points: pts, boardAfter: board))
+    }
+    return steps
+}
+
 /// Laesst in jeder Spalte alle Steine nach unten auf die freien Plaetze nachrutschen
 /// (Columns kennt kein Ueberhaengen — Schwerkraft wirkt rein spaltenweise).
 func settle(_ board: inout Board) {

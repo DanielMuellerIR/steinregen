@@ -186,25 +186,22 @@ public struct CapsuleEngine: Sendable {
         let boardBefore = board
         settle(&board, pinned: curses)
 
-        // Treffer-Kaskade: solange Vierer-Laeufe entstehen, raeumen + nachrutschen lassen.
-        var steps: [ClearStep] = []
-        var chain = 0
-        while true {
-            let matches = findLines(board, minRun: CapsuleEngine.runLength)
-            if matches.isEmpty { break }
-            chain += 1
-            let clearedCurses = curses.intersection(matches)
-            for cell in matches { board[cell.col, cell.row] = nil }
-            curses.subtract(clearedCurses)
-            settle(&board, pinned: curses)
-            // Punkte wie im Saeulen-Modus, plus fester Bonus je getilgtem Fluch.
-            let pts = Engine.points(cleared: matches.count, chain: chain)
-                    + clearedCurses.count * CapsuleEngine.curseBonus
-            score += pts
-            gemsCleared += matches.count
-            steps.append(ClearStep(cells: matches, kind: .match, color: nil,
-                                   chain: chain, points: pts, boardAfter: board))
-        }
+        // Treffer-Kaskade (geteilte Schleife in Matching.swift): solange Vierer-Laeufe
+        // entstehen, raeumen + fluch-bewusst nachrutschen lassen. Der `bonus`-Hook traegt
+        // je Welle die getilgten Flueche aus `remainingCurses` aus (BEVOR `settleBoard`
+        // laeuft — getilgte Flueche kleben nicht mehr) und liefert den Fluch-Bonus.
+        var remainingCurses = curses
+        let steps = resolveCascade(
+            &board,
+            find: { findLines($0, minRun: CapsuleEngine.runLength) },
+            settleBoard: { settle(&$0, pinned: remainingCurses) },
+            bonus: { matches in
+                let clearedCurses = remainingCurses.intersection(matches)
+                remainingCurses.subtract(clearedCurses)
+                return clearedCurses.count * CapsuleEngine.curseBonus
+            },
+            score: &score, gemsCleared: &gemsCleared)
+        curses = remainingCurses
 
         // Sieg-Check: alle Flueche getilgt ⇒ gewonnen (kein weiterer Einwurf).
         phase = curses.isEmpty ? .won : .resolving
@@ -230,19 +227,15 @@ public struct CapsuleEngine: Sendable {
 
     // MARK: Hilfen (Kollision, Zufall, Fluch-Vorbefuellung)
 
-    /// Passt die Kapsel an ihre Position? (identische Regel wie im Klumpen-Modus: seitlich im
-    /// Feld, nicht unter dem Boden, Zellen im Brett leer; OBERHALB des Bretts gilt als frei).
+    /// Passt die Kapsel an ihre Position? — geteilte Kollisionsregel `Board.fits(cells:)`
+    /// (seitlich im Feld, nicht unter dem Boden, im Brett leer; OBERHALB gilt als frei).
     private func fits(_ piece: PairPiece) -> Bool {
-        for (cell, _) in piece.cells {
-            if cell.col < 0 || cell.col >= board.width || cell.row < 0 { return false }
-            if cell.row < board.height, board[cell.col, cell.row] != nil { return false }
-        }
-        return true
+        board.fits(cells: piece.cells)
     }
 
     /// Zieht die zwei Farben der naechsten Kapsel (nur aus den drei Modus-Farben, nie Magic).
     static func drawPair(_ rng: inout Xoshiro256StarStar) -> [Gem] {
-        (0..<2).map { _ in capsuleColors[Int(rng.next() % UInt64(capsuleColors.count))] }
+        draw(2, from: capsuleColors, using: &rng)
     }
 
     /// Wie viele Flueche die Stufe `level` (1–10) auf diesem Brett bekommt: 4 je Stufe,

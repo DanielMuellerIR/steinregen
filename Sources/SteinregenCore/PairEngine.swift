@@ -51,7 +51,7 @@ public struct PairEngine: Sendable {
     private var rng: Xoshiro256StarStar
 
     /// Aktuelles Level: steigt mit der Zahl geraeumter Steine (30 je Stufe, wie die Saeulen).
-    public var level: Int { startLevel + gemsCleared / Engine.gemsPerLevel }
+    public var level: Int { startLevel + gemsCleared / Scoring.gemsPerLevel }
 
     // MARK: Initialisierung
 
@@ -164,21 +164,12 @@ public struct PairEngine: Sendable {
         let boardBefore = board
         settle(&board)
 
-        // Treffer-Kaskade: solange Vierergruppen entstehen, raeumen + nachrutschen lassen.
-        var steps: [ClearStep] = []
-        var chain = 0
-        while true {
-            let matches = findGroups(board, minSize: PairEngine.groupSize)
-            if matches.isEmpty { break }
-            chain += 1
-            for cell in matches { board[cell.col, cell.row] = nil }
-            settle(&board)
-            let pts = Engine.points(cleared: matches.count, chain: chain)
-            score += pts
-            gemsCleared += matches.count
-            steps.append(ClearStep(cells: matches, kind: .match, color: nil,
-                                   chain: chain, points: pts, boardAfter: board))
-        }
+        // Treffer-Kaskade (geteilte Schleife in Matching.swift): solange Vierergruppen
+        // entstehen, raeumen + nachrutschen lassen.
+        let steps = resolveCascade(&board,
+                                   find: { findGroups($0, minSize: PairEngine.groupSize) },
+                                   settleBoard: { settle(&$0) },
+                                   score: &score, gemsCleared: &gemsCleared)
 
         phase = .resolving
         return PairLock(landed: landed, boardBefore: boardBefore, steps: steps)
@@ -204,19 +195,14 @@ public struct PairEngine: Sendable {
 
     // MARK: Hilfen (Kollision, Zufall)
 
-    /// Passt das Paar an seine Position? Beide Zellen muessen seitlich im Feld liegen, nicht
-    /// unter dem Boden sein und (falls im Brett) leer sein — Zellen OBERHALB des Bretts gelten
-    /// als frei (das Paar schwebt von oben ein, Drehen darf kurz ueber den Rand hinaus).
+    /// Passt das Paar an seine Position? — geteilte Kollisionsregel `Board.fits(cells:)`
+    /// (seitlich im Feld, nicht unter dem Boden, im Brett leer; OBERHALB gilt als frei).
     private func fits(_ piece: PairPiece) -> Bool {
-        for (cell, _) in piece.cells {
-            if cell.col < 0 || cell.col >= board.width || cell.row < 0 { return false }
-            if cell.row < board.height, board[cell.col, cell.row] != nil { return false }
-        }
-        return true
+        board.fits(cells: piece.cells)
     }
 
     /// Zieht die zwei Farben des naechsten Paars (nur aus den vier Modus-Farben, nie Magic).
     static func drawPair(_ rng: inout Xoshiro256StarStar) -> [Gem] {
-        (0..<2).map { _ in pairColors[Int(rng.next() % UInt64(pairColors.count))] }
+        draw(2, from: pairColors, using: &rng)
     }
 }
