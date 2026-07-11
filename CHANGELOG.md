@@ -3,6 +3,13 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.4]
+
+- Internal: the mode-neutral `PlayEngine` protocol is split into a display core
+  (board, score, phase, visual seams) and a `FallingPieceEngine` sub-protocol carrying
+  the falling-piece verbs (move/rotate/step/spawn). No behavior change — this prepares
+  future modes that have no falling piece (catch-paddle or cursor-swap styles).
+
 ## [0.27.3]
 
 - Determinism polish: match results (`findMatches`, `findLines`, Reaper harvests) now

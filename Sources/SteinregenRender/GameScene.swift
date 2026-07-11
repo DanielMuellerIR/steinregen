@@ -14,8 +14,11 @@ public final class GameScene: SKScene {
     public weak var model: GameModel?
 
     // MARK: Spielzustand
-    /// Die aktive Engine — modusneutral hinter `PlayEngine` (eine der fuenf Core-Engines).
-    private var engine: (any PlayEngine)?
+    /// Die aktive Engine — modusneutral hinter dem Fall-Teilprotokoll (eine der fuenf
+    /// Core-Engines; alle heutigen Modi haben einen fallenden Stein). Der Schwerkraft-/
+    /// Lock-Delay-Loop im `update` setzt die Fall-Verben voraus — ein kuenftiger Modus ohne
+    /// fallenden Stein (Panel-de-Pon-Stil) braeuchte hier einen eigenen Pfad auf `PlayEngine`-Basis.
+    private var engine: (any FallingPieceEngine)?
     /// Brettmaße der laufenden Partie. Werden in `start()` aus der Engine uebernommen; alle Layout-
     /// und Render-Schleifen laufen ueber DIESE Werte (nicht ueber die Board-Defaults), damit
     /// beliebige Brettgroessen (Verschuettet, frei eingestellte Maße) sauber gezeichnet werden.

@@ -195,17 +195,56 @@ public enum StepResult {
     case locked(before: Board, steps: [ClearStep], magicLanding: (col: Int, row: Int)?)
 }
 
-// MARK: - Gemeinsames Protokoll
+// MARK: - Gemeinsames Protokoll (Kern)
 
-/// Was die `GameScene` von einer Engine braucht — unabhaengig vom Modus. Wird von beiden Core-Engines
-/// erfuellt (siehe Conformances unten). Die Eingabe-/Schwerkraft-Methoden sind `mutating`, weil die
-/// Engines Wert-Typen (struct) sind; die Szene haelt sie in einem `var`.
+/// Was die `GameScene` von JEDER Engine braucht — unabhaengig davon, OB ein Stein faellt:
+/// Brett + Zaehlerstaende fuer Darstellung/HUD sowie die rein optischen Zusatz-Naehte
+/// (klebende Flueche, Schimmer-Zellen, Sense). Bewusst OHNE Eingabe-/Fall-Verben: ein
+/// kuenftiger Modus ohne fallenden Stein (z. B. Panel-de-Pon-Stil — Cursor tauscht Steine,
+/// der Stapel waechst von unten) erfuellt nur diesen Kern und bringt eigene Verben mit,
+/// statt `moveLeft`/`rotate`/`spawnNext` bedeutungslos zu implementieren.
 protocol PlayEngine {
     var board: Board { get }
     var score: Int { get }
     var level: Int { get }
     var phase: Phase { get }
 
+    /// Zellen, die FEST im Brett kleben (Kapsel-Modus: die Flueche): Sie rutschen beim
+    /// Nachrutschen nie nach unten und wirken als Barriere; der Renderer zeichnet sie markiert
+    /// (Fluch-Ring) und laesst seine Nachrutsch-Animation an ihnen anhalten. Default: leer.
+    var pinnedCells: Set<Cell> { get }
+
+    /// HERVORGEHOBENE Zellen (Schnitter-Modus: Teile gleichfarbiger 2×2-Quadrate, die auf die
+    /// Sense warten). Rein optisch — der Renderer legt einen hellen Schimmer darueber. Anders
+    /// als `pinnedCells` aendern sie sich laufend und werden immer frisch gelesen. Default: leer.
+    var highlightedCells: Set<Cell> { get }
+
+    /// Aktuelle Spalte der Sense (Schnitter-Modus) — der Renderer zeichnet dort die Sweep-Linie
+    /// und treibt `sweepTick()` im Takt. nil = dieser Modus hat keine Sense. Default: nil.
+    var sweepColumn: Int? { get }
+
+    /// Ein Sense-Schritt (Schnitter-Modus): bewegt die Sweep-Linie um eine Spalte und liefert
+    /// ggf. die geerntete Raeum-Welle. Der TAKT lebt in der Szene (Echtzeit), der Schritt im
+    /// Core (deterministisch). Default: tut nichts und liefert nil.
+    mutating func sweepTick() -> ClearStep?
+}
+
+extension PlayEngine {
+    var pinnedCells: Set<Cell> { [] }
+    var highlightedCells: Set<Cell> { [] }
+    var sweepColumn: Int? { nil }
+    mutating func sweepTick() -> ClearStep? { nil }
+}
+
+// MARK: - Fall-Steuerung (Teilprotokoll)
+
+/// Die Verben des FALLENDEN Steins — heute von allen fuenf Engines erfuellt. Getrennt vom Kern,
+/// damit das Basisprotokoll nicht zum Sammelbecken fuer Paradigma-Spezifika waechst: Die Szene
+/// treibt ihren Schwerkraft-/Lock-Delay-Loop nur ueber DIESES Protokoll; ein Modus mit anderem
+/// Eingabe-Paradigma (Klax-Fangschaufel, Panel-de-Pon-Cursor) bekaeme ein eigenes Teilprotokoll
+/// neben diesem, ohne die bestehenden Engines anzufassen. Die Eingabe-/Schwerkraft-Methoden sind
+/// `mutating`, weil die Engines Wert-Typen (struct) sind; die Szene haelt sie in einem `var`.
+protocol FallingPieceEngine: PlayEngine {
     /// Die Zellen des AKTIVEN (fallenden) Steins in BRETT-Koordinaten mit ihrer Sorte. Kann Zellen
     /// mit `row >= board.height` enthalten (Saeule schwebt von oben ein) — der Renderer blendet die
     /// aus, bis sie ins Feld rutschen.
@@ -230,38 +269,15 @@ protocol PlayEngine {
     /// animiert dann zuerst dieses Nachfallen. Saeulen setzen immer gestuetzt auf, Vierlinge
     /// duerfen ueberhaengen (kein Nachrutschen) — beide liefern den Default false.
     var postLockSettle: Bool { get }
-
-    /// Zellen, die FEST im Brett kleben (Kapsel-Modus: die Flueche): Sie rutschen beim
-    /// Nachrutschen nie nach unten und wirken als Barriere; der Renderer zeichnet sie markiert
-    /// (Fluch-Ring) und laesst seine Nachrutsch-Animation an ihnen anhalten. Default: leer.
-    var pinnedCells: Set<Cell> { get }
-
-    /// HERVORGEHOBENE Zellen (Schnitter-Modus: Teile gleichfarbiger 2×2-Quadrate, die auf die
-    /// Sense warten). Rein optisch — der Renderer legt einen hellen Schimmer darueber. Anders
-    /// als `pinnedCells` aendern sie sich laufend und werden immer frisch gelesen. Default: leer.
-    var highlightedCells: Set<Cell> { get }
-
-    /// Aktuelle Spalte der Sense (Schnitter-Modus) — der Renderer zeichnet dort die Sweep-Linie
-    /// und treibt `sweepTick()` im Takt. nil = dieser Modus hat keine Sense. Default: nil.
-    var sweepColumn: Int? { get }
-
-    /// Ein Sense-Schritt (Schnitter-Modus): bewegt die Sweep-Linie um eine Spalte und liefert
-    /// ggf. die geerntete Raeum-Welle. Der TAKT lebt in der Szene (Echtzeit), der Schritt im
-    /// Core (deterministisch). Default: tut nichts und liefert nil.
-    mutating func sweepTick() -> ClearStep?
 }
 
-extension PlayEngine {
+extension FallingPieceEngine {
     var postLockSettle: Bool { false }
-    var pinnedCells: Set<Cell> { [] }
-    var highlightedCells: Set<Cell> { [] }
-    var sweepColumn: Int? { nil }
-    mutating func sweepTick() -> ClearStep? { nil }
 }
 
 // MARK: - Conformance: Saeulen (Columns)
 
-extension Engine: PlayEngine {
+extension Engine: FallingPieceEngine {
     /// Die drei Steine der Saeule, von unten nach oben (Index 0 = `current.row`).
     var activeCells: [(cell: Cell, gem: Gem)] {
         (0..<3).map { i in (Cell(col: current.col, row: current.row + i), current.gems[i]) }
@@ -283,7 +299,7 @@ extension Engine: PlayEngine {
 
 // MARK: - Conformance: Verschuettet (Vierlinge)
 
-extension TetrominoEngine: PlayEngine {
+extension TetrominoEngine: FallingPieceEngine {
     /// Die vier belegten Brett-Zellen des Vierlings; alle tragen die (kosmetische) Sorte der Form.
     var activeCells: [(cell: Cell, gem: Gem)] {
         let gem = current.type.gem
@@ -313,7 +329,7 @@ extension TetrominoEngine: PlayEngine {
 
 // MARK: - Conformance: Kapseln (Austreibung)
 
-extension CapsuleEngine: PlayEngine {
+extension CapsuleEngine: FallingPieceEngine {
     /// Die beiden Brett-Zellen der Kapsel (Pivot + Satellit) mit ihrer Farbe — gleiche Geometrie
     /// wie im Klumpen-Modus (der Satellit kann beim Einschweben ueber dem Brett liegen).
     var activeCells: [(cell: Cell, gem: Gem)] { current.cells }
@@ -341,7 +357,7 @@ extension CapsuleEngine: PlayEngine {
 
 // MARK: - Conformance: Schnitter (2×2-Bloecke + Sense)
 
-extension SquareEngine: PlayEngine {
+extension SquareEngine: FallingPieceEngine {
     /// Die vier Brett-Zellen des Blocks mit ihrer Farbe. Die obere Block-Reihe kann beim
     /// Einschweben ueber dem Brett liegen (row >= height) — der Renderer blendet sie aus.
     var activeCells: [(cell: Cell, gem: Gem)] { current.cells }
@@ -379,7 +395,7 @@ extension SquareEngine: PlayEngine {
 
 // MARK: - Conformance: Klumpen (Steinpaare)
 
-extension PairEngine: PlayEngine {
+extension PairEngine: FallingPieceEngine {
     /// Die beiden Brett-Zellen des Paars (Pivot + Satellit) mit ihrer Farbe. Der Satellit kann
     /// beim Einschweben ueber dem Brett liegen (row >= height) — der Renderer blendet ihn aus.
     var activeCells: [(cell: Cell, gem: Gem)] { current.cells }
