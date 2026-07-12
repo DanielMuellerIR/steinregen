@@ -246,12 +246,17 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-13, v0.27.12)
+## 5. Status (Stand 2026-07-13, v0.27.13)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
 seed-getriebene Säulenfolge. Core vollständig unit-getestet. Doppelklickbares App-Bundle mit
 Dock-Icon (`tools/make-app.sh`, arm64; Intel ist bewusst kein Release-Ziel).
+
+**v0.27.13 — weiterer CI-Kompatibilitätsfix:** Auch die beiden privaten UserDefaults-Sicherungen
+in `FriedhofTests` sind jetzt `nonisolated(unsafe)`, weil GitHubs XCTest-Runner `setUp()` und
+`tearDown()` außerhalb des Main Actors ausführt. Der Opt-out bleibt auf seriellen Testzustand
+beschränkt; die eigentliche Bestenliste bleibt unverändert.
 
 **v0.27.12 — CI-Kompatibilität:** `BoardConfigTests` markiert nur seinen privaten,
 seriell verwendeten Teardown-Speicher als `nonisolated(unsafe)`. Das ist für GitHubs macOS-15-

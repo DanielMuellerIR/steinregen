@@ -3,6 +3,12 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.13]
+
+- CI compatibility: applied the same explicit teardown-storage isolation used by
+  `BoardConfigTests` to `FriedhofTests`. GitHub's macOS 15 runner invokes XCTest setup and teardown
+  outside the Main Actor; only the two private, serial test-instance backups opt out of isolation.
+
 ## [0.27.12]
 
 - CI compatibility: made the `BoardConfigTests` teardown storage explicitly nonisolated because

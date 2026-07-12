@@ -12,8 +12,11 @@ final class FriedhofTests: XCTestCase {
 
     private let key = "steinregen.friedhof"
     private let nameKey = "steinregen.lastName"
-    private var savedList: Any?
-    private var savedName: Any?
+    // XCTest führt `setUp()` und `tearDown()` auf GitHubs Runner außerhalb des Main Actors aus.
+    // Beide Werte gehören nur dieser seriell verwendeten Testinstanz und überbrücken deshalb
+    // bewusst die Isolation; die eigentliche Bestenlisten-Implementierung bleibt Main-Actor-sicher.
+    nonisolated(unsafe) private var savedList: Any?
+    nonisolated(unsafe) private var savedName: Any?
 
     override func setUp() {
         super.setUp()
