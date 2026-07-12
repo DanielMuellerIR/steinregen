@@ -51,7 +51,7 @@ public final class MusicPlayer: NSObject {
 
     /// Findet alle Musikstücke im Bundle: `musik-1.mp3`, `musik-2.mp3`, … in lückenlos
     /// aufsteigender Nummerierung (die erste Lücke beendet die Suche — gleiches Muster wie
-    /// `Theme.backdropImages()`). So genügt es, ein weiteres Stück als `musik-N.mp3` ins
+    /// `Theme.backdropCount()`/`backdropImage(_:)`). So genügt es, ein weiteres Stück als `musik-N.mp3` ins
     /// Bundle zu legen. Statisch + parameterisiert, damit Tests sie direkt prüfen können.
     static func discoverTracks(in bundle: Bundle) -> [URL] {
         var urls: [URL] = []

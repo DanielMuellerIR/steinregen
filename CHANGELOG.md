@@ -3,6 +3,13 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.8]
+
+- Memory: the backdrop images are now loaded lazily. Previously `Theme.backdropImages()`
+  decoded and permanently cached all five night backgrounds, though only one is drawn per
+  game (tens of MB decoded on iOS). Split into `backdropCount()` (file probe, no decode)
+  and `backdropImage(_:)` (loads and caches only the chosen index).
+
 ## [0.27.7]
 
 - Tests: closed the highest-value coverage gaps in the previously untested config/

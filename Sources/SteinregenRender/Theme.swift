@@ -84,36 +84,47 @@ public enum Theme {
 
     // MARK: - Hintergrundbilder
 
-    private static var triedBackdrops = false
-    private static var backdropsCached: [CGImage] = []
+    private static var backdropNamesCached: [String]? = nil
+    private static var backdropCache: [Int: CGImage] = [:]
 
-    /// Lädt ALLE Spielfeld-Hintergrundbilder (KI-generierte Nebel-bei-Nacht-Motive) aus dem
-    /// Bundle: zuerst `hintergrund.png` (das ursprüngliche Friedhof-Motiv), danach
-    /// `hintergrund-2.png`, `hintergrund-3.png`, … fortlaufend, bis keine weitere Datei mehr
-    /// existiert. So genügt es, eine neue `hintergrund-N.png` ins Bundle zu legen — sie wird
-    /// automatisch Teil des Pools (die Szene wählt pro Partie zufällig eines). Leeres Array ⇒
-    /// es bleibt nur die schwarze Grundfläche. Das Ergebnis wird einmalig zwischengespeichert.
-    public static func backdropImages() -> [CGImage] {
-        if triedBackdrops { return backdropsCached }
-        triedBackdrops = true
-        // Kandidaten in fester Reihenfolge: erst der unnummerierte „hintergrund", dann -2, -3, …
-        var names = ["hintergrund"]
+    /// Ermittelt die Namen aller vorhandenen Hintergrundbilder in fester Reihenfolge — zuerst
+    /// `hintergrund.png` (das ursprüngliche Friedhof-Motiv), dann `hintergrund-2.png`,
+    /// `hintergrund-3.png`, … fortlaufend, bis keine weitere Datei mehr existiert. NUR
+    /// URL-Prüfung, KEIN Dekodieren. Einmalig ermittelt und zwischengespeichert. So genügt es,
+    /// eine neue `hintergrund-N.png` ins Bundle zu legen — sie wird automatisch Teil des Pools.
+    private static func backdropNames() -> [String] {
+        if let cached = backdropNamesCached { return cached }
+        var names: [String] = []
+        if resourceBundle.url(forResource: "hintergrund", withExtension: "png") != nil {
+            names.append("hintergrund")
+        }
         var n = 2
         while resourceBundle.url(forResource: "hintergrund-\(n)", withExtension: "png") != nil {
             names.append("hintergrund-\(n)")
             n += 1
             if n > 64 { break }   // Sicherheitsdeckel gegen eine versehentliche Endlosschleife
         }
-        var imgs: [CGImage] = []
-        for name in names {
-            if let url = resourceBundle.url(forResource: name, withExtension: "png"),
-               let src = CGImageSourceCreateWithURL(url as CFURL, nil),
-               let img = CGImageSourceCreateImageAtIndex(src, 0, nil) {
-                imgs.append(img)
-            }
-        }
-        backdropsCached = imgs
-        return imgs
+        backdropNamesCached = names
+        return names
+    }
+
+    /// Anzahl vorhandener Hintergrundbilder — OHNE sie zu dekodieren (nur die Datei-Namen).
+    /// Die Szene nutzt das für die Zufallswahl pro Partie. 0 ⇒ es bleibt die schwarze Grundfläche.
+    public static func backdropCount() -> Int { backdropNames().count }
+
+    /// Lädt GENAU das Hintergrundbild mit dem gegebenen 0-basierten Index und cached NUR dieses.
+    /// Früher lud `backdropImages()` ALLE Bilder auf einmal und hielt sie dauerhaft dekodiert im
+    /// Speicher — pro Partie wird aber nur eines gezeichnet (auf iOS sind das schnell zweistellige
+    /// MB dekodiert). nil, wenn der Index außerhalb liegt oder das Dekodieren scheitert.
+    public static func backdropImage(_ index: Int) -> CGImage? {
+        let names = backdropNames()
+        guard names.indices.contains(index) else { return nil }
+        if let cached = backdropCache[index] { return cached }
+        guard let url = resourceBundle.url(forResource: names[index], withExtension: "png"),
+              let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let img = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return nil }
+        backdropCache[index] = img
+        return img
     }
 
     private static var fontsRegistered = false

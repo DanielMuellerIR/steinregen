@@ -28,7 +28,7 @@ public final class GameScene: SKScene {
     // MARK: Layer + Knoten
     /// Ganz hinten: das statische Hintergrundbild (Nebel bei Nacht). Früher prozeduraler Nebel.
     private let backdropLayer = SKNode()
-    /// Index des für die LAUFENDE Partie gewählten Hintergrundbildes in `Theme.backdropImages()`.
+    /// Index des für die LAUFENDE Partie gewählten Hintergrundbildes (0..<`Theme.backdropCount()`).
     /// Wird in `start()` festgelegt und bleibt über alle Layout-Durchläufe (z.B. Fenster-Resize)
     /// stabil — sonst wechselte das Bild bei jeder Größenänderung. Default 0 ⇒ sicher renderbar,
     /// auch bevor die erste Partie gestartet wurde.
@@ -167,7 +167,7 @@ public final class GameScene: SKScene {
         // Pro Partie ein NEUES Hintergrundbild wählen — zufällig, aber nie direkt dasselbe wie in
         // der vorigen Partie (so wechselt das Motiv bei jedem Spielstart sichtbar, ganz ohne App-
         // Neustart). Bei nur einem Bild bleibt es zwangsläufig dabei.
-        let backdropCount = Theme.backdropImages().count
+        let backdropCount = Theme.backdropCount()
         if backdropCount > 0 {
             var next = Int.random(in: 0..<backdropCount)
             var guardCount = 0
@@ -266,12 +266,10 @@ public final class GameScene: SKScene {
     private func buildBackdrop() {
         backdropLayer.removeAllChildren()
         guard size.width > 0, size.height > 0 else { return }
-        // Das für diese Partie gewaehlte Bild aus dem Pool holen; ist keines vorhanden, bleibt
-        // nur die schwarze Grundflaeche (Theme.canvas). `backdropIndex` wird in `start()` gesetzt;
-        // der min() schuetzt, falls die Pool-Groesse mal kleiner als der Index sein sollte.
-        let backdrops = Theme.backdropImages()
-        guard !backdrops.isEmpty else { return }
-        let cg = backdrops[min(backdropIndex, backdrops.count - 1)]
+        // Nur das für diese Partie gewaehlte Bild laden (lazy, gecacht) — nicht mehr den ganzen
+        // Pool. Ist keines vorhanden (Index außerhalb / kein Bild im Bundle), bleibt nur die
+        // schwarze Grundflaeche (Theme.canvas). `backdropIndex` wird in `start()` gesetzt.
+        guard let cg = Theme.backdropImage(backdropIndex) else { return }
         let tex = SKTexture(cgImage: cg)
         let texSize = tex.size()
         guard texSize.width > 0, texSize.height > 0 else { return }
