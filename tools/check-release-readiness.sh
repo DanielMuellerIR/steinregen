@@ -37,6 +37,22 @@ for path in "${required_files[@]}"; do
     [ -s "$path" ] || fail "Pflichtdatei fehlt oder ist leer: $path"
 done
 
+# README-Fensterbilder müssen PNGs mit Alpha sein. JPEG würde die runden Fensterecken wieder mit
+# Weiß oder Schwarz füllen und fällt auf GitHubs hellem Hintergrund sofort negativ auf.
+readme_screenshots=(
+    assets/sc0.png assets/sc0_en.png
+    assets/sc1.png assets/sc1_en.png
+    assets/sc2.png assets/sc2_en.png
+)
+for path in "${readme_screenshots[@]}"; do
+    [ -s "$path" ] || fail "README-Screenshot fehlt: $path"
+    [ "$(sips -g hasAlpha "$path" 2>/dev/null | awk '/hasAlpha:/ {print $2}')" = "yes" ] \
+        || fail "README-Screenshot braucht einen Alpha-Kanal: $path"
+done
+if grep -qE 'assets/sc[0-2](_en)?\.jpg' README.md README.de.md; then
+    fail "README verweist noch auf alte JPEG-Screenshots."
+fi
+
 # Beide verteilten App-Bundles müssen die eigene MIT-Lizenz und die Asset-Attribution mitführen.
 grep -qF 'cp LICENSE "$APP/Contents/Resources/STEINREGEN-LICENSE.txt"' tools/make-app.sh \
     || fail "macOS-Bundle kopiert die MIT-Lizenz nicht."

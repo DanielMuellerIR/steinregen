@@ -7,9 +7,9 @@ SwiftUI und SpriteKit.
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
 <p align="center">
-  <img src="assets/sc0.jpg" width="32%" alt="Startbildschirm: Modus und Start-Tempo wählen">
-  <img src="assets/sc1.jpg" width="32%" alt="Spiel auf einem Nacht-Hintergrund">
-  <img src="assets/sc2.jpg" width="32%" alt="Einstellungen: Ton, Musik, Brettgröße, Steine-Sets">
+  <img src="assets/sc0.png" width="32%" alt="Startbildschirm: Modus und Start-Tempo wählen">
+  <img src="assets/sc1.png" width="32%" alt="Spiel auf einem Nacht-Hintergrund">
+  <img src="assets/sc2.png" width="32%" alt="Einstellungen: Ton, Musik, Brettgröße, Steine-Sets">
 </p>
 
 ## Download / Releases

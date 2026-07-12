@@ -6,9 +6,9 @@ modes on one shared, deterministic core. Written in Swift with SwiftUI and Sprit
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
 <p align="center">
-  <img src="assets/sc0_en.jpg" width="32%" alt="Start screen: pick a mode and starting speed">
-  <img src="assets/sc1_en.jpg" width="32%" alt="Gameplay on a night background">
-  <img src="assets/sc2_en.jpg" width="32%" alt="Settings: language, sound, music, board size, stone sets">
+  <img src="assets/sc0_en.png" width="32%" alt="Start screen: pick a mode and starting speed">
+  <img src="assets/sc1_en.png" width="32%" alt="Gameplay on a night background">
+  <img src="assets/sc2_en.png" width="32%" alt="Settings: language, sound, music, and board size">
 </p>
 
 ## Download / Releases
