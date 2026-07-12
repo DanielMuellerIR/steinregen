@@ -3,6 +3,14 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.6]
+
+- Internal: the 1580-line `SteinregenApp.swift` is split along its existing view
+  boundaries into eight focused files (StartView, SettingsView, GameplayView,
+  GameOverOverlay, FriedhofView, RulesSheet, TouchControls) plus a `SharedUI` file
+  holding the reused helpers (`themeCard`, `StepperArrow`, `DoneButton`, the color and
+  dialog-frame helpers). Pure move + de-duplication; the UI is pixel-identical.
+
 ## [0.27.5]
 
 - Internal: shared engine building blocks extracted — scoring/level pacing now live in a
