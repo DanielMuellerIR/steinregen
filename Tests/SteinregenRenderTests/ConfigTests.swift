@@ -12,7 +12,10 @@ final class BoardConfigTests: XCTestCase {
 
     // Die von den einzelnen Tests angefassten UserDefaults-Schlüssel — vor jedem Test gesichert
     // und danach wiederhergestellt, damit die echten Einstellungen des Nutzers unberührt bleiben.
-    private var saved: [String: Any?] = [:]
+    // XCTest ruft `tearDown()` nicht auf dem Main Actor auf. Der Zustand gehört trotzdem nur zu
+    // genau dieser seriell verwendeten Testinstanz; deshalb darf nur diese Variable die Isolation
+    // bewusst überbrücken. Produktionscode und die getestete Spiellogik bleiben davon unberührt.
+    nonisolated(unsafe) private var saved: [String: Any?] = [:]
 
     private func snapshot(_ keys: [String]) {
         for k in keys { saved[k] = UserDefaults.standard.object(forKey: k) }

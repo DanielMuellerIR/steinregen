@@ -93,7 +93,7 @@ public final class GameScene: SKScene {
     private let lockDelay: TimeInterval = 0.6
     /// Nach einem Hard-Drop (Leertaste) gilt bewusst nur das halbe Fenster.
     private let hardDropLockDelay: TimeInterval = 0.21
-    /// Lock-Delay als EINFACHE Regel (Wunsch Daniel): Sobald der Stein zum ersten Mal nicht mehr
+    /// Lock-Delay als EINFACHE Regel: Sobald der Stein zum ersten Mal nicht mehr
     /// fallen kann (Beruehrung), startet `settleTimer`. Er laeuft in Echtzeit weiter und wird von
     /// NICHTS zurueckgesetzt — nicht durch Drehen, Schieben oder das kurze Anheben beim Rotieren.
     /// Nach `lockDelay` (bzw. `hardDropLockDelay` nach Instant-Fall) rastet der Stein ein. Drehen

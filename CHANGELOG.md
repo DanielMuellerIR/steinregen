@@ -3,6 +3,12 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.12]
+
+- CI compatibility: made the `BoardConfigTests` teardown storage explicitly nonisolated because
+  XCTest invokes `tearDown()` outside the Main Actor on GitHub's macOS 15 runner. The storage is
+  private to one serial test instance; production code and deterministic game logic are unchanged.
+
 ## [0.27.11]
 
 - Publication readiness: refreshed all six smoothed Zaubersteine assets from the sibling project,

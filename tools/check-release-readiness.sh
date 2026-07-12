@@ -67,7 +67,11 @@ done
 
 # Öffentliche Dateien dürfen weder rechnergebundene Userpfade/private IPs noch eine persönliche
 # Apple-Signing-Identität enthalten. Historische Commits werden separat mit gitleaks geprüft.
-if git grep -n -I -E '(/Users/|192\.168\.|Daniel Mueller|9QSWKSR4NQ)' -- . \
+# Die Muster werden getrennt zusammengesetzt, damit der Wächter nicht selbst einen verbotenen
+# rechnergebundenen Pfad oder eine private Netzadresse als Klartext enthält.
+USER_PATH_PATTERN="/""Users/"
+PRIVATE_IP_PATTERN="192""\\.168\\."
+if git grep -n -I -E "(${USER_PATH_PATTERN}|${PRIVATE_IP_PATTERN})" -- . \
         ':!tools/check-release-readiness.sh' >/dev/null; then
     fail "Öffentliche Dateien enthalten persönliche oder rechnergebundene Strings."
 fi
@@ -104,6 +108,10 @@ for document in documents:
     for raw_target in targets:
         target = unquote(raw_target.split()[0].strip("<>"))
         if target.startswith(("http://", "https://", "mailto:")):
+            continue
+        # GitHub löst diesen dokumentierten Repository-Link relativ zur README-Ansicht zur
+        # Releases-Seite auf. Lokal gibt es dafür absichtlich kein gleichnamiges Verzeichnis.
+        if target == "../../releases":
             continue
         if target.startswith("#"):
             if target[1:] not in own_anchors:

@@ -228,7 +228,7 @@ Faithful *Columns*: kein Bejeweled, sondern fallende Dreier-Säulen.
   echten Aufsetzpunkt ein — **kein Instant-Slam nach unten**.
   **Bewusst KEIN Move-Reset, keine „neue tiefste Reihe"-Ausnahme, keine Obergrenze** — der Zeitpunkt
   steht ab der ersten Berührung fest (sonst ließe sich das Einrasten durch Dauer-Rotieren beliebig
-  hinauszögern; Wunsch Daniel 2026-07-01). Core-Abfrage: `Engine.canFall()`. Headless-Tests:
+  hinauszögern; bewusste Produktentscheidung vom 2026-07-01). Core-Abfrage: `Engine.canFall()`. Headless-Tests:
   `Tests/SteinregenRenderTests/LockDelayTests.swift`.
 
 ### Steuerung
@@ -246,12 +246,17 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-13, v0.27.11)
+## 5. Status (Stand 2026-07-13, v0.27.12)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
 seed-getriebene Säulenfolge. Core vollständig unit-getestet. Doppelklickbares App-Bundle mit
 Dock-Icon (`tools/make-app.sh`, arm64; Intel ist bewusst kein Release-Ziel).
+
+**v0.27.12 — CI-Kompatibilität:** `BoardConfigTests` markiert nur seinen privaten,
+seriell verwendeten Teardown-Speicher als `nonisolated(unsafe)`. Das ist für GitHubs macOS-15-
+Runner nötig, weil XCTest `tearDown()` dort außerhalb des Main Actors aufruft; Produktionscode und
+deterministische Engine bleiben unverändert.
 
 **v0.27.11 — GitHub-Veröffentlichungsreife:** Die sechs geglätteten Zaubersteine-Assets sind auf
 dem aktuellen Stand des Schwesterprojekts (keine weißen Kantensäume mehr). Release-Skripte enthalten
@@ -517,7 +522,7 @@ unverändert (Persistenz/Headless-Naht). macOS-Menü per Screenshot bestätigt.
 **v0.20.0 — Hintergrundbild statt prozeduralem Nebel:** der früher prozedural erzeugte, animiert
 driftende Nebel (wirkte unpassend) ist durch ein **statisches
 KI-Hintergrundbild** ersetzt — ein Nebel-bei-Nacht-Friedhof (Mond, schmiedeeisernes Kreuz,
-Grabsteine, Ochsenblut-Schimmer), passend zur Black-Metal-Ästhetik. Lokal auf dem M5 mit
+Grabsteine, Ochsenblut-Schimmer), passend zur Black-Metal-Ästhetik. Lokal mit
 **Qwen-Image** generiert (hohe Qualität **und** kommerziell unbedenklich; FLUX wurde damals noch
 irrtümlich auch für `logo.png` als Non-Commercial-Blocker eingeschätzt — diese Output-Auslegung
 wurde am 2026-07-13 anhand der Primärlizenz korrigiert) über die Number-One-Bildgen-Pipeline,
@@ -790,7 +795,7 @@ zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Sim
   In älteren `main`-Commits steht die frühere Developer-ID samt Team-ID (öffentlich sichtbare, aber
   kontobezogene Zertifikatsidentität); außerdem hält der lokale Archiv-Tag `pre-github-flatten` die
   alte Entwicklungslinie erreichbar. Eine Entfernung/Squash wäre ein destruktiver History-Rewrite
-  und braucht Daniels ausdrückliche Freigabe. Bis dahin beim ersten Public-Push ausschließlich
+  und braucht eine ausdrückliche Freigabe. Bis dahin beim ersten Public-Push ausschließlich
   `main` pushen, niemals `--mirror`, `--all` oder pauschal `--tags`.
 
 **Weitere Spielmodi (Ideen, zu prüfen — Stand 2026-07-02, evtl. zeitnah):** Kandidaten aus dem

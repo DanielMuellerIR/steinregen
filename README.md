@@ -14,7 +14,7 @@ modes on one shared, deterministic core. Written in Swift with SwiftUI and Sprit
 ## Download / Releases
 
 Ready-made, Apple-notarized macOS builds are available as DMGs on the
-[releases page](https://github.com/DanielMuellerIR/steinregen/releases): download the DMG, open it,
+[releases page](../../releases): download the DMG, open it,
 and drag Steinregen into the Applications folder. Requires macOS 15+ on Apple Silicon. To build the
 macOS or iOS app from source, see [Build & Run](#build--run) below.
 

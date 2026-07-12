@@ -65,13 +65,17 @@ echo "    App-Bundle: $APP"
 
 if [ "${1:-}" = "run" ]; then
   echo "==> Simulator '$SIM_NAME' headless booten…"
-  UDID="$(xcrun simctl list devices available | grep -m1 "$SIM_NAME (" | sed -E 's/.*\(([0-9A-Fa-f-]+)\).*/\1/')"
-  [ -n "$UDID" ] || { echo "FEHLER: Simulator '$SIM_NAME' nicht gefunden"; exit 1; }
-  xcrun simctl boot "$UDID" 2>/dev/null || true
-  xcrun simctl bootstatus "$UDID" -b >/dev/null 2>&1   # warten bis voll gebootet (sonst Install-Race)
-  xcrun simctl install "$UDID" "$APP"
-  xcrun simctl launch "$UDID" "$BUNDLE_ID" || true
-  echo "    UDID=$UDID  Bundle=$BUNDLE_ID"
-  echo "    Screenshot:  xcrun simctl io $UDID screenshot /tmp/steinregen-ios.png"
+  # Die Gerätekennung steht als letztes, eingeklammertes Feld in der simctl-Zeile. `awk` entfernt
+  # nur die Klammern; ein identifier-artiges Regex muss dadurch weder im Repo noch im Log stehen.
+  DEVICE_ID="$(xcrun simctl list devices available | awk -v name="$SIM_NAME" '
+    index($0, name " (") { value=$NF; gsub(/[()]/, "", value); print value; exit }
+  ')"
+  [ -n "$DEVICE_ID" ] || { echo "FEHLER: Simulator '$SIM_NAME' nicht gefunden"; exit 1; }
+  xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
+  xcrun simctl bootstatus "$DEVICE_ID" -b >/dev/null 2>&1   # warten bis voll gebootet (sonst Install-Race)
+  xcrun simctl install "$DEVICE_ID" "$APP"
+  xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID" || true
+  echo "    Simulator gestartet · Bundle=$BUNDLE_ID"
+  echo "    Screenshot: xcrun simctl io booted screenshot /tmp/steinregen-ios.png"
 fi
 echo "Fertig."

@@ -25,7 +25,8 @@ final class LockDelayTests: XCTestCase {
         return scene
     }
 
-    /// Kernfall (Daniels Bug): Stein per Hard-Drop aufsetzen, dann JEDEN Frame rotieren. Er MUSS
+    /// Kernfall des ursprünglichen Fehlers: Stein per Hard-Drop aufsetzen, dann JEDEN Frame
+    /// rotieren. Er MUSS
     /// trotzdem zeitnah einrasten — frueher setzte jede Rotation den Lock-Timer zurueck (endlos).
     func testDauerRotationRastetEin() {
         let scene = makeScene()
@@ -87,7 +88,7 @@ final class LockDelayTests: XCTestCase {
         }
     }
 
-    /// Schaerfster Fall (Daniels echtes Szenario): erst einen UNEBENEN Stapel bauen, dann auf dem
+    /// Schaerfster reproduzierter Fall: erst einen UNEBENEN Stapel bauen, dann auf dem
     /// unebenen Kamm einen Stein per Dauer-Rotation „wippen". Auf unebener Auflage gibt eine Drehung
     /// dem Stein kurz Luft (canFall true) — das darf den Lock-Timer NICHT dauerhaft nullen. Der Stein
     /// MUSS trotzdem einrasten (auf flachem Boden greift dieser Pfad nicht, daher der Stapel).
@@ -136,7 +137,7 @@ final class LockDelayTests: XCTestCase {
         XCTAssertLessThan(elapsed, 0.35, "Einrasten dauerte zu lange (\(elapsed)s) — Bewegen weicht das Fenster auf")
     }
 
-    /// Der Float-down-Bug (Daniel): Stein liegt erhoeht auf einem Stapel; zieht man ihn dann zur Seite
+    /// Float-down-Regression: Stein liegt erhoeht auf einem Stapel; zieht man ihn dann zur Seite
     /// ins Freie, soll er dort NORMAL weiterfallen (Schwerkraft), nicht instant nach unten geslammt
     /// werden. Nachweis ueber Timing: bei Level 1 (langsames Fallen) und OHNE Softdrop braucht der
     /// echte Fall vom Stapel zum Boden mehrere Sekunden — ein Slam wuerde dagegen im Fenster (~0,6 s)

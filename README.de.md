@@ -15,7 +15,7 @@ SwiftUI und SpriteKit.
 ## Download / Releases
 
 Fertige, von Apple notarisierte macOS-Builds gibt es als DMG auf der
-[Releases-Seite](https://github.com/DanielMuellerIR/steinregen/releases): DMG laden, öffnen und
+[Releases-Seite](../../releases): DMG laden, öffnen und
 Steinregen in den Programme-Ordner ziehen. Voraussetzung ist macOS 15+ auf Apple Silicon. Für den
 Bau der macOS- oder iOS-App aus dem Quellcode siehe [Bauen & Starten](#bauen--starten) unten.
 
