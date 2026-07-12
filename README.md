@@ -236,5 +236,3 @@ project. See
 
 Please report vulnerabilities according to [SECURITY.md](SECURITY.md); never post sensitive
 details in a public issue.
-
-🤖 Built with [Claude Code](https://claude.com/claude-code).

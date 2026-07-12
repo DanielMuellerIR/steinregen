@@ -243,5 +243,3 @@ und Lizenzlage:
 
 Sicherheitslücken bitte gemäß [SECURITY.md](SECURITY.md) melden; sensible Details gehören nie in
 ein öffentliches Issue.
-
-🤖 Gebaut mit [Claude Code](https://claude.com/claude-code).
