@@ -42,6 +42,12 @@ let package = Package(
         .testTarget(
             name: "SteinregenRenderTests",
             dependencies: ["SteinregenRender", "SteinregenCore"]
+        ),
+        // Tests der App-Schicht: die persistente Bestenliste (Friedhof). Haengt am
+        // ausfuehrbaren App-Target (@testable import); laeuft mit der Xcode-Toolchain.
+        .testTarget(
+            name: "SteinregenAppTests",
+            dependencies: ["SteinregenApp"]
         )
     ]
 )

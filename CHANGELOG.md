@@ -3,6 +3,14 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.7]
+
+- Tests: closed the highest-value coverage gaps in the previously untested config/
+  persistence helpers — board-size clamping (`BoardConfig`), language resolution
+  (`L10n.lang`), `GameMode` metadata consistency (defaults within ranges), and the
+  persistent high-score list (`Friedhof`: sorting, cap, JSON round-trip). +13 tests
+  (117 total); adds a `SteinregenAppTests` target for the app layer.
+
 ## [0.27.6]
 
 - Internal: the 1580-line `SteinregenApp.swift` is split along its existing view
