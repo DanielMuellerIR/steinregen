@@ -43,8 +43,10 @@ situation is auditable before any (re)distribution.
 ## Music
 
 - **`musik-1.mp3`, `musik-2.mp3`, `musik-3.mp3`** — three calm, atmospheric instrumental metal
-  tracks generated locally with the open **ACE-Step** model. They play in sequence during a game.
-  ACE-Step permits commercial use. ✅
+  tracks generated locally with the open **ACE-Step** model. ACE-Step permits commercial use. ✅
+- **`musik-4.mp3` … `musik-13.mp3`** — ten selected instrumental metal tracks generated with
+  MiniMax Music 2.6. Their applicable MiniMax service terms must be verified before a commercial
+  redistribution; they are therefore not marked license-clean here. ⚠️
 
 ## App icon
 

@@ -8,9 +8,9 @@ final class MusicPlayerTests: XCTestCase {
     @MainActor
     func testDiscoversAllBundledTracksInOrder() {
         let tracks = MusicPlayer.discoverTracks(in: Theme.resourceBundle)
-        // Aktuell liegen drei Stücke im Bundle; ein spaeter ergaenztes musik-4.mp3 usw. wird
-        // automatisch mitgefunden — darum >= 3 statt == 3 (der Test soll dann NICHT brechen).
-        XCTAssertGreaterThanOrEqual(tracks.count, 3, "die drei ausgelieferten Stücke müssen gefunden werden")
+        // Aktuell liegen dreizehn Stücke im Bundle; ein später ergänztes musik-14.mp3 usw. wird
+        // automatisch mitgefunden — darum >= 13 statt == 13 (der Test soll dann NICHT brechen).
+        XCTAssertGreaterThanOrEqual(tracks.count, 13, "die dreizehn ausgelieferten Stücke müssen gefunden werden")
         for (i, url) in tracks.enumerated() {
             XCTAssertEqual(url.lastPathComponent, "musik-\(i + 1).mp3",
                            "Stücke kommen in lückenlos aufsteigender Reihenfolge")
@@ -34,5 +34,15 @@ final class MusicPlayerTests: XCTestCase {
         XCTAssertEqual(tracks.map(\.lastPathComponent),
                        ["musik-1.mp3", "musik-2.mp3", "musik-3.mp3"],
                        "die Lücke bei musik-4 beendet die Suche — musik-5 bleibt unberücksichtigt")
+    }
+
+    @MainActor
+    func testRandomPlaybackOrderContainsEveryTrackExactlyOnce() {
+        let order = MusicPlayer.randomPlaybackOrder(trackCount: 13, avoiding: 4)
+
+        XCTAssertEqual(order.count, 13)
+        XCTAssertEqual(Set(order), Set(0..<13))
+        XCTAssertNotEqual(order.first, 4,
+                          "ein neuer Durchlauf darf nicht direkt mit dem zuletzt gespielten Titel beginnen")
     }
 }

@@ -61,10 +61,10 @@ backed by a muted, desaturated color tint.
 - **Sound effects** (locally generated) — landing, clearing, rotating, level-up and game-over
   cues, with several random variants per event. In Settings you can pick a sound set —
   Steinregen (the project's own cues), Freedoom, or Silenced; **T** toggles in-game.
-- **Music** (locally generated) — calm, atmospheric instrumental metal tracks that play one
-  after another in a loop, starting on a random track each game. On by default but only from the
-  start of a level, not in the menu; toggled independently of the sound effects in Settings or
-  with **M** in-game.
+- **Music** (AI-generated) — 13 atmospheric instrumental metal tracks in a random,
+  non-repeating order: every track plays once before a new shuffle begins. On by default but only
+  from the start of a level, not in the menu; toggled independently of the sound effects in
+  Settings or with **M** in-game.
 - **Backgrounds** — AI-generated foggy-night motifs (graveyard, dead winter forest, ruined
   cathedral, foggy moor, blood-red moon); a different one each game, never the same twice in a row.
 - **Magic Jewel** (Rockfall) — a rare, bright column pulsing through all six sigils. Where it
@@ -205,8 +205,8 @@ The "FreeDoom" stone-set sprites come from the
 commercial Doom material), licensed under
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
-The sound effects were generated locally with an open audio model (Stable Audio 3); the
-music tracks with the open **ACE-Step** model; the foggy-night background images with the open
+The sound effects were generated locally with an open audio model (Stable Audio 3); the music
+tracks with **ACE-Step** and MiniMax Music 2.6; the foggy-night background images with the open
 **Qwen-Image** model. All ship as part of this project. See
 [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md) for the full attribution and license overview.
 

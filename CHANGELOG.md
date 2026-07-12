@@ -3,6 +3,14 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.9]
+
+- Music: added ten selected instrumental metal tracks to the bundle (13 in total). Playback
+  now uses a fresh random, non-repeating order: every track plays once before the next shuffled
+  run begins, and the first new track cannot repeat the previous one.
+- Mobile bundle: the ten added tracks are encoded as 128 kbit/s stereo MP3, matching the existing
+  music instead of their original 256 kbit/s encoding.
+
 ## [0.27.8]
 
 - Memory: the backdrop images are now loaded lazily. Previously `Theme.backdropImages()`

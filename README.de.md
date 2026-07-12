@@ -62,10 +62,10 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 - **Soundeffekte** (lokal erzeugt) — Aufsetzen, Auflösen, Drehen, Level und Game-Over, mit
   mehreren zufälligen Varianten pro Ereignis. In den Einstellungen wählt man ein Klang-Set —
   Steinregen (die eigenen Klänge), Freedoom oder Mundtot (stumm); im Spiel schaltet **T** um.
-- **Musik** (lokal erzeugt) — ruhige, atmosphärische instrumentale Metal-Stücke, die nacheinander
-  in Schleife laufen, pro Partie mit zufälligem Anfangsstück. Standardmäßig an, aber erst ab
-  Levelbeginn (nicht im Menü); getrennt von den Soundeffekten ausschaltbar — in den Einstellungen
-  oder im Spiel mit **M**.
+- **Musik** (KI-erzeugt) — 13 atmosphärische instrumentale Metal-Stücke in zufälliger,
+  nicht wiederholender Reihenfolge: Jedes Stück läuft einmal, bevor neu gemischt wird.
+  Standardmäßig an, aber erst ab Levelbeginn (nicht im Menü); getrennt von den Soundeffekten
+  ausschaltbar — in den Einstellungen oder im Spiel mit **M**.
 - **Hintergründe** — KI-generierte Nebel-bei-Nacht-Motive (Friedhof, toter Winterwald,
   Kathedralenruine, Nebelmoor, blutroter Mond); pro Partie ein anderes, nie dasselbe zweimal
   hintereinander.
@@ -211,8 +211,9 @@ kommerzielle Original-Doom-Material), lizenziert unter
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
 Die Soundeffekte wurden lokal mit einem offenen Audio-Modell (Stable Audio 3) erzeugt, die
-Musikstücke mit dem offenen **ACE-Step**-Modell, die Nebel-bei-Nacht-Hintergründe mit dem offenen
-**Qwen-Image**-Modell. Alle sind Teil dieses Projekts. Vollständige Attribution und Lizenzlage:
+Musikstücke mit **ACE-Step** und MiniMax Music 2.6, die Nebel-bei-Nacht-Hintergründe mit dem
+offenen **Qwen-Image**-Modell. Alle sind Teil dieses Projekts. Vollständige Attribution und
+Lizenzlage:
 [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).
 
 🤖 Gebaut mit [Claude Code](https://claude.com/claude-code).

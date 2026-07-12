@@ -1,10 +1,10 @@
 // MusicPlayer.swift
 // Hintergrundmusik — bewusst GETRENNT von den Soundeffekten (SoundFX).
 //
-// Instrumentale Stücke (Downfall-of-Gaia-Stil, lokal mit ACE-Step erzeugt) laufen
-// NACHEINANDER in Endlosschleife: beim Spielstart wird zufällig eines als Einstieg gewählt
-// („zufälliger Anfang"), danach geht es der Reihe nach weiter (musik-1 → musik-2 → … →
-// musik-1 …). Die Stücke werden AUTOMATISCH entdeckt (gleiches Muster wie die
+// Instrumentale Stücke laufen in zufälliger Reihenfolge: Jeder Durchlauf enthält jedes
+// Stück genau einmal. Erst danach wird die nächste zufällige Reihenfolge gebaut; ihr
+// erster Titel darf nicht derselbe wie der zuletzt gespielte sein. Die Stücke werden
+// AUTOMATISCH entdeckt (gleiches Muster wie die
 // Hintergrundbilder): alle lückenlos nummerierten `musik-N.mp3` im Bundle — ein weiteres
 // Stück ins Bundle legen genügt, keine Code-Änderung nötig. Musik ist standardmäßig AN,
 // lässt sich aber unabhängig von den Soundeffekten ausschalten — eigener
@@ -33,12 +33,17 @@ public final class MusicPlayer: NSObject {
     /// Lautstärke der Musik — bewusst unter den Soundeffekten, damit diese gut durchkommen.
     private let volume: Float = 0.5
 
-    /// Aufgelöste Datei-URLs der vorhandenen Stücke, in Abspiel-Reihenfolge (musik-1, -2, …).
+    /// Aufgelöste Datei-URLs der vorhandenen Stücke, nach ihrem Namen sortiert
+    /// (`musik-1`, `musik-2`, …). Die spätere Abspiel-Reihenfolge wird separat gemischt.
     private var tracks: [URL] = []
     /// Der aktuell laufende Player (genau ein Stück gleichzeitig) oder nil (Musik steht).
     private var player: AVAudioPlayer?
     /// Index des gerade laufenden Stücks in `tracks`.
     private var index = 0
+    /// Zufällige Reihenfolge für den aktuellen Durchlauf. Sie enthält jeden Index genau einmal.
+    private var playbackOrder: [Int] = []
+    /// Position des laufenden Stücks innerhalb von `playbackOrder`.
+    private var playbackPosition = 0
     /// true, solange eine Partie läuft (zwischen `gameStarted()` und `gameEnded()`). Verhindert,
     /// dass Musik im Menü spielt — auch wenn der Ein/Aus-Schalter dort umgelegt wird.
     private var inGame = false
@@ -64,6 +69,21 @@ public final class MusicPlayer: NSObject {
         return urls
     }
 
+    /// Baut einen zufälligen Durchlauf über alle Titel. Falls ein vorheriger Index bekannt ist,
+    /// beginnt ein neuer Durchlauf nie mit genau diesem Titel — so entsteht an der Schleifen-
+    /// grenze keine direkte Wiederholung. Die Methode ist statisch, damit ihre wichtige
+    /// Vollständigkeitsregel ohne Audio-Ausgabe getestet werden kann.
+    static func randomPlaybackOrder(trackCount: Int, avoiding previousIndex: Int? = nil) -> [Int] {
+        guard trackCount > 0 else { return [] }
+
+        var order = Array(0..<trackCount).shuffled()
+        if trackCount > 1, let previousIndex, order.first == previousIndex {
+            // Der zweite Eintrag ist bei einer echten Permutation zwangsläufig verschieden.
+            order.swapAt(0, 1)
+        }
+        return order
+    }
+
     /// Ist Musik gewünscht? Liest direkt aus UserDefaults, damit der Einstellungs-Schalter
     /// (per AppStorage) und dieser Spieler immer denselben Stand sehen.
     public static var enabled: Bool {
@@ -73,13 +93,13 @@ public final class MusicPlayer: NSObject {
 
     // MARK: - Steuerung durch die App-Schicht
 
-    /// Levelbeginn: ab jetzt darf Musik laufen. Startet ein zufällig gewähltes Stück, falls
-    /// Musik an ist und noch nichts spielt. Mehrfachaufruf (z.B. „nochmal mit gleichem Seed")
+    /// Levelbeginn: ab jetzt darf Musik laufen. Startet einen zufälligen vollständigen Durchlauf,
+    /// falls Musik an ist und noch nichts spielt. Mehrfachaufruf (z.B. „nochmal mit gleichem Seed")
     /// lässt eine bereits laufende Musik unangetastet weiterlaufen — kein harter Neustart.
     public func gameStarted() {
         inGame = true
         guard Self.enabled, player == nil, !tracks.isEmpty else { return }
-        index = Int.random(in: 0..<tracks.count)   // zufälliger Einstiegspunkt in die Reihe
+        beginRandomRun()
         playCurrent()
     }
 
@@ -104,7 +124,7 @@ public final class MusicPlayer: NSObject {
         if on {
             // Nur im laufenden Spiel sofort losspielen — im Menü bleibt es still bis zum Levelbeginn.
             if inGame, player == nil, !tracks.isEmpty {
-                index = Int.random(in: 0..<tracks.count)
+                beginRandomRun()
                 playCurrent()
             }
         } else {
@@ -130,10 +150,25 @@ public final class MusicPlayer: NSObject {
         player = nil
     }
 
-    /// Zum nächsten Stück springen (Reihe herum), solange noch gespielt werden soll.
+    /// Mischt alle vorhandenen Titel für einen vollständigen Durchlauf und übernimmt dessen
+    /// ersten Eintrag als aktuellen Titel. Beim Neustart nach einem Durchlauf wird der zuletzt
+    /// gespielte Titel übergeben, damit derselbe Song nicht zweimal hintereinander erklingt.
+    private func beginRandomRun(avoiding previousIndex: Int? = nil) {
+        playbackOrder = Self.randomPlaybackOrder(trackCount: tracks.count,
+                                                  avoiding: previousIndex)
+        playbackPosition = 0
+        index = playbackOrder[playbackPosition]
+    }
+
+    /// Zum nächsten Titel im gemischten Durchlauf springen; danach beginnt ein neuer Durchlauf.
     private func advance() {
         guard inGame, Self.enabled, !tracks.isEmpty else { player = nil; return }
-        index = (index + 1) % tracks.count
+        playbackPosition += 1
+        if playbackPosition == playbackOrder.count {
+            beginRandomRun(avoiding: index)
+        } else {
+            index = playbackOrder[playbackPosition]
+        }
         playCurrent()
     }
 }
