@@ -69,10 +69,12 @@ steinregen/                   (SwiftPM-Workspace)
 - **Look (ab v0.2.0)**: Black-Metal-Ästhetik — rabenschwarz, knochenweiß, ein Ochsenblut-Akzent,
   räudiges Korn. **Hintergrundbilder (ab v0.20.0, Pool ab v0.21.0)**: KI-generierte Nebel-bei-Nacht-
   Motive (`hintergrund.png` plus `hintergrund-2.png` … `hintergrund-5.png`, Qwen-Image, kommerziell
-  unbedenklich) liegen formatfüllend (Cover) ganz hinten hinter dem Brett. `Theme.backdropImages()`
-  lädt ALLE vorhandenen `hintergrund*.png` (eine weitere `hintergrund-N.png` ins Bundle legen genügt),
-  `GameScene` wählt pro Partie zufällig eines (`backdropIndex`, in `start()` gesetzt, über Resizes
-  stabil) und `GameScene.buildBackdrop()` zeichnet es. **Ersetzt** den früheren prozeduralen, animiert
+  unbedenklich) liegen formatfüllend (Cover) ganz hinten hinter dem Brett. `Theme.backdropCount()`
+  zählt alle vorhandenen `hintergrund*.png` (eine weitere `hintergrund-N.png` ins Bundle legen genügt)
+  per URL-Prüfung ohne Dekodieren; `GameScene` wählt pro Partie zufällig eines (`backdropIndex`, in
+  `start()` gesetzt, über Resizes stabil) und `GameScene.buildBackdrop()` lädt via
+  `Theme.backdropImage(_ index:)` **nur dieses eine** Bild (lazy, gecacht — ab v0.27.8, vorher lud
+  `backdropImages()` alle auf einmal) und zeichnet es. **Ersetzt** den früheren prozeduralen, animiert
   driftenden Nebel (`GemTextures.fog()` entfernt). Die Steine werden **prozedural** gezeichnet, alle
   alten Edelstein-PNGs werden NICHT mehr ins Spiel geladen.
 - **Steine-Sets (wählbar, erweiterbar)**: Jedes Set ist ein `StoneSet` (id + Name + Zeichen-Funktion)
@@ -239,7 +241,7 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-02, v0.27.2)
+## 5. Status (Stand 2026-07-12, v0.27.8)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
@@ -634,6 +636,71 @@ erlaubt die Original-Proportion, Schlüssel `steinregen.dim.schnitter.*`), Naht
 beim Verlassen, Rand-/Wrap-Ernte, Nachfallen + Neu-Markierung, Game-Over, Determinismus,
 Zwei-Sorten). Verifiziert auf macOS (Menü 3×2, Gameplay 12×12: wandernde Sense, schimmerndes
 Quadrat, Ernte mit Punkten, Grid-Vorschau zweifarbig).
+
+**v0.27.8 — Hintergrundbilder lazy laden:** `Theme.backdropImages()` dekodierte ALLE fünf
+Nacht-Hintergründe auf einmal und hielt sie dauerhaft im Speicher — pro Partie wird aber nur EINES
+gezeichnet (auf iOS zweistellige MB dekodiert). Aufgeteilt in `Theme.backdropCount()` (zählt die
+Dateien per URL-Prüfung, KEIN Dekodieren) und `Theme.backdropImage(_ index:)` (lädt + cached NUR das
+gewählte Bild). `GameScene` zieht beide Nahtstellen; die Zufallswahl pro Partie (no-immediate-repeat)
+bleibt unverändert. macOS per Screenshot bestätigt (Friedhof-Motiv lädt), 117 Tests grün.
+
+**v0.27.7 — Test-Lücken geschlossen (Konfig/Persistenz):** +13 Tests (117 gesamt) für zuvor
+ungetestete reine Helfer: **BoardConfig**-Klemmung (ungesetzt→Default, in-Spanne durchgereicht,
+außerhalb geklemmt, Modus-Schlüssel disjunkt), **L10n.lang** (Override gewinnt, ungültiger Rohwert
+fällt auf System-Ableitung zurück), **GameMode**-Metadaten (Default ∈ Spanne — Wächter für neue
+Modi; Titel/Hinweise nicht-leer) und die **Friedhof**-Persistenz (einziger dauerhafter Spieler-
+Zustand: Sortierung nach Score, `maxEntries`-Kappung mit höchsten Scores, `qualifies`-Grenze bei
+voller Liste, letzter Name, JSON-Round-Trip). Neues Test-Target **`SteinregenAppTests`** hängt am
+App-Executable (`@testable import`); alle Tests sichern/restaurieren die angefassten
+UserDefaults-Schlüssel.
+
+**v0.27.6 — App-Schicht aufgeteilt:** die 1580-Zeilen-Datei `SteinregenApp.swift` entlang ihrer
+bestehenden View-Grenzen in acht fokussierte Dateien zerlegt (`StartView`, `SettingsView`,
+`GameplayView`, `GameOverOverlay`, `FriedhofView`, `RulesSheet`, `TouchControls`) plus **`SharedUI.swift`**
+mit den geteilten Helfern (`Theme.RGB.color` + `dialogFrame`, vorher `private` in der Hauptdatei) und
+drei Bausteinen gegen wiederholte Muster: `themeCard()` (5 Karten), `StepperArrow` (Menü-Tempo +
+Brettmaße, Größe als Parameter), `DoneButton` (3 Dialoge). `SteinregenApp.swift` behält nur das
+App-Gerüst (217 Zeilen: `@main`, `WindowConfigurator`, `RootView`). Access-Lockerung:
+`TouchControlsOverlay` `private`→internal (GameplayView nutzt es modul-intern); `HoldButton`/
+`TapControlButton` bleiben `private`. Die Auswahl-Chips (modeChip/tempoPill/segment/navButton) wurden
+bewusst NICHT vereinheitlicht — vier verschiedene Formen/Maße, Pixel-Identität vor DRY. Reiner Move +
+DRY, KEINE Optik-/Logik-Änderung (Einstellungsdialog per Screenshot als pixelgleich verifiziert),
+104 Tests grün.
+
+**v0.27.5 — geteilte Core-Bausteine extrahiert:** die Paar-Trias (`PairEngine`/`CapsuleEngine`/
+`SquareEngine`) duplizierte 60–70 % ihrer Mechanik wortgleich, und Punkte/Level-Takt hingen als
+Statics an der Säulen-`Engine` (heimlicher Konstanten-Speicher aller Modi). Vier gezielte
+Extraktionen, KEINE Basisklasse: **`Rules.swift`** mit `Scoring` (`gemsPerLevel`, `points`) +
+`draw(count:from:using:)` (ersetzt `Engine.gemsPerLevel`/`points` und vier fast identische
+Zieh-Funktionen); **`Board.fits(cells:)`** (die in drei Engines wortgleiche Kollisionsregel);
+**`resolveCascade`** in `Matching.swift` (die dreifach duplizierte Kaskaden-Schleife, parametrisiert
+über find/settle/bonus — die Austreibung trägt Flüche im `bonus`-Hook aus). `shift`/`gravityTick`
+bleiben bewusst je Engine (6-Zeilen-Boilerplate um eigenen Zustand). Verhalten unverändert,
+104 Tests grün (inkl. Determinismus- und Fluch-Bonus-Tests).
+
+**v0.27.4 — `PlayEngine` in Anzeige-Kern + `FallingPieceEngine`-Teilprotokoll gespalten:**
+Vorbereitung für künftige Modi OHNE fallenden Stein (Klax-Fangschaufel, Panel-de-Pon-Cursor). Der
+Kern `PlayEngine` bündelt nur `board`/`score`/`level`/`phase` + die optischen Nähte (`pinnedCells`/
+`highlightedCells`/`sweepColumn`/`sweepTick`) — was JEDE Engine erfüllen kann. Das Teilprotokoll
+`FallingPieceEngine: PlayEngine` trägt die Verben des Fall-Paradigmas (`activeCells`/`preview`/
+`moveLeft`/`moveRight`/`rotate`/`canFall`/`step`/`spawnNext`/`postLockSettle`). Alle fünf
+Conformances + `GameScene.engine` auf das Teilprotokoll umgestellt; der Schwerkraft-/Lock-Delay-Loop
+läuft nur noch über `FallingPieceEngine`. Kein Verhaltensunterschied, 104 Tests grün.
+
+**v0.27.3 — Match-Reihenfolge deterministisch:** `findMatches`/`findLines`/`SquareEngine.harvest`
+gaben `Array(Set<Cell>)` zurück — Swift-Sets iterieren pro Prozess zufällig geseedet, damit war die
+REIHENFOLGE von `ClearStep.cells` prozess-nichtdeterministisch (Bruch von Regel 2 für Replays/
+Snapshot-Vergleiche; der Spielzustand/Score selbst war immer deterministisch, da nur Counts/Mengen
+verbraucht werden). Fix: `Cell: Comparable` (erst Zeile, dann Spalte), die drei Finder sortieren vor
+der Rückgabe. +3 Tests (`MatchingOrderTests`); 104 grün. Nebenbei: veraltete Datei-Kopf-Kommentare
+(`PlayEngine`/`GameScene` sprachen noch von ZWEI Engines) auf fünf Engines aktualisiert.
+
+**Doku/Infra (2026-07-12, ohne Version-Bump): READMEs modernisiert** (de/en auf sechs Modi / fünf
+Engines, alle `STEINREGEN_MODE`-IDs + `STEINREGEN_LANG`/`_RULES`, Marken-Abschnitt um Puyo Puyo/
+Dr. Mario/Lumines, Sprachumschalt-Zeile, Start-Screenshots mit sechs Modus-Chips neu; THIRD-PARTY-
+ASSETS auf Stand). **CI eingerichtet:** `.github/workflows/ci.yml` (`swift test` auf `macos-15` bei
+Push/PR) + Badges in beiden READMEs; `project.yml`-`MARKETING_VERSION`-Hardcode (0.11.2) durch
+0.0.0-Platzhalter ersetzt (make-ios-app.sh injiziert die echte Version aus `VERSION`).
 
 **v0.27.2 — Musikstücke automatisch entdeckt:** `MusicPlayer` lädt jetzt ALLE lückenlos
 nummerierten `musik-N.mp3` aus dem Bundle (neue statische, getestete Funktion
