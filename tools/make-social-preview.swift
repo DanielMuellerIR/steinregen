@@ -3,9 +3,10 @@
 //
 // GitHub zeigt dieses Bild, wenn der Repo-Link geteilt wird (Slack, X, Discord, Link-Vorschau).
 // Empfohlenes Format: 1280×640 (2:1). Optik = das Spiel: pechschwarz, ein echter Nebel-Friedhof
-// als Hintergrund (abgedunkelt), Ochsenblut-Schimmer, das von Hand getuschte Logo. Es zeigt BEIDE
-// Spielmodi: oben ein Band aus Tetromino-Formen (Modus „Eingemauert", schlichte Blöcke, alle bündig
-// auf einer Baseline), rechts die fallende Säule aus drei echten Sigil-Steinen (Modus „Steinschlag").
+// als Hintergrund (abgedunkelt), Ochsenblut-Schimmer, das von Hand getuschte Logo. Stellvertretend
+// für die sechs Modi zeigt es zwei Grundformen: oben ein Band aus Tetrominos („Eingemauert",
+// schlichte Blöcke auf einer Baseline), rechts eine fallende Säule aus drei echten Sigil-Steinen
+// („Steinschlag").
 //
 // Wie der DMG-Hintergrund-Composer ist dies ein eigenständiges Swift-Skript (kein Modul-Import):
 // die Sigil-Pfade sind 1:1 aus `SigilStones.swift` übernommen, die Tetromino-Formen 1:1 aus

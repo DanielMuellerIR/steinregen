@@ -8,7 +8,7 @@ Dieses Repository enthält **Steinregen**, einen nativen macOS-Klon des Sega-Kla
 ## Typ & Zweck
 - **Typ:** Spiel (Puzzle)
 - **Zweck:** Nativer macOS-Klon des Sega-Klassikers Columns (Fallblock-Puzzle) mit deterministischer Engine.
-- **Plattform:** macOS-GUI, iOS
+- **Plattform:** macOS-GUI auf Apple Silicon (arm64), iOS
 
 ## 1. Wichtige Regeln für AI-Agenten
 
@@ -61,8 +61,9 @@ steinregen/                   (SwiftPM-Workspace)
 ## 3. Technik
 
 - **Sprache**: Swift 6
-- **Plattform**: macOS 15+ (Desktop) UND **iOS 17+** (iPhone ab v0.10.0, iPad ab v0.11.0 — beide nur
-  Hochformat). `SteinregenCore` + `SteinregenRender` sind plattformneutral und werden geteilt; nur die
+- **Plattform**: macOS 15+ auf **Apple Silicon** (Desktop; Intel bewusst nicht unterstützt) UND
+  **iOS 17+** (iPhone ab v0.10.0, iPad ab v0.11.0 — beide nur Hochformat). `SteinregenCore` +
+  `SteinregenRender` sind plattformneutral und werden geteilt; nur die
   App-Schicht trennt per `#if os(...)` (macOS = Tastatur/NSEvent + Fenster, iOS = Touch + Vollbild).
   Innerhalb iOS unterscheidet `UIDevice.userInterfaceIdiom == .pad` das Touch-Layout (iPhone vs. iPad).
 - **UI**: SwiftUI · **Engine**: SpriteKit (via `SpriteView`) · **Build**: Swift Package Manager
@@ -145,8 +146,9 @@ steinregen/                   (SwiftPM-Workspace)
   ein (`notarytool submit --wait`), heftet das Ticket an (`stapler staple`) und packt
   `dist/Steinregen-<version>-notarized.zip`. Nutzt intern `make-app.sh` (kein Code-Duplikat).
   Voraussetzungen **pro Mac** (Schlüsselbund wird nicht gesynct): Developer-ID-Application-Zertifikat
-  in der Login-Keychain + notarytool-Keychain-Profil. Identität/Profil werden per env gesetzt
-  (`SIGN_ID`, `NOTARY_PROFILE`; das Profil hat bewusst KEINEN Default im öffentlichen Repo). Das notarytool-Keychain-Profil
+  in der Login-Keychain + notarytool-Keychain-Profil. Die Signing-Identität wird automatisch aus
+  der Keychain ermittelt und kann über `SIGN_ID` überschrieben werden; `NOTARY_PROFILE` ist Pflicht
+  und hat bewusst keinen Default im öffentlichen Repo. Das notarytool-Keychain-Profil
   einmalig anlegen mit `xcrun notarytool store-credentials` (Apple-ID + Team-ID + App-spezifisches Passwort).
 - **Notarisiertes DMG / Release**: `bash tools/make-dmg.sh` baut die Developer-ID-signierte App in
   ein DMG mit Hintergrundbild (`assets/dmg-background.png`, erzeugt von
@@ -244,12 +246,23 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-12, v0.27.10)
+## 5. Status (Stand 2026-07-13, v0.27.11)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
 seed-getriebene Säulenfolge. Core vollständig unit-getestet. Doppelklickbares App-Bundle mit
-Dock-Icon (`tools/make-app.sh`).
+Dock-Icon (`tools/make-app.sh`, arm64; Intel ist bewusst kein Release-Ziel).
+
+**v0.27.11 — GitHub-Veröffentlichungsreife:** Die sechs geglätteten Zaubersteine-Assets sind auf
+dem aktuellen Stand des Schwesterprojekts (keine weißen Kantensäume mehr). Release-Skripte enthalten
+keine persönliche Developer-/Team-ID mehr. Sie ermitteln `SIGN_ID` aus der lokalen Keychain
+(`SIGN_ID` bleibt überschreibbar) und verlangen nur `NOTARY_PROFILE` explizit. READMEs de/en nennen Datenschutz, Klangsets, Friedhof und Asset-Rechte korrekt; die
+FLUX.1-[dev]-Output-Rechte sind gegen die Primärlizenz neu bewertet. Das neue lokale/CI-Gate
+`tools/check-release-readiness.sh` prüft Versionen, Pflichtdateien, lokale Links, Social-Preview,
+Musikfolge, Shell-Syntax, private Strings und optional die Historie per gitleaks. Das vorhandene
+1280×640-Social-Preview wurde visuell geprüft und pixelgenau reproduziert. macOS- und iOS-Bundles
+führen nun MIT-Lizenz und vollständige Asset-Attribution mit; der bislang verdeckte UTF-8-Bash-Fehler
+im iOS-Build ist behoben. Keine Veröffentlichung oder öffentliche Git-Aktion durchgeführt.
 
 **v0.27.10 — Release-Dokumentation & Notarisierungs-Naht:** Alle Projektdokumente nennen den
 aktuellen Musikbestand korrekt: 13 Titel, davon drei lokal mit **ACE-Step XL Turbo** und zehn mit
@@ -505,8 +518,9 @@ unverändert (Persistenz/Headless-Naht). macOS-Menü per Screenshot bestätigt.
 driftende Nebel (wirkte unpassend) ist durch ein **statisches
 KI-Hintergrundbild** ersetzt — ein Nebel-bei-Nacht-Friedhof (Mond, schmiedeeisernes Kreuz,
 Grabsteine, Ochsenblut-Schimmer), passend zur Black-Metal-Ästhetik. Lokal auf dem M5 mit
-**Qwen-Image** generiert (hohe Qualität **und** kommerziell unbedenklich — anders als FLUX, das wie
-schon `logo.png` einen Non-Commercial-Blocker hinzufügen würde) über die Number-One-Bildgen-Pipeline,
+**Qwen-Image** generiert (hohe Qualität **und** kommerziell unbedenklich; FLUX wurde damals noch
+irrtümlich auch für `logo.png` als Non-Commercial-Blocker eingeschätzt — diese Output-Auslegung
+wurde am 2026-07-13 anhand der Primärlizenz korrigiert) über die Number-One-Bildgen-Pipeline,
 ausgewählt aus 10 Kandidaten (5 Prompts × 2 Seeds). Liegt als `Resources/hintergrund.png` (896×1280)
 im Bundle, wird über `Theme.backdropImage()` geladen und in `GameScene.buildBackdrop()` formatfüllend
 (Cover, zentriert) ganz nach hinten gelegt — funktioniert auf macOS-Fenster wie iOS-Hochformat (Ränder
@@ -749,14 +763,11 @@ zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Sim
   Agreement akzeptieren), dann in Xcode „Try Again" — kein Code-Problem. **Damit iOS vollständig.**
 - **Weitere Steine-Sets generieren** — ✅ erledigt für FreeDoom (Set „FreeDoom", v0.9.0; Lizenz
   verifiziert + dokumentiert). Weitere Sets jederzeit möglich (Renderer + ein `StoneSets.all`-Eintrag).
-- **Zaubersteine-Set-Assets aktualisieren** (für später, noch offen) — das Set
-  „Zaubersteine"/„G20"/„Juwelen" zeigte weiße Säume an den Stein-Kanten. Im Schwester-Projekt
-  `~/git/zaubersteine` wurde das korrigiert; die aktualisierten Bilddateien von dort neu nach
-  `Sources/SteinregenRender/Resources/` holen und ersetzen — betrifft die Edelstein-PNGs
-  (`ruby/sapphire/emerald/topaz/amethyst/diamond.png`) und die SVG-Steine (`svg_*.png`). Reiner
-  Asset-Tausch (bessere Kantenqualität), keine Code-Änderung.
-- **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
-  eigenes Soundeffekt-Set erzeugen — Werkzeug wird ca. ab 2026-06-22 verfügbar sein.
+- **Zaubersteine-Set-Assets aktualisieren** — ✅ erledigt/verifiziert 2026-07-13: die sechs
+  Edelstein-PNGs sind bytegleich mit dem aktuellen Schwesterprojekt; die dortigen geglätteten
+  Zaubersteine-Renderings wurden bereits als `svg_*.png` übernommen. Kein Asset-Tausch mehr nötig.
+- **Zweites Sound-Set** — ✅ erledigt seit v0.13.0: Steinregen und Freedoom sind wählbar, zusätzlich
+  gibt es „Mundtot". Die ältere Todo-Zeile war nur noch veraltete Dokumentation.
 - **Mehr Musik VOR der GitHub-Veröffentlichung** — ✅ erledigt 2026-07-12: 13 Stücke im Bundle
   (3 × ACE-Step XL Turbo, 10 × MiniMax Music 2.6), mit vollständiger zufälliger Reihenfolge statt
   einer festen Schleife. Ein neues Stück als `musik-N.mp3` (lückenlos nummeriert) ins Bundle legen
@@ -767,12 +778,20 @@ zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Sim
   lokalem FLUX.1 [dev]; Hintergrundbilder Qwen-Image; drei Musiken ACE-Step XL Turbo; zehn
   Musiken MiniMax Music 2.6). MiniMaxs aktuelle API-AGB (2026-03-30) belassen die Rechte am
   generierten Inhalt beim Nutzer, vorbehaltlich geltenden Rechts; keine Garantie gegen
-  Drittansprüche. **Offene Blocker NUR für eine spätere kommerzielle Verbreitung** (kein Hindernis
-  für non-kommerziell): (1) `logo.png` aus FLUX.1 [dev] = nicht-kommerzielle Lizenz → Output-Rechte
-  prüfen oder Logo ersetzen; (2) Sega/Columns-Trademark-Disclaimer prominent halten. Details +
-  Checkliste in THIRD-PARTY-ASSETS.md.
-- **Git-History bereinigen vor Erstveröffentlichung** — History auf persönliche/private Daten
-  durchsuchen, dann gezielt entfernen (history-rewrite) oder vor dem ersten Public-Push squashen.
+  Drittansprüche. Die FLUX.1-[dev]-Output-Rechte wurden am 2026-07-13 gegen Lizenzabschnitt 2(d)
+  neu geprüft: Outputs dürfen auch kommerziell verwendet werden; der frühere Logo-Blocker war eine
+  Fehlinterpretation der Modelllizenz. Marken-Disclaimer prominent halten und vor breiter oder
+  kommerzieller Verbreitung die nahen Genre-Klone gesondert rechtlich bewerten. Details in
+  THIRD-PARTY-ASSETS.md.
+- **Git-History vor Erstveröffentlichung** — ✅ Inhaltsscan 2026-07-13: gitleaks über alle 104
+  erreichbaren Commits ohne Secret-Fund; keine historischen absoluten macOS-Userpfade oder privaten
+  IPs.
+  Aktuelle Dateien enthalten auch keine persönliche Signing-Identität mehr. Noch zu entscheiden:
+  In älteren `main`-Commits steht die frühere Developer-ID samt Team-ID (öffentlich sichtbare, aber
+  kontobezogene Zertifikatsidentität); außerdem hält der lokale Archiv-Tag `pre-github-flatten` die
+  alte Entwicklungslinie erreichbar. Eine Entfernung/Squash wäre ein destruktiver History-Rewrite
+  und braucht Daniels ausdrückliche Freigabe. Bis dahin beim ersten Public-Push ausschließlich
+  `main` pushen, niemals `--mirror`, `--all` oder pauschal `--tags`.
 
 **Weitere Spielmodi (Ideen, zu prüfen — Stand 2026-07-02, evtl. zeitnah):** Kandidaten aus dem
 Genre „fallende Steine", sortiert nach Architektur-Fit (das `PlayEngine`-Protokoll + der

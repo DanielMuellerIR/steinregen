@@ -3,6 +3,44 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.11]
+
+- Publication readiness: refreshed all six smoothed Zaubersteine assets from the sibling project,
+  removing the remaining white edge halos.
+- Privacy and portability: notarization scripts no longer contain a personal Developer ID or Team
+  ID. They discover a Developer-ID Application certificate from the local keychain, allow an
+  explicit `SIGN_ID` override, and keep `NOTARY_PROFILE` as the only required local input.
+- Documentation: corrected the English and German feature descriptions, added the offline privacy
+  guarantee, clarified the trademark language, and updated asset provenance against current
+  primary license sources. FLUX.1 [dev] output rights are no longer misreported as a blanket
+  non-commercial restriction. The supported desktop scope is now explicit: macOS 15+ on Apple
+  Silicon; Intel builds are intentionally out of scope.
+- Release safeguards: added `tools/check-release-readiness.sh` and wired it into CI to verify
+  version consistency, required documents and licenses, local Markdown links, the 1280×640 social
+  preview, the contiguous 13-track music pool, shell syntax, private strings, and (when installed)
+  the complete Git history with gitleaks.
+- CI supply chain: pinned `actions/checkout` v4.3.1 to its verified full commit SHA instead of a
+  moving major-version tag. CI now also builds the iOS Simulator app, covering platform-specific
+  Swift code instead of testing only the shared/macOS compilation path.
+- Security policy: documented the supported version, private-reporting path, offline data scope,
+  and the rule never to disclose sensitive vulnerability details in a public issue.
+- Binary licensing: macOS ZIP/DMG and iOS app bundles now carry Steinregen's MIT notice and the
+  full asset inventory alongside the already bundled Freedoom BSD and Grenze Gotisch OFL texts.
+  The bundled Freedoom notice now correctly covers the `ds*.m4a` sound set restored in v0.13.0,
+  instead of retaining the obsolete v0.12.0 claim that no Freedoom sounds ship.
+- Test hygiene: removed four ineffective assignments to a weak `GameScene.model` reference, so the
+  complete 118-test build is warning-free.
+- Build reliability: fixed two unbraced shell variables directly followed by Unicode punctuation;
+  UTF-8 Bash otherwise interpreted the punctuation as part of `VERSION`/`SIGN_ID` and aborted the
+  iOS or signed macOS build under `set -u`.
+- Publish safety: `make-dmg.sh --publish` now validates repository syntax, GitHub authentication,
+  a clean `main`, the matching changelog/tag, and an identical remote `main` before building. It
+  pushes only the single release tag, never the repository's archived tags.
+- DMG reliability: the Finder layout now reads back and retries its window bounds, avoiding the
+  intermittent macOS 26 behavior where a single assignment leaves the wrong window size.
+- Social preview: visually reviewed the project-native composition and verified that
+  `tools/make-social-preview.swift` reproduces `assets/social-preview.png` pixel-for-pixel.
+
 ## [0.27.10]
 
 - Release documentation: corrected the unpublished GitHub-release links and documented the

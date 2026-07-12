@@ -1,7 +1,7 @@
 # Steinregen
 
-A native macOS and iOS game in a raw black-metal style — six falling-block puzzle modes on one
-shared, deterministic core. Written in Swift with SwiftUI and SpriteKit.
+A native Apple-silicon macOS and iOS game in a raw black-metal style — six falling-block puzzle
+modes on one shared, deterministic core. Written in Swift with SwiftUI and SpriteKit.
 
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
@@ -11,10 +11,12 @@ shared, deterministic core. Written in Swift with SwiftUI and SpriteKit.
   <img src="assets/sc2_en.jpg" width="32%" alt="Settings: language, sound, music, board size, stone sets">
 </p>
 
-## Release status
+## Download / Releases
 
-No public GitHub release has been published yet. To build the macOS or iOS app from source, see
-[Build & Run](#build--run) below.
+Ready-made, Apple-notarized macOS builds are available as DMGs on the
+[releases page](https://github.com/DanielMuellerIR/steinregen/releases): download the DMG, open it,
+and drag Steinregen into the Applications folder. Requires macOS 15+ on Apple Silicon. To build the
+macOS or iOS app from source, see [Build & Run](#build--run) below.
 
 ## Modes
 
@@ -53,11 +55,11 @@ backed by a muted, desaturated color tint.
 - **Configurable board size** per mode, set in Settings.
 - **Selectable starting speed** (levels 1–10), rising as you clear stones — or a constant
   "endless" tempo that keeps the starting speed.
-- **Graveyard (high-score list)** — on death, enter a name (up to 16 chars); each grave
-  shows the score and the level you died in. Persistent top 16, viewable from the menu.
-- **Sound effects** (locally generated) — landing, clearing, rotating, level-up and game-over
-  cues, with several random variants per event. In Settings you can pick a sound set —
-  Steinregen (the project's own cues), Freedoom, or Silenced; **T** toggles in-game.
+- **Graveyard (high-score list)** — on death, enter a name (up to 16 chars). The persistent top 16
+  shows names and scores and is viewable from the menu.
+- **Sound effects** — landing, clearing, rotating, level-up and game-over cues, with several random
+  variants per event. In Settings you can pick Steinregen (locally generated), Freedoom
+  (BSD-3-Clause), or Silenced; **T** toggles in-game.
 - **Music** (AI-generated) — 13 atmospheric instrumental metal tracks in a random,
   non-repeating order: every track plays once before a new shuffle begins. Three were generated
   locally with ACE-Step XL Turbo and ten with MiniMax Music 2.6; all are 128 kbit/s stereo MP3.
@@ -68,8 +70,15 @@ backed by a muted, desaturated color tint.
 - **Magic Jewel** (Rockfall) — a rare, bright column pulsing through all six sigils. Where it
   lands it wipes every stone of the kind directly beneath it from the board.
 - **Reproducible, seed-driven** — the same seed replays the exact same game, move for move.
-- **Runs on macOS** (keyboard) **and iOS / iPad** (touch), sharing the same core and renderer.
+- **Runs on Apple-silicon macOS** (keyboard) **and iOS / iPad** (touch), sharing the same core and
+  renderer. Intel Macs are not a supported release target.
 - **English and German** — the interface follows your system language and can be switched in Settings.
+
+## Privacy
+
+Steinregen runs entirely offline. It has no accounts, analytics, telemetry, advertising, or network
+code. Settings and the Graveyard are stored locally in the app's `UserDefaults` container and are
+never transmitted.
 
 ## Controls
 
@@ -88,7 +97,7 @@ On macOS, by keyboard:
 
 ## Build & Run
 
-Requires macOS 15+ and the Xcode toolchain.
+Requires an Apple-silicon Mac with macOS 15+ and the Xcode toolchain.
 
 ```bash
 swift build
@@ -101,15 +110,19 @@ swift run Steinregen
 bash tools/make-app.sh
 ```
 
-Builds `dist/Steinregen.app` (ad-hoc signed, with a procedurally drawn Dock icon — an
+Builds an arm64 `dist/Steinregen.app` (ad-hoc signed, with a procedurally drawn Dock icon — an
 inverted-pentagram sigil) plus a distributable `dist/Steinregen-<version>.zip`. Double-click the
 `.app` in Finder, or drag it into `/Applications`. For a notarized, Gatekeeper-friendly build use
-`bash tools/make-notarized.sh` (needs a Developer ID certificate and a notarytool keychain profile).
+the command below (requires a Developer ID certificate and a notarytool keychain profile):
+
+```bash
+NOTARY_PROFILE=profile-name bash tools/make-notarized.sh
+```
 
 ### Notarized DMG (for distribution)
 
 ```bash
-bash tools/make-dmg.sh                 # signs + notarizes (needs a Developer ID cert + notary profile)
+NOTARY_PROFILE=profile-name bash tools/make-dmg.sh
 bash tools/make-dmg.sh --no-notarize   # unsigned — quick local layout test
 ```
 
@@ -117,10 +130,12 @@ Builds `dist/Steinregen-<version>.dmg`: the signed app inside a DMG with an inst
 an `Applications` shortcut, notarized and stapled so it opens without a Gatekeeper warning. The
 background comes from `tools/generate-dmg-background.swift` (→ `assets/dmg-background.png`).
 
-`GITHUB_REPO=owner/name bash tools/make-dmg.sh --publish` additionally tags `v<version>` and
-creates the matching GitHub release with the DMG attached (notes from `CHANGELOG.md`). It requires
-a configured `github` remote (or `GITHUB_REMOTE=<remote>`). A release is cut per version bump —
-documentation-only or other changes that don't bump `VERSION` produce no new DMG.
+Adding `GITHUB_REPO=owner/name` and the `--publish` argument to the signed command additionally tags
+`v<version>` and creates the matching GitHub release with the DMG attached (notes from
+`CHANGELOG.md`). It requires an authenticated `gh`, a clean local `main`, and an identical `main`
+on the configured `github` remote (or `GITHUB_REMOTE=remote-name`). Only that release tag is pushed;
+local archive tags remain private. A release is cut per version bump — documentation-only or other
+changes that don't bump `VERSION` produce no new DMG.
 
 ### iOS app
 
@@ -138,6 +153,14 @@ Xcode toolchain:
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test
+```
+
+The non-publishing release preflight checks version consistency, required documents and licenses,
+local Markdown links, media pools, the social preview, shell syntax, private strings, and — when
+installed — Git history with gitleaks:
+
+```bash
+bash tools/check-release-readiness.sh
 ```
 
 ### Headless / automation
@@ -183,20 +206,19 @@ the sibling project *Zaubersteine*.
 
 ## Trademarks
 
-Steinregen is an independent project and is not affiliated with, endorsed by, or sponsored by
-anyone. Its six modes are inspired by classic falling-block puzzle games and are referred to only
-by descriptive comparison: *Columns* and *Puyo Puyo* are trademarks of Sega, *Tetris* is a
+Steinregen is an independent project and is not affiliated with, endorsed by, or sponsored by any
+of the referenced rights holders. *Columns* and *Puyo Puyo* are trademarks of Sega, *Tetris* is a
 registered trademark of The Tetris Company, LLC, *Dr. Mario* is a trademark of Nintendo, and
-*Lumines* is a trademark of its respective owner. Steinregen's own modes are named *Rockfall*,
-*Entombed*, *Blood Clots*, *Crushed*, *Exorcism*, and *Reaper*; it uses none of those third-party
-names as its own and ships none of those games' graphics, sounds, or trade dress. Game mechanics are not copyrightable; the names are, and appear here
-purely as nominative (descriptive) references.
+*Lumines* is a trademark of its respective owner. Those names appear only as descriptive
+comparisons. Steinregen uses its own mode names and original presentation, graphics, and sounds.
 
 ## License
 
-The source code is MIT-licensed — see [LICENSE](LICENSE). The bundled app is currently intended
-for non-commercial distribution because its FLUX.1 [dev]-generated logo has a non-commercial model
-license. See [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md) for the complete asset terms.
+The source code is MIT-licensed — see [LICENSE](LICENSE). Bundled third-party and generated assets
+have their own terms and attributions; see [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md). In
+particular, FLUX.1 [dev]'s model license restricts use of the model but expressly allows generated
+outputs to be used for any purpose, including commercially. The app bundles include the MIT notice,
+this asset inventory, and the required Freedoom and font license texts.
 
 Title/HUD typeface: **Grenze Gotisch** by Omnibus-Type, licensed under the
 [SIL Open Font License](Sources/SteinregenRender/Resources/GrenzeGotisch-OFL.txt).
@@ -206,9 +228,13 @@ The "FreeDoom" stone-set sprites come from the
 commercial Doom material), licensed under
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
-The sound effects were generated locally with an open audio model (Stable Audio 3); three music
-tracks with **ACE-Step XL Turbo** and ten with MiniMax Music 2.6; the foggy-night background
-images with the open **Qwen-Image** model. All ship as part of this project. See
+The Steinregen sound set was generated locally with Stable Audio 3; the alternative Freedoom set
+is BSD-3-Clause material. Three music tracks were generated with **ACE-Step XL Turbo**, ten with
+MiniMax Music 2.6, and the foggy-night backgrounds with **Qwen-Image**. All ship as part of this
+project. See
 [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md) for the full attribution and license overview.
+
+Please report vulnerabilities according to [SECURITY.md](SECURITY.md); never post sensitive
+details in a public issue.
 
 🤖 Built with [Claude Code](https://claude.com/claude-code).

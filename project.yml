@@ -30,6 +30,12 @@ targets:
     sources:
       - path: Sources/SteinregenApp
       - path: iOS/Assets.xcassets        # iOS-App-Icon (Pentagramm); PNG reproduzierbar erzeugt
+      # Lizenz und Asset-Attribution müssen auch die iOS-Binärkopie begleiten. Die beiden
+      # Dritt-Lizenzen aus SteinregenRender liegen zusätzlich in dessen Ressourcen-Bundle.
+      - path: LICENSE
+        buildPhase: resources
+      - path: THIRD-PARTY-ASSETS.md
+        buildPhase: resources
     dependencies:
       - package: SteinregenPackage
         product: SteinregenCore

@@ -1,7 +1,8 @@
 # Steinregen
 
-Ein natives macOS- und iOS-Spiel in roher Black-Metal-Ästhetik — sechs Fallstein-Spielmodi auf
-einem gemeinsamen, deterministischen Kern. Geschrieben in Swift mit SwiftUI und SpriteKit.
+Ein natives Spiel für Apple-Silicon-Macs und iOS in roher Black-Metal-Ästhetik — sechs
+Fallstein-Spielmodi auf einem gemeinsamen, deterministischen Kern. Geschrieben in Swift mit
+SwiftUI und SpriteKit.
 
 **🌐 Sprache / Language:** [English](README.md) · [Deutsch](README.de.md)
 
@@ -11,10 +12,12 @@ einem gemeinsamen, deterministischen Kern. Geschrieben in Swift mit SwiftUI und 
   <img src="assets/sc2.jpg" width="32%" alt="Einstellungen: Ton, Musik, Brettgröße, Steine-Sets">
 </p>
 
-## Veröffentlichungsstand
+## Download / Releases
 
-Ein öffentliches GitHub-Release gibt es noch nicht. Für den Bau der macOS- oder iOS-App aus dem
-Quellcode siehe [Bauen & Starten](#bauen--starten) unten.
+Fertige, von Apple notarisierte macOS-Builds gibt es als DMG auf der
+[Releases-Seite](https://github.com/DanielMuellerIR/steinregen/releases): DMG laden, öffnen und
+Steinregen in den Programme-Ordner ziehen. Voraussetzung ist macOS 15+ auf Apple Silicon. Für den
+Bau der macOS- oder iOS-App aus dem Quellcode siehe [Bauen & Starten](#bauen--starten) unten.
 
 ## Modi
 
@@ -54,11 +57,11 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 - **Einstellbare Brettgröße** je Modus, in den Einstellungen.
 - **Wählbares Start-Tempo** (Stufen 1–10), das mit den geräumten Steinen steigt — oder ein
   konstantes „Endlos"-Tempo, das auf der Start-Stufe bleibt.
-- **Friedhof (Bestenliste)** — beim Verrecken trägt man einen Namen ein (bis 16 Zeichen); jedes
-  Grab zeigt Punkte und das Level, in dem man verreckt ist. Persistente Top 16, im Menü abrufbar.
-- **Soundeffekte** (lokal erzeugt) — Aufsetzen, Auflösen, Drehen, Level und Game-Over, mit
-  mehreren zufälligen Varianten pro Ereignis. In den Einstellungen wählt man ein Klang-Set —
-  Steinregen (die eigenen Klänge), Freedoom oder Mundtot (stumm); im Spiel schaltet **T** um.
+- **Friedhof (Bestenliste)** — beim Verrecken trägt man einen Namen ein (bis 16 Zeichen). Die
+  persistente Top 16 zeigt Namen und Punktzahlen und ist im Menü abrufbar.
+- **Soundeffekte** — Aufsetzen, Auflösen, Drehen, Level und Game-Over, mit mehreren zufälligen
+  Varianten pro Ereignis. In den Einstellungen wählt man Steinregen (lokal erzeugt), Freedoom
+  (BSD-3-Clause) oder Mundtot (stumm); im Spiel schaltet **T** um.
 - **Musik** (KI-erzeugt) — 13 atmosphärische instrumentale Metal-Stücke in zufälliger,
   nicht wiederholender Reihenfolge: Jedes Stück läuft einmal, bevor neu gemischt wird. Drei
   entstanden lokal mit ACE-Step XL Turbo, zehn mit MiniMax Music 2.6; alle liegen als Stereo-MP3
@@ -70,8 +73,15 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
 - **Magic Jewel** (Steinschlag) — eine seltene, helle Säule, die durch alle sechs Sigille
   pulsiert. Wo sie aufsetzt, räumt sie brettweit die Sorte der Zelle direkt darunter weg.
 - **Reproduzierbar, seed-getrieben** — gleicher Seed spielt exakt dieselbe Partie nach, Zug für Zug.
-- **Läuft auf macOS** (Tastatur) **und iOS / iPad** (Touch), mit demselben Kern und Renderer.
+- **Läuft auf Apple-Silicon-Macs** (Tastatur) **und iOS / iPad** (Touch), mit demselben Kern und
+  Renderer. Intel-Macs sind kein unterstütztes Release-Ziel.
 - **Deutsch und Englisch** — die Oberfläche folgt der System-Sprache und ist in den Einstellungen umschaltbar.
+
+## Datenschutz
+
+Steinregen läuft vollständig offline. Es gibt keine Konten, Analyse, Telemetrie, Werbung oder
+Netzwerkzugriffe. Einstellungen und Friedhof liegen ausschließlich lokal im `UserDefaults`-
+Container der App und werden nie übertragen.
 
 ## Steuerung
 
@@ -90,7 +100,7 @@ unteren Rand). Auf macOS per Tastatur:
 
 ## Bauen & Starten
 
-Voraussetzung: macOS 15+ und die Xcode-Toolchain.
+Voraussetzung: Apple-Silicon-Mac mit macOS 15+ und die Xcode-Toolchain.
 
 ```bash
 swift build
@@ -103,16 +113,19 @@ swift run Steinregen
 bash tools/make-app.sh
 ```
 
-Baut `dist/Steinregen.app` (ad-hoc-signiert, mit einem prozedural erzeugten Dock-Icon —
+Baut eine arm64-`dist/Steinregen.app` (ad-hoc-signiert, mit einem prozedural erzeugten Dock-Icon —
 umgekehrtes Pentagramm) plus ein weitergebbares `dist/Steinregen-<version>.zip`. Die `.app` im
 Finder doppelklicken oder nach `/Programme` ziehen. Für einen notarisierten, Gatekeeper-tauglichen
-Build: `bash tools/make-notarized.sh` (braucht ein Developer-ID-Zertifikat und ein
-notarytool-Schlüsselbund-Profil).
+Build mit Developer-ID-Zertifikat und notarytool-Schlüsselbund-Profil:
+
+```bash
+NOTARY_PROFILE=profil-name bash tools/make-notarized.sh
+```
 
 ### Notarisiertes DMG (zur Weitergabe)
 
 ```bash
-bash tools/make-dmg.sh                 # signiert + notarisiert (braucht Developer-ID-Zertifikat + Notar-Profil)
+NOTARY_PROFILE=profil-name bash tools/make-dmg.sh
 bash tools/make-dmg.sh --no-notarize   # unsigniert — schneller lokaler Layout-Test
 ```
 
@@ -120,11 +133,13 @@ Baut `dist/Steinregen-<version>.dmg`: die signierte App in einem DMG mit Install
 und `Applications`-Shortcut, notarisiert und gestapelt, sodass es ohne Gatekeeper-Warnung öffnet.
 Der Hintergrund stammt aus `tools/generate-dmg-background.swift` (→ `assets/dmg-background.png`).
 
-`GITHUB_REPO=owner/name bash tools/make-dmg.sh --publish` setzt zusätzlich den Tag `v<version>`
-und legt das passende GitHub-Release mit dem DMG an (Notes aus `CHANGELOG.md`). Dafür muss das
-Remote `github` eingerichtet sein (oder `GITHUB_REMOTE=<remote>` gesetzt werden). Ein Release
-entsteht pro Versions-Bump — reine Doku- oder andere Änderungen ohne `VERSION`-Bump erzeugen kein
-neues DMG.
+Die zusätzliche Variable `GITHUB_REPO=owner/name` und das Argument `--publish` am signierten Befehl
+setzen den Tag `v<version>` und legen das passende GitHub-Release mit dem DMG an (Notes aus
+`CHANGELOG.md`). Dafür
+braucht es ein angemeldetes `gh`, einen sauberen lokalen `main` und denselben Stand auf dem Remote
+`github` (oder `GITHUB_REMOTE=remote-name`). Gepusht wird nur dieser Release-Tag; lokale Archiv-Tags
+bleiben privat. Ein Release entsteht pro Versions-Bump — reine Doku- oder andere Änderungen ohne
+`VERSION`-Bump erzeugen kein neues DMG.
 
 ### iOS-App
 
@@ -142,6 +157,14 @@ Stattdessen die Xcode-Toolchain nutzen:
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test
+```
+
+Der nicht veröffentlichende Release-Vorabcheck prüft Versionskonsistenz, Pflichtdokumente und
+Lizenzen, lokale Markdown-Links, Medien-Pools, Social Preview, Shell-Syntax, private Strings und —
+falls installiert — die Git-Historie mit gitleaks:
+
+```bash
+bash tools/check-release-readiness.sh
 ```
 
 ### Headless / Automation
@@ -187,23 +210,21 @@ stammen aus dem Schwester-Projekt *Zaubersteine*.
 
 ## Markenrechte
 
-Steinregen ist ein eigenständiges Projekt, steht in keiner Verbindung zu Dritten und wird von
-ihnen weder unterstützt noch gefördert. Seine sechs Modi sind von klassischen Fallstein-Spielen
-inspiriert und werden nur beschreibend zum Vergleich genannt: *Columns* und *Puyo Puyo* sind
+Steinregen ist ein eigenständiges Projekt und steht in keiner Verbindung zu den genannten
+Rechteinhabern; es wird von ihnen weder unterstützt noch gefördert. *Columns* und *Puyo Puyo* sind
 Marken von Sega, *Tetris* ist eine eingetragene Marke der The Tetris Company, LLC, *Dr. Mario*
-eine Marke von Nintendo und *Lumines* eine Marke ihres jeweiligen Inhabers. Steinregens eigene
-Modi heißen *Steinschlag*, *Eingemauert*, *Blutklumpen*, *Erdrückt*, *Austreibung* und
-*Schnitter*; es verwendet keinen dieser Fremdnamen als eigenen Namen und
-liefert keine Grafiken, Klänge oder den Trade-Dress dieser Spiele mit. Spielmechaniken sind nicht
-urheberrechtlich schützbar, die Namen schon — sie erscheinen hier rein als beschreibende
-(nominative) Nennung.
+eine Marke von Nintendo und *Lumines* eine Marke ihres jeweiligen Inhabers. Diese Namen erscheinen
+nur als beschreibende Vergleiche. Steinregen verwendet eigene Modusnamen sowie eine eigenständige
+Präsentation mit eigenen Grafiken und Klängen.
 
 ## Lizenz
 
-Der Quellcode ist unter MIT lizenziert — siehe [LICENSE](LICENSE). Die gebündelte App ist derzeit
-für nichtkommerzielle Weitergabe gedacht, weil ihr mit FLUX.1 [dev] erzeugtes Logo einer
-nichtkommerziellen Modelllizenz unterliegt. Die vollständige Asset-Lizenzlage steht in
-[THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).
+Der Quellcode ist unter MIT lizenziert — siehe [LICENSE](LICENSE). Für gebündelte fremde und
+generierte Assets gelten eigene Bedingungen und Attributionen; die vollständige Übersicht steht
+in [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md). Die FLUX.1-[dev]-Lizenz beschränkt die Nutzung
+des Modells, erlaubt die Nutzung erzeugter Outputs jedoch ausdrücklich für jeden Zweck,
+einschließlich kommerzieller Nutzung. Die App-Bundles enthalten den MIT-Hinweis, diese
+Asset-Übersicht sowie die erforderlichen Freedoom- und Schrift-Lizenztexte.
 
 Titel-/HUD-Schrift: **Grenze Gotisch** von Omnibus-Type, lizenziert unter der
 [SIL Open Font License](Sources/SteinregenRender/Resources/GrenzeGotisch-OFL.txt).
@@ -213,10 +234,14 @@ Die „FreeDoom"-Steine-Sprites stammen aus dem
 kommerzielle Original-Doom-Material), lizenziert unter
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
-Die Soundeffekte wurden lokal mit einem offenen Audio-Modell (Stable Audio 3) erzeugt, drei
-Musikstücke mit **ACE-Step XL Turbo**, zehn mit MiniMax Music 2.6, die Nebel-bei-Nacht-Hintergründe
-mit dem offenen **Qwen-Image**-Modell. Alle sind Teil dieses Projekts. Vollständige Attribution
+Das Steinregen-Klangset wurde lokal mit Stable Audio 3 erzeugt; das alternative Freedoom-Set steht
+unter BSD-3-Clause. Drei Musikstücke entstanden mit **ACE-Step XL Turbo**, zehn mit MiniMax Music
+2.6, die Nebel-bei-Nacht-Hintergründe mit **Qwen-Image**. Alle sind Teil dieses Projekts.
+Vollständige Attribution
 und Lizenzlage:
 [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).
+
+Sicherheitslücken bitte gemäß [SECURITY.md](SECURITY.md) melden; sensible Details gehören nie in
+ein öffentliches Issue.
 
 🤖 Gebaut mit [Claude Code](https://claude.com/claude-code).

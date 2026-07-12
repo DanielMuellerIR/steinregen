@@ -1,9 +1,10 @@
-Die Grafiken des Steine-Sets „FreeDoom" (fd_*.png in diesem Ordner) stammen aus dem
-Freedoom-Projekt (https://github.com/freedoom/freedoom, Ordner sprites/) und stehen unter
-der folgenden BSD-3-Clause-Lizenz (sie deckt das gesamte Freedoom-Projekt; kommerzielle
-Nutzung ist erlaubt, Bedingung ist die Beibehaltung dieses Lizenz-/Copyright-Hinweises).
-(Die Soundeffekte stammen NICHT mehr aus Freedoom — sie werden seit 2026-06-22 lokal
-erzeugt; siehe README.)
+Die Grafiken des Steine-Sets „FreeDoom" (fd_*.png in diesem Ordner) und die Soundeffekte
+des wählbaren Klangsets „Freedoom" (ds*.m4a) stammen aus dem Freedoom-Projekt
+(https://github.com/freedoom/freedoom) und stehen unter der folgenden BSD-3-Clause-Lizenz.
+Sie deckt das gesamte Freedoom-Projekt; kommerzielle Nutzung ist erlaubt, Bedingung ist die
+Beibehaltung dieses Lizenz-/Copyright-Hinweises. Die ds*.m4a-Dateien sind platzsparende
+AAC-Konvertierungen der ursprünglichen Freedoom-Sounds; die eigenen Steinregen-Klänge
+(drehen/aufloesen/aufsetzen/level/gameover) wurden dagegen lokal erzeugt.
 
 Die fd_*.png sind UNVERÄNDERTE Freedoom-Grafiken (nur umbenannt; Zuschnitt/Skalierung
 passieren zur Laufzeit, die mitgelieferte Datei ist das Original):

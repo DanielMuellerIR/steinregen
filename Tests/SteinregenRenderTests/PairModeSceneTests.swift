@@ -35,7 +35,6 @@ final class PairModeSceneTests: XCTestCase {
     /// zeitnah ein neues aktives Paar.
     func testLockSpawnZyklusLaeuft() {
         let scene = GameScene(size: CGSize(width: 600, height: 800))
-        scene.model = GameModel()
         // Seed 42 raeumt in den ersten Paaren nichts (unten geprueft) — der Zyklus bleibt
         // ohne Raeum-Animation und damit headless-tauglich.
         scene.start(seed: 42, startLevel: 1, mode: .klumpen)
@@ -55,7 +54,6 @@ final class PairModeSceneTests: XCTestCase {
     /// Harness-Grenze (siehe Kopfkommentar), kein App-Fehler.
     func testGruppeRaeumtSetztEngineScore() {
         let scene = GameScene(size: CGSize(width: 600, height: 800))
-        scene.model = GameModel()
         scene.start(seed: 12, startLevel: 1, mode: .klumpen)
         var t = 0.0
         t += frame; scene.update(t)

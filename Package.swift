@@ -4,8 +4,8 @@ import PackageDescription
 let package = Package(
     name: "Steinregen",
     platforms: [
-        // macOS 15+ fuer die Desktop-App; iOS 17+ fuer die iPhone-App (teilt Core+Render,
-        // eigene Touch-App-Schicht ueber dasselbe SteinregenApp-Quellverzeichnis).
+        // macOS 15+ fuer die Desktop-App (Release-Ziel: Apple Silicon); iOS 17+ fuer die
+        // iPhone-App (teilt Core+Render, eigene Touch-App-Schicht ueber dasselbe Verzeichnis).
         .macOS(.v15),
         .iOS(.v17)
     ],

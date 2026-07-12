@@ -3,19 +3,20 @@
 # Apple und heftet das Ticket an (stapler) → die App startet auf FREMDEN Macs ohne
 # Gatekeeper-Warnung. Ergebnis: dist/Steinregen-<version>-notarized.zip
 #
-# Nutzung:  bash tools/make-notarized.sh
+# Nutzung:  NOTARY_PROFILE=profile-name bash tools/make-notarized.sh
 #
 # Voraussetzungen (einmalig je Mac — Schlüsselbund wird NICHT zwischen Macs gesynct!):
 #   1) Developer-ID-Application-Zertifikat in der Login-Keychain. Prüfen:
 #        security find-identity -v -p codesigning   (zeigt „Developer ID Application: …“)
 #   2) notarytool-Keychain-Profil (Name beim Aufruf über NOTARY_PROFILE angeben). Einmal anlegen mit:
-#        xcrun notarytool store-credentials <profil-name> \
-#          --apple-id <APPLE_ID> --team-id <TEAM_ID>
+#        xcrun notarytool store-credentials profile-name \
+#          --apple-id apple-id@example.com --team-id TEAMID1234
 #      (App-spezifisches Passwort wird INTERAKTIV abgefragt — nie als CLI-Argument.)
 #      Profil testen:  xcrun notarytool history --keychain-profile <profil-name>
 #
 # Überschreibbar per Umgebungsvariablen:
-#   SIGN_ID         Signing-Identität (Default unten — die Developer-ID dieses Entwicklers).
+#   SIGN_ID         Optional: Signing-Identität. Ohne Wert wird die erste Developer-ID-
+#                   Application-Identität aus dem lokalen Schlüsselbund verwendet.
 #   NOTARY_PROFILE  notarytool-Keychain-Profil (Pflicht).
 set -euo pipefail
 
@@ -24,13 +25,14 @@ ROOT="$(pwd)"
 VERSION="$(tr -d '[:space:]' < VERSION)"
 APP="dist/Steinregen.app"
 
-# Default-Identität; das lokale Notary-Profil wird bewusst nicht im öffentlichen Repository benannt.
-SIGN_ID="${SIGN_ID:-Developer ID Application: Daniel Mueller (9QSWKSR4NQ)}"
+# Die Signing-Identität lässt sich ohne Geheimnis aus dem lokalen Schlüsselbund ermitteln. Der
+# Notary-Profilname bleibt dagegen eine explizite lokale Eingabe und landet nicht im Repository.
+SIGN_ID="${SIGN_ID:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 
 if [ -z "$NOTARY_PROFILE" ]; then
     echo "FEHLER: NOTARY_PROFILE muss für die Notarisierung gesetzt sein."
-    echo "        Beispiel: NOTARY_PROFILE=<profil-name> bash tools/make-notarized.sh"
+    echo "        Beispiel: NOTARY_PROFILE=profil-name bash tools/make-notarized.sh"
     exit 2
 fi
 
@@ -40,6 +42,15 @@ fi
 # beim Weiterschreiben SIGPIPE und stirbt — und `set -o pipefail` wertet die Pipeline dann als
 # Fehler, obwohl der Treffer da war (führt zu falschen Negativ-Ergebnissen).
 IDENTITIES="$(security find-identity -v -p codesigning 2>/dev/null || true)"
+if [ -z "$SIGN_ID" ]; then
+    # `sed -n '1p'` liest die Eingabe vollständig und verursacht daher unter `pipefail` keinen
+    # SIGPIPE. Die Identität enthält nur öffentliche Zertifikatsdaten, niemals den privaten Key.
+    SIGN_ID="$(sed -n 's/.*"\(Developer ID Application:[^"]*\)".*/\1/p' <<<"$IDENTITIES" | sed -n '1p')"
+fi
+if [ -z "$SIGN_ID" ]; then
+    echo "FEHLER: Keine Developer-ID-Application-Identität in der Keychain gefunden."
+    exit 1
+fi
 if ! grep -qF "$SIGN_ID" <<<"$IDENTITIES"; then
     echo "FEHLER: Signing-Identität nicht in der Keychain gefunden:"
     echo "        »${SIGN_ID}«"
@@ -50,7 +61,7 @@ fi
 if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
     echo "FEHLER: notarytool-Profil »${NOTARY_PROFILE}« fehlt oder ist ungültig."
     echo "        Anlegen:  xcrun notarytool store-credentials $NOTARY_PROFILE \\"
-    echo "                    --apple-id <APPLE_ID> --team-id <TEAM_ID>"
+    echo "                    --apple-id apple-id@example.com --team-id TEAMID1234"
     exit 1
 fi
 

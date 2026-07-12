@@ -21,7 +21,6 @@ final class LockDelayTests: XCTestCase {
 
     private func makeScene() -> GameScene {
         let scene = GameScene(size: CGSize(width: 600, height: 800))
-        scene.model = GameModel()
         scene.start(seed: 42, startLevel: 1, mode: .verschuettet)
         return scene
     }
@@ -145,7 +144,6 @@ final class LockDelayTests: XCTestCase {
     /// ein (faellt also gradlinig) und erreicht dabei eine tiefere Reihe als die Auflage.
     func testKorrekturNebenStein_faelltNormalStattSlam() {
         let scene = GameScene(size: CGSize(width: 600, height: 800))
-        scene.model = GameModel()
         scene.start(seed: 3, startLevel: 1, mode: .verschuettet)   // Seed 3: Stapel gibt Luft nach rechts
         var t = 0.0
         t += frame; scene.update(t)

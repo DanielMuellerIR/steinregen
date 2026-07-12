@@ -11,11 +11,18 @@ on:
 
 jobs:
   test:
-    name: swift test (macOS)
+    name: Tests + iOS-Build
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      # Vollständiger Commit statt beweglichem Tag: verhindert unerwarteten Fremdcode in CI.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Swift-Version anzeigen
         run: swift --version
+      - name: Veröffentlichungs-Gates prüfen
+        run: bash tools/check-release-readiness.sh
       - name: Bauen + Tests
         run: swift test
+      - name: xcodegen bereitstellen
+        run: command -v xcodegen >/dev/null || brew install xcodegen
+      - name: iOS-Simulator-App bauen
+        run: bash tools/make-ios-app.sh

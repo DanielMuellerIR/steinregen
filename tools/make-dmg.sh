@@ -14,10 +14,11 @@
 #   1) Developer-ID-Application-Zertifikat in der Login-Keychain
 #        security find-identity -v -p codesigning
 #   2) notarytool-Keychain-Profil (Name beim Aufruf über NOTARY_PROFILE angeben)
-#        xcrun notarytool store-credentials <profil-name> --apple-id <APPLE_ID> --team-id <TEAM_ID>
+#        xcrun notarytool store-credentials profile-name --apple-id apple-id@example.com --team-id TEAMID1234
 #
 # Überschreibbar per Umgebungsvariablen:
-#   SIGN_ID         Signing-Identität (Default unten).
+#   SIGN_ID         Optional: Signing-Identität. Ohne Wert wird die erste Developer-ID-
+#                   Application-Identität aus dem lokalen Schlüsselbund verwendet.
 #   NOTARY_PROFILE  notarytool-Keychain-Profil (beim Notarisieren Pflicht).
 #   GITHUB_REPO     GitHub-Repository in der Form owner/name (bei --publish Pflicht).
 #   GITHUB_REMOTE   git-Remote-Name fürs Tag-Pushen bei --publish (Default: github).
@@ -26,6 +27,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 VERSION="$(tr -d '[:space:]' < VERSION)"
+TAG="v$VERSION"
 
 APP="dist/Steinregen.app"
 VOLNAME="Steinregen"
@@ -35,7 +37,7 @@ RW_DMG="dist/Steinregen-$VERSION-rw.dmg"
 REPO="${GITHUB_REPO:-}"
 GITHUB_REMOTE="${GITHUB_REMOTE:-github}"
 
-SIGN_ID="${SIGN_ID:-Developer ID Application: Daniel Mueller (9QSWKSR4NQ)}"
+SIGN_ID="${SIGN_ID:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 
 # --- Argumente ---
@@ -54,16 +56,44 @@ if [ "$PUBLISH" = "1" ] && [ "$NOTARIZE" = "0" ]; then
 fi
 if [ "$NOTARIZE" = "1" ] && [ -z "$NOTARY_PROFILE" ]; then
     echo "FEHLER: NOTARY_PROFILE muss für die Notarisierung gesetzt sein."
-    echo "        Beispiel: NOTARY_PROFILE=<profil-name> bash tools/make-dmg.sh"
+    echo "        Beispiel: NOTARY_PROFILE=profil-name bash tools/make-dmg.sh"
     exit 2
 fi
 if [ "$PUBLISH" = "1" ] && [ -z "$REPO" ]; then
     echo "FEHLER: GITHUB_REPO muss für --publish gesetzt sein (owner/name)."
     exit 2
 fi
+if [ "$PUBLISH" = "1" ] && ! [[ "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+    echo "FEHLER: GITHUB_REPO muss die Form owner/name haben."
+    exit 2
+fi
 if [ "$PUBLISH" = "1" ] && ! git remote get-url "$GITHUB_REMOTE" >/dev/null 2>&1; then
     echo "FEHLER: Git-Remote »${GITHUB_REMOTE}« fehlt; Tag würde sonst nicht veröffentlicht."
     exit 2
+fi
+
+# Veröffentlichungsvoraussetzungen VOR dem langen Build prüfen. Diese Abfragen verändern weder
+# Git noch GitHub. Diagnoseausgaben der Netzwerkwerkzeuge bleiben unterdrückt, damit Remote- oder
+# Kontodaten nicht versehentlich im Terminalprotokoll landen.
+if [ "$PUBLISH" = "1" ]; then
+    command -v gh >/dev/null || { echo "FEHLER: gh CLI fehlt (brew install gh)"; exit 1; }
+    [ "$(git branch --show-current)" = "main" ] \
+        || { echo "FEHLER: Releases dürfen nur vom Branch main entstehen."; exit 1; }
+    [ -z "$(git status --porcelain --untracked-files=normal)" ] \
+        || { echo "FEHLER: Arbeitsbaum ist nicht sauber; Release abgebrochen."; exit 1; }
+    grep -qF "## [$VERSION]" CHANGELOG.md \
+        || { echo "FEHLER: CHANGELOG.md enthält keinen Abschnitt für $VERSION."; exit 1; }
+    if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+        [ "$(git rev-list -n 1 "$TAG")" = "$(git rev-parse HEAD)" ] \
+            || { echo "FEHLER: Lokaler Tag $TAG zeigt nicht auf HEAD."; exit 1; }
+    fi
+    gh auth status -h github.com >/dev/null 2>&1 \
+        || { echo "FEHLER: gh ist für github.com nicht angemeldet."; exit 1; }
+    REMOTE_MAIN="$(git ls-remote "$GITHUB_REMOTE" refs/heads/main 2>/dev/null | awk 'NR == 1 {print $1}')"
+    [ -n "$REMOTE_MAIN" ] \
+        || { echo "FEHLER: Remote-Branch main ist auf »${GITHUB_REMOTE}« nicht erreichbar."; exit 1; }
+    [ "$REMOTE_MAIN" = "$(git rev-parse HEAD)" ] \
+        || { echo "FEHLER: Remote-main und lokales HEAD sind nicht identisch."; exit 1; }
 fi
 
 if [ ! -f "$BACKGROUND" ]; then
@@ -78,6 +108,15 @@ if [ "$NOTARIZE" = "1" ]; then
     # (Ausgabe erst in eine Variable, dann per Here-String greppen — siehe make-notarized.sh:
     #  "befehl | grep -q" stirbt sonst an SIGPIPE und pipefail wertet es als Fehler.)
     IDENTITIES="$(security find-identity -v -p codesigning 2>/dev/null || true)"
+    if [ -z "$SIGN_ID" ]; then
+        # Zertifikatsnamen sind öffentlich; der private Signing-Key verlässt die Keychain nie.
+        SIGN_ID="$(sed -n 's/.*"\(Developer ID Application:[^"]*\)".*/\1/p' <<<"$IDENTITIES" | sed -n '1p')"
+    fi
+    if [ -z "$SIGN_ID" ]; then
+        echo "FEHLER: Keine Developer-ID-Application-Identität in der Keychain gefunden."
+        echo "        (Zum reinen Layout-Test: bash tools/make-dmg.sh --no-notarize)"
+        exit 1
+    fi
     if ! grep -qF "$SIGN_ID" <<<"$IDENTITIES"; then
         echo "FEHLER: Signing-Identität nicht in der Keychain gefunden: »${SIGN_ID}«"
         echo "        Vorhandene:"; sed 's/^/          /' <<<"$IDENTITIES"
@@ -86,7 +125,7 @@ if [ "$NOTARIZE" = "1" ]; then
     fi
     if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
         echo "FEHLER: notarytool-Profil »${NOTARY_PROFILE}« fehlt oder ist ungültig."
-        echo "        Anlegen:  xcrun notarytool store-credentials $NOTARY_PROFILE --apple-id <APPLE_ID> --team-id <TEAM_ID>"
+        echo "        Anlegen:  xcrun notarytool store-credentials $NOTARY_PROFILE --apple-id apple-id@example.com --team-id TEAMID1234"
         exit 1
     fi
     echo "==> Bauen + Developer-ID-Signatur…"
@@ -127,7 +166,6 @@ tell application "Finder"
     set current view of container window to icon view
     set toolbar visible of container window to false
     set statusbar visible of container window to false
-    set the bounds of container window to {200, 120, 800, 520}
     set theViewOptions to the icon view options of container window
     set arrangement of theViewOptions to not arranged
     set icon size of theViewOptions to 128
@@ -137,7 +175,15 @@ tell application "Finder"
     try
       set position of item ".background" of container window to {900, 900}
     end try
+    -- macOS 26 übernimmt ein einmaliges `set bounds` gelegentlich nicht. Deshalb wird die
+    -- Zielgröße wie beim erprobten Fastra-Release zurückgelesen und nötigenfalls wiederholt.
+    repeat with i from 1 to 5
+      set the bounds of container window to {200, 120, 800, 520}
+      delay 1
+      if (bounds of container window) = {200, 120, 800, 520} then exit repeat
+    end repeat
     update without registering applications
+    delay 2
     close
   end tell
 end tell
@@ -176,10 +222,8 @@ echo "  Test:  open \"$ROOT/$DMG\""
 # Release-Notes aus dem passenden CHANGELOG.md-Abschnitt. Öffentliches Pushen ist
 # rückfragepflichtig → daher opt-in, nicht Default.
 if [ "$PUBLISH" = "1" ]; then
-    TAG="v$VERSION"
     echo ""
     echo "==> Veröffentliche GitHub-Release $TAG …"
-    command -v gh >/dev/null || { echo "FEHLER: gh CLI fehlt (brew install gh)"; exit 1; }
 
     # Release-Notes aus CHANGELOG.md: Zeilen ab "## [VERSION]" bis zum nächsten "## [".
     NOTES_FILE="dist/release-notes-$VERSION.md"
@@ -192,11 +236,12 @@ if [ "$PUBLISH" = "1" ]; then
     fi
     [ -s "$NOTES_FILE" ] || echo "Steinregen $TAG" > "$NOTES_FILE"
 
-    # git-Tag setzen (idempotent) und zum github-Remote pushen.
+    # Git-Tag lokal idempotent anlegen. Der Vorab-Check garantiert, dass ein bestehender Tag auf
+    # genau HEAD zeigt. Danach immer explizit diesen EINEN Tag pushen — niemals alle lokalen Tags.
     if ! git rev-parse "$TAG" >/dev/null 2>&1; then
         git tag -a "$TAG" -m "Steinregen $TAG"
-        git push "$GITHUB_REMOTE" "$TAG"
     fi
+    git push "$GITHUB_REMOTE" "refs/tags/$TAG"
 
     if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
         gh release upload "$TAG" "$DMG" -R "$REPO" --clobber

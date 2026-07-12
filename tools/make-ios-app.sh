@@ -51,7 +51,9 @@ fi
 echo "==> Xcode-Projekt aus project.yml erzeugen…"
 xcodegen generate >/dev/null
 
-echo "==> Build (iOS-Simulator) v$VERSION…"
+# Geschweifte Klammern trennen den Variablennamen vom Unicode-Auslassungszeichen. Ohne sie
+# interpretiert Bash bei aktiver UTF-8-Locale das Zeichen als Teil des Namens (`VERSION…`).
+echo "==> Build (iOS-Simulator) v${VERSION}…"
 xcodebuild -project "$PROJ" -scheme "$SCHEME" \
   -destination "generic/platform=iOS Simulator" \
   -derivedDataPath "$DERIVED" \

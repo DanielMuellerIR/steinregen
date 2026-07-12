@@ -37,6 +37,10 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp "$BIN_DIR/$EXE_NAME" "$APP/Contents/MacOS/$EXE_NAME"
 cp -R "$BIN_DIR/$RES_BUNDLE" "$APP/Contents/Resources/$RES_BUNDLE"
+# Auch Binärkopien müssen die eigene MIT-Lizenz und die vollständige Asset-Attribution begleiten.
+# Die Dritt-Lizenzen für Freedoom und Grenze Gotisch stecken bereits im Ressourcen-Bundle.
+cp LICENSE "$APP/Contents/Resources/STEINREGEN-LICENSE.txt"
+cp THIRD-PARTY-ASSETS.md "$APP/Contents/Resources/THIRD-PARTY-ASSETS.md"
 cp "$ICON" "$APP/Contents/Resources/AppIcon.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
@@ -64,7 +68,8 @@ if [ -n "${SIGN_ID:-}" ]; then
     # Echte Signatur mit Hardened Runtime (--options runtime) + Zeitstempel (--timestamp).
     # Beides ist Pflicht für die Notarisierung; KEIN --deep (Apple rät davon ab, und das Bundle
     # hat ohnehin nur EINE Mach-O-Datei — die Haupt-Binary; das Ressourcen-Bundle ist reiner Inhalt).
-    echo "==> Signatur mit »$SIGN_ID« (Hardened Runtime)…"
+    # Klammern verhindern, dass Bash das folgende Unicode-Zeichen dem Variablennamen zurechnet.
+    echo "==> Signatur mit »${SIGN_ID}« (Hardened Runtime)…"
     codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$APP"
     codesign --verify --strict --verbose=2 "$APP" && echo "    Signatur ok."
 else
