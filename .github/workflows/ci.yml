@@ -15,7 +15,7 @@ jobs:
     runs-on: macos-15
     steps:
       # Vollständiger Commit statt beweglichem Tag: verhindert unerwarteten Fremdcode in CI.
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Swift-Version anzeigen
         run: swift --version
       - name: Veröffentlichungs-Gates prüfen
@@ -23,6 +23,12 @@ jobs:
       - name: Bauen + Tests
         run: swift test
       - name: xcodegen bereitstellen
-        run: command -v xcodegen >/dev/null || brew install xcodegen
+        run: |
+          if ! command -v xcodegen >/dev/null; then
+            # Runner-Images können fremde, nicht vertrauenswürdige Taps vorinstalliert haben.
+            # Sie werden für xcodegen nicht gebraucht und sollen das CI-Protokoll nicht belasten.
+            brew untap aws/tap >/dev/null 2>&1 || true
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+          fi
       - name: iOS-Simulator-App bauen
         run: bash tools/make-ios-app.sh

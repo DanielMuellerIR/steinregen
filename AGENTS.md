@@ -246,12 +246,16 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-13, v0.27.13)
+## 5. Status (Stand 2026-07-13, v0.27.14)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
 seed-getriebene Säulenfolge. Core vollständig unit-getestet. Doppelklickbares App-Bundle mit
 Dock-Icon (`tools/make-app.sh`, arm64; Intel ist bewusst kein Release-Ziel).
+
+**v0.27.14 — saubere CI:** `actions/checkout` läuft gepinnt als v7.0.0 mit Node 24. Vor der
+xcodegen-Installation entfernt der kurzlebige Runner einen nicht benötigten, vorinstallierten
+Homebrew-Tap, sodass weder Node-Abkündigungs- noch Tap-Vertrauenswarnungen im Lauf bleiben.
 
 **v0.27.13 — weiterer CI-Kompatibilitätsfix:** Auch die beiden privaten UserDefaults-Sicherungen
 in `FriedhofTests` sind jetzt `nonisolated(unsafe)`, weil GitHubs XCTest-Runner `setUp()` und

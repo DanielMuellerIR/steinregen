@@ -3,6 +3,12 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.14]
+
+- CI maintenance: pinned `actions/checkout` v7.0.0 (Node 24) to its verified commit SHA and remove
+  an unrelated untrusted Homebrew tap from the ephemeral runner before installing xcodegen. This
+  eliminates both remaining workflow annotations without changing the application.
+
 ## [0.27.13]
 
 - CI compatibility: applied the same explicit teardown-storage isolation used by
