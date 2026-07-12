@@ -1,7 +1,5 @@
 # Steinregen
 
-[![CI](https://github.com/DanielMuellerIR/steinregen/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielMuellerIR/steinregen/actions/workflows/ci.yml)
-
 A native macOS and iOS game in a raw black-metal style — six falling-block puzzle modes on one
 shared, deterministic core. Written in Swift with SwiftUI and SpriteKit.
 
@@ -13,11 +11,10 @@ shared, deterministic core. Written in Swift with SwiftUI and SpriteKit.
   <img src="assets/sc2_en.jpg" width="32%" alt="Settings: language, sound, music, board size, stone sets">
 </p>
 
-## Download
+## Release status
 
-**[➜ Download the latest signed & notarized DMG](https://github.com/DanielMuellerIR/steinregen/releases/latest)** — open it, drag *Steinregen* into Applications and double-click. Signed with a Developer ID and notarized by Apple, so it opens without a Gatekeeper warning. Requires macOS 15 or newer.
-
-Prefer to build from source, or want the iOS app? See [Build & Run](#build--run) below.
+No public GitHub release has been published yet. To build the macOS or iOS app from source, see
+[Build & Run](#build--run) below.
 
 ## Modes
 
@@ -62,8 +59,9 @@ backed by a muted, desaturated color tint.
   cues, with several random variants per event. In Settings you can pick a sound set —
   Steinregen (the project's own cues), Freedoom, or Silenced; **T** toggles in-game.
 - **Music** (AI-generated) — 13 atmospheric instrumental metal tracks in a random,
-  non-repeating order: every track plays once before a new shuffle begins. On by default but only
-  from the start of a level, not in the menu; toggled independently of the sound effects in
+  non-repeating order: every track plays once before a new shuffle begins. Three were generated
+  locally with ACE-Step XL Turbo and ten with MiniMax Music 2.6; all are 128 kbit/s stereo MP3.
+  Music is on by default but only starts with a level, not in the menu; toggle it independently in
   Settings or with **M** in-game.
 - **Backgrounds** — AI-generated foggy-night motifs (graveyard, dead winter forest, ruined
   cathedral, foggy moor, blood-red moon); a different one each game, never the same twice in a row.
@@ -119,8 +117,9 @@ Builds `dist/Steinregen-<version>.dmg`: the signed app inside a DMG with an inst
 an `Applications` shortcut, notarized and stapled so it opens without a Gatekeeper warning. The
 background comes from `tools/generate-dmg-background.swift` (→ `assets/dmg-background.png`).
 
-`bash tools/make-dmg.sh --publish` additionally tags `v<version>` and creates the matching GitHub
-release with the DMG attached (notes from `CHANGELOG.md`). A release is cut per version bump —
+`GITHUB_REPO=owner/name bash tools/make-dmg.sh --publish` additionally tags `v<version>` and
+creates the matching GitHub release with the DMG attached (notes from `CHANGELOG.md`). It requires
+a configured `github` remote (or `GITHUB_REMOTE=<remote>`). A release is cut per version bump —
 documentation-only or other changes that don't bump `VERSION` produce no new DMG.
 
 ### iOS app
@@ -195,7 +194,9 @@ purely as nominative (descriptive) references.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+The source code is MIT-licensed — see [LICENSE](LICENSE). The bundled app is currently intended
+for non-commercial distribution because its FLUX.1 [dev]-generated logo has a non-commercial model
+license. See [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md) for the complete asset terms.
 
 Title/HUD typeface: **Grenze Gotisch** by Omnibus-Type, licensed under the
 [SIL Open Font License](Sources/SteinregenRender/Resources/GrenzeGotisch-OFL.txt).
@@ -205,9 +206,9 @@ The "FreeDoom" stone-set sprites come from the
 commercial Doom material), licensed under
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
-The sound effects were generated locally with an open audio model (Stable Audio 3); the music
-tracks with **ACE-Step** and MiniMax Music 2.6; the foggy-night background images with the open
-**Qwen-Image** model. All ship as part of this project. See
+The sound effects were generated locally with an open audio model (Stable Audio 3); three music
+tracks with **ACE-Step XL Turbo** and ten with MiniMax Music 2.6; the foggy-night background
+images with the open **Qwen-Image** model. All ship as part of this project. See
 [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md) for the full attribution and license overview.
 
 🤖 Built with [Claude Code](https://claude.com/claude-code).

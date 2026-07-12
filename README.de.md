@@ -1,7 +1,5 @@
 # Steinregen
 
-[![CI](https://github.com/DanielMuellerIR/steinregen/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielMuellerIR/steinregen/actions/workflows/ci.yml)
-
 Ein natives macOS- und iOS-Spiel in roher Black-Metal-Ästhetik — sechs Fallstein-Spielmodi auf
 einem gemeinsamen, deterministischen Kern. Geschrieben in Swift mit SwiftUI und SpriteKit.
 
@@ -13,11 +11,10 @@ einem gemeinsamen, deterministischen Kern. Geschrieben in Swift mit SwiftUI und 
   <img src="assets/sc2.jpg" width="32%" alt="Einstellungen: Ton, Musik, Brettgröße, Steine-Sets">
 </p>
 
-## Download
+## Veröffentlichungsstand
 
-**[➜ Aktuelles signiertes & notarisiertes DMG herunterladen](https://github.com/DanielMuellerIR/steinregen/releases/latest)** — öffnen, *Steinregen* in den Programme-Ordner ziehen, doppelklicken. Mit Developer ID signiert und von Apple notarisiert, öffnet also ohne Gatekeeper-Warnung. Braucht macOS 15 oder neuer.
-
-Lieber aus dem Quellcode bauen, oder die iOS-App? Siehe [Bauen & Starten](#bauen--starten) unten.
+Ein öffentliches GitHub-Release gibt es noch nicht. Für den Bau der macOS- oder iOS-App aus dem
+Quellcode siehe [Bauen & Starten](#bauen--starten) unten.
 
 ## Modi
 
@@ -63,9 +60,10 @@ sich über ein weißes **Sigil** (Form), dazu eine gedeckte, entsättigte Farb-T
   mehreren zufälligen Varianten pro Ereignis. In den Einstellungen wählt man ein Klang-Set —
   Steinregen (die eigenen Klänge), Freedoom oder Mundtot (stumm); im Spiel schaltet **T** um.
 - **Musik** (KI-erzeugt) — 13 atmosphärische instrumentale Metal-Stücke in zufälliger,
-  nicht wiederholender Reihenfolge: Jedes Stück läuft einmal, bevor neu gemischt wird.
-  Standardmäßig an, aber erst ab Levelbeginn (nicht im Menü); getrennt von den Soundeffekten
-  ausschaltbar — in den Einstellungen oder im Spiel mit **M**.
+  nicht wiederholender Reihenfolge: Jedes Stück läuft einmal, bevor neu gemischt wird. Drei
+  entstanden lokal mit ACE-Step XL Turbo, zehn mit MiniMax Music 2.6; alle liegen als Stereo-MP3
+  mit 128 kbit/s vor. Standardmäßig an, aber erst ab Levelbeginn (nicht im Menü); getrennt von den
+  Soundeffekten ausschaltbar — in den Einstellungen oder im Spiel mit **M**.
 - **Hintergründe** — KI-generierte Nebel-bei-Nacht-Motive (Friedhof, toter Winterwald,
   Kathedralenruine, Nebelmoor, blutroter Mond); pro Partie ein anderes, nie dasselbe zweimal
   hintereinander.
@@ -122,9 +120,11 @@ Baut `dist/Steinregen-<version>.dmg`: die signierte App in einem DMG mit Install
 und `Applications`-Shortcut, notarisiert und gestapelt, sodass es ohne Gatekeeper-Warnung öffnet.
 Der Hintergrund stammt aus `tools/generate-dmg-background.swift` (→ `assets/dmg-background.png`).
 
-`bash tools/make-dmg.sh --publish` setzt zusätzlich den Tag `v<version>` und legt das passende
-GitHub-Release mit dem DMG an (Notes aus `CHANGELOG.md`). Ein Release entsteht pro Versions-Bump —
-reine Doku- oder andere Änderungen ohne `VERSION`-Bump erzeugen kein neues DMG.
+`GITHUB_REPO=owner/name bash tools/make-dmg.sh --publish` setzt zusätzlich den Tag `v<version>`
+und legt das passende GitHub-Release mit dem DMG an (Notes aus `CHANGELOG.md`). Dafür muss das
+Remote `github` eingerichtet sein (oder `GITHUB_REMOTE=<remote>` gesetzt werden). Ein Release
+entsteht pro Versions-Bump — reine Doku- oder andere Änderungen ohne `VERSION`-Bump erzeugen kein
+neues DMG.
 
 ### iOS-App
 
@@ -200,7 +200,10 @@ urheberrechtlich schützbar, die Namen schon — sie erscheinen hier rein als be
 
 ## Lizenz
 
-MIT — siehe [LICENSE](LICENSE).
+Der Quellcode ist unter MIT lizenziert — siehe [LICENSE](LICENSE). Die gebündelte App ist derzeit
+für nichtkommerzielle Weitergabe gedacht, weil ihr mit FLUX.1 [dev] erzeugtes Logo einer
+nichtkommerziellen Modelllizenz unterliegt. Die vollständige Asset-Lizenzlage steht in
+[THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).
 
 Titel-/HUD-Schrift: **Grenze Gotisch** von Omnibus-Type, lizenziert unter der
 [SIL Open Font License](Sources/SteinregenRender/Resources/GrenzeGotisch-OFL.txt).
@@ -210,10 +213,10 @@ Die „FreeDoom"-Steine-Sprites stammen aus dem
 kommerzielle Original-Doom-Material), lizenziert unter
 [BSD-3-Clause](Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt).
 
-Die Soundeffekte wurden lokal mit einem offenen Audio-Modell (Stable Audio 3) erzeugt, die
-Musikstücke mit **ACE-Step** und MiniMax Music 2.6, die Nebel-bei-Nacht-Hintergründe mit dem
-offenen **Qwen-Image**-Modell. Alle sind Teil dieses Projekts. Vollständige Attribution und
-Lizenzlage:
+Die Soundeffekte wurden lokal mit einem offenen Audio-Modell (Stable Audio 3) erzeugt, drei
+Musikstücke mit **ACE-Step XL Turbo**, zehn mit MiniMax Music 2.6, die Nebel-bei-Nacht-Hintergründe
+mit dem offenen **Qwen-Image**-Modell. Alle sind Teil dieses Projekts. Vollständige Attribution
+und Lizenzlage:
 [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).
 
 🤖 Gebaut mit [Claude Code](https://claude.com/claude-code).

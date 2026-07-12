@@ -2,7 +2,8 @@
 
 Steinregen's own source code is MIT-licensed (see [LICENSE](LICENSE)). This file documents the
 origin and license of every bundled asset that is **not** original Steinregen code, so the rights
-situation is auditable before any (re)distribution.
+situation is auditable before any (re)distribution. The bundled app is currently intended for
+non-commercial distribution because of the logo described below.
 
 ## Fonts
 
@@ -43,10 +44,13 @@ situation is auditable before any (re)distribution.
 ## Music
 
 - **`musik-1.mp3`, `musik-2.mp3`, `musik-3.mp3`** — three calm, atmospheric instrumental metal
-  tracks generated locally with the open **ACE-Step** model. ACE-Step permits commercial use. ✅
+  tracks generated locally with **ACE-Step XL Turbo**. ACE-Step permits commercial use. ✅
 - **`musik-4.mp3` … `musik-13.mp3`** — ten selected instrumental metal tracks generated with
-  MiniMax Music 2.6. Their applicable MiniMax service terms must be verified before a commercial
-  redistribution; they are therefore not marked license-clean here. ⚠️
+  MiniMax Music 2.6. Under [MiniMax's Open Platform Terms](https://platform.minimax.io/protocol/terms-of-service)
+  (effective 2026-03-30), the user retains rights in generated content as between the parties, to
+  the extent permitted by applicable law. The terms do not guarantee that an output is free of
+  third-party rights, so the prompts and outputs still require a rights review before a commercial
+  release. The current non-commercial distribution is covered by the same terms. ⚠️
 
 ## App icon
 

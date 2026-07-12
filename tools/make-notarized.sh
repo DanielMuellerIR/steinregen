@@ -8,15 +8,15 @@
 # Voraussetzungen (einmalig je Mac — Schlüsselbund wird NICHT zwischen Macs gesynct!):
 #   1) Developer-ID-Application-Zertifikat in der Login-Keychain. Prüfen:
 #        security find-identity -v -p codesigning   (zeigt „Developer ID Application: …“)
-#   2) notarytool-Keychain-Profil (Default: steinregen-notary). Einmal anlegen mit:
-#        xcrun notarytool store-credentials steinregen-notary \
+#   2) notarytool-Keychain-Profil (Name beim Aufruf über NOTARY_PROFILE angeben). Einmal anlegen mit:
+#        xcrun notarytool store-credentials <profil-name> \
 #          --apple-id <APPLE_ID> --team-id <TEAM_ID>
 #      (App-spezifisches Passwort wird INTERAKTIV abgefragt — nie als CLI-Argument.)
-#      Profil testen:  xcrun notarytool history --keychain-profile steinregen-notary
+#      Profil testen:  xcrun notarytool history --keychain-profile <profil-name>
 #
 # Überschreibbar per Umgebungsvariablen:
 #   SIGN_ID         Signing-Identität (Default unten — die Developer-ID dieses Entwicklers).
-#   NOTARY_PROFILE  notarytool-Keychain-Profil (Default: steinregen-notary).
+#   NOTARY_PROFILE  notarytool-Keychain-Profil (Pflicht).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -24,9 +24,15 @@ ROOT="$(pwd)"
 VERSION="$(tr -d '[:space:]' < VERSION)"
 APP="dist/Steinregen.app"
 
-# Default-Identität + -Profil; beide per Umgebung überschreibbar (auf anderem Mac / anderem Konto).
+# Default-Identität; das lokale Notary-Profil wird bewusst nicht im öffentlichen Repository benannt.
 SIGN_ID="${SIGN_ID:-Developer ID Application: Daniel Mueller (9QSWKSR4NQ)}"
-NOTARY_PROFILE="${NOTARY_PROFILE:-steinregen-notary}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-}"
+
+if [ -z "$NOTARY_PROFILE" ]; then
+    echo "FEHLER: NOTARY_PROFILE muss für die Notarisierung gesetzt sein."
+    echo "        Beispiel: NOTARY_PROFILE=<profil-name> bash tools/make-notarized.sh"
+    exit 2
+fi
 
 # --- Vorab-Checks: lieber jetzt klar scheitern als nach dem langen Build --------------------
 # Hinweis: Ausgabe IMMER erst in eine Variable holen und dann per Here-String (<<<) greppen,
@@ -36,13 +42,13 @@ NOTARY_PROFILE="${NOTARY_PROFILE:-steinregen-notary}"
 IDENTITIES="$(security find-identity -v -p codesigning 2>/dev/null || true)"
 if ! grep -qF "$SIGN_ID" <<<"$IDENTITIES"; then
     echo "FEHLER: Signing-Identität nicht in der Keychain gefunden:"
-    echo "        »$SIGN_ID«"
+    echo "        »${SIGN_ID}«"
     echo "        Vorhandene Identitäten:"
     sed 's/^/          /' <<<"$IDENTITIES"
     exit 1
 fi
 if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
-    echo "FEHLER: notarytool-Profil »$NOTARY_PROFILE« fehlt oder ist ungültig."
+    echo "FEHLER: notarytool-Profil »${NOTARY_PROFILE}« fehlt oder ist ungültig."
     echo "        Anlegen:  xcrun notarytool store-credentials $NOTARY_PROFILE \\"
     echo "                    --apple-id <APPLE_ID> --team-id <TEAM_ID>"
     exit 1

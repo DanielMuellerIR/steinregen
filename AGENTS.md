@@ -107,11 +107,13 @@ steinregen/                   (SwiftPM-Workspace)
   Level `dswpnup`. Ton-Aus = „mundtot" (UserDefaults `steinregen.mundtot`, Taste **T**, Einstellungen).
   Kandidaten zum Probehören: `tools/get-sound-candidates.sh` + `tools/audition-sounds.sh`
   (laden nach `assets/sound-candidates/`, git-ignoriert).
-- **Musik (ab v0.21.0)**: drei instrumentale Stücke (Downfall-of-Gaia-Stil, lokal mit ACE-Step
-  erzeugt, kommerziell unbedenklich) als `musik-1.mp3`/`musik-2.mp3`/`musik-3.mp3` im Bundle,
-  abgespielt über `MusicPlayer` (eigene Datei, `AVAudioPlayer` + Delegate). Laufen NACHEINANDER in
-  Schleife, pro Partie zufälliger Einstieg. Ab v0.27.2 werden die Stücke **automatisch entdeckt**
-  (alle lückenlos nummerierten `musik-N.mp3` — ein weiteres ins Bundle legen genügt). **Getrennt von den Soundeffekten**: eigener Schalter
+- **Musik (ab v0.21.0, erweitert v0.27.9)**: 13 instrumentale Metal-Stücke im Bundle,
+  abgespielt über `MusicPlayer` (eigene Datei, `AVAudioPlayer` + Delegate): `musik-1.mp3` bis
+  `musik-3.mp3` stammen lokal aus **ACE-Step XL Turbo**, `musik-4.mp3` bis `musik-13.mp3` aus
+  **MiniMax Music 2.6**. Alle sind auf 128 kbit/s Stereo-MP3 vereinheitlicht. Der Player mischt
+  pro Durchlauf alle Titel zufällig, spielt jeden genau einmal und verhindert dieselbe Nummer direkt
+  an der Schleifengrenze. Die Stücke werden **automatisch entdeckt** (alle lückenlos nummerierten
+  `musik-N.mp3` — ein weiteres ins Bundle legen genügt). **Getrennt von den Soundeffekten**: eigener Schalter
   (UserDefaults `steinregen.musik.aus`, Taste **M**, Einstellungs-Karte „Musik"), **standardmäßig
   AN**, spielt aber **nur im laufenden Spiel** (nicht im Menü) — die App-Schicht ruft
   `MusicPlayer.shared.gameStarted()` beim Levelbeginn (`startGame`) und `gameEnded()` bei der
@@ -143,17 +145,18 @@ steinregen/                   (SwiftPM-Workspace)
   ein (`notarytool submit --wait`), heftet das Ticket an (`stapler staple`) und packt
   `dist/Steinregen-<version>-notarized.zip`. Nutzt intern `make-app.sh` (kein Code-Duplikat).
   Voraussetzungen **pro Mac** (Schlüsselbund wird nicht gesynct): Developer-ID-Application-Zertifikat
-  in der Login-Keychain + notarytool-Keychain-Profil. Identität/Profil per env überschreibbar
-  (`SIGN_ID`, `NOTARY_PROFILE`, Default-Profil `steinregen-notary`). Das notarytool-Keychain-Profil
+  in der Login-Keychain + notarytool-Keychain-Profil. Identität/Profil werden per env gesetzt
+  (`SIGN_ID`, `NOTARY_PROFILE`; das Profil hat bewusst KEINEN Default im öffentlichen Repo). Das notarytool-Keychain-Profil
   einmalig anlegen mit `xcrun notarytool store-credentials` (Apple-ID + Team-ID + App-spezifisches Passwort).
 - **Notarisiertes DMG / Release**: `bash tools/make-dmg.sh` baut die Developer-ID-signierte App in
   ein DMG mit Hintergrundbild (`assets/dmg-background.png`, erzeugt von
   `tools/generate-dmg-background.swift`) + Applications-Shortcut, signiert/notarisiert/stapelt es →
   `dist/Steinregen-<version>.dmg`. `--no-notarize` baut ein unsigniertes Test-DMG (Layout-Check ohne
-  Zertifikat). `--publish` setzt Tag `v<version>` und legt das GitHub-Release mit dem DMG an (Notes
-  aus `CHANGELOG.md`). **Konvention: Ein Release/DMG entsteht nur bei `VERSION`-Bump — reine
-  README-/Doku-/Mini-Änderungen ohne Bump erzeugen kein neues DMG.** Notar-Profil-Default
-  `steinregen-notary` (per `NOTARY_PROFILE` überschreibbar).
+  Zertifikat). `GITHUB_REPO=owner/name bash tools/make-dmg.sh --publish` setzt Tag `v<version>` und
+  legt das GitHub-Release mit dem DMG an (Notes aus `CHANGELOG.md`); ein passendes Git-Remote muss
+  vorhanden sein. **Konvention: Ein Release/DMG entsteht nur bei `VERSION`-Bump — reine
+  README-/Doku-/Mini-Änderungen ohne Bump erzeugen kein neues DMG.** Das Notar-Profil wird
+  ausschließlich über `NOTARY_PROFILE` gesetzt.
 - **iOS-App (iPhone)**: SwiftPM kann kein iOS-App-Bundle erzeugen → `bash tools/make-ios-app.sh`
   erzeugt per **xcodegen** aus `project.yml` ein Xcode-Projekt (`Steinregen.xcodeproj`, git-ignoriert)
   und baut die App fürs iOS-Simulator-SDK. `bash tools/make-ios-app.sh run` installiert + startet sie
@@ -241,12 +244,26 @@ Tastatur läuft über einen lokalen `NSEvent`-Monitor (in `GameplayView`), bewus
 
 ---
 
-## 5. Status (Stand 2026-07-12, v0.27.8)
+## 5. Status (Stand 2026-07-12, v0.27.10)
 
 Spielbarer Arcade-Endlosmodus mit wählbarer Start-Tempostufe, Highscore-Anzeige im
 Sieg-/Game-Over-Overlay, Vorschau auf die nächste Säule, Magic Jewel, deterministische,
 seed-getriebene Säulenfolge. Core vollständig unit-getestet. Doppelklickbares App-Bundle mit
 Dock-Icon (`tools/make-app.sh`).
+
+**v0.27.10 — Release-Dokumentation & Notarisierungs-Naht:** Alle Projektdokumente nennen den
+aktuellen Musikbestand korrekt: 13 Titel, davon drei lokal mit **ACE-Step XL Turbo** und zehn mit
+**MiniMax Music 2.6**, als 128-kbit/s-Stereo-MP3. Die Hintergrundbilder bleiben davon getrennt:
+alle fünf stammen aus **Qwen-Image** und sind kommerziell unbedenklich. Das FLUX.1-[dev]-Logo
+bleibt für die beabsichtigte nichtkommerzielle, quelloffene Veröffentlichung zulässig; erst eine
+kommerzielle Weitergabe braucht eine andere Klärung. Die Notarisierungs-Skripte verlangen jetzt
+explizit `NOTARY_PROFILE`, statt einen lokalen Schlüsselbund-Profilnamen im öffentlichen Repo zu
+erraten. README-Links behaupten keinen noch nicht existierenden GitHub-Release mehr.
+
+**v0.27.9 — Musik-Pool & zufällige Wiedergabe:** Zehn ausgewählte Titel ergänzen die drei
+vorhandenen Stücke. `MusicPlayer` mischt alle 13 Titel pro Durchlauf, spielt jeden genau einmal
+und verhindert eine direkte Wiederholung zwischen zwei Durchläufen. Die zehn neuen MP3s sind für
+die iOS-Bundlegröße auf 128 kbit/s Stereo umkodiert; 118 Tests grün.
 
 **v0.2.0 — Black-Metal-Redesign:** kompletter Look-Overhaul (schwarz/knochenweiß/Ochsenblut,
 prozedurale Steine statt Edelstein-PNGs, animierter Nebel-Hintergrund, Blackletter-Schrift Pirata
@@ -740,23 +757,20 @@ zu ändern** (keine ungefragten „Verbesserungen"). Am echten iPhone + iPad-Sim
   Asset-Tausch (bessere Kantenqualität), keine Code-Änderung.
 - **Zweites Sound-Set:** mit den (noch in Arbeit befindlichen) SFX-Generierungs-Werkzeugen ein
   eigenes Soundeffekt-Set erzeugen — Werkzeug wird ca. ab 2026-06-22 verfügbar sein.
-- **Mehr Musik VOR der GitHub-Veröffentlichung (Entscheidung Daniel, 2026-07-02):** Die
-  Veröffentlichung ist **aufgeschoben**, bis deutlich mehr Musikstücke im Spiel sind. Grund:
-  Die drei vorhandenen Stücke (v0.21.0, ACE-Step) sind an sich in Ordnung, wiederholen sich
-  beim Testspielen aber zu schnell und werden dann rasch nervig. Also erst weitere Stücke
-  besorgen bzw. generieren (Weg wie v0.21.0: lokal per ACE-Step auf dem M5, Skill `musicgen`).
-  Ein neues Stück als `musik-N.mp3` (lückenlos nummeriert) ins Bundle legen genügt — der
-  `MusicPlayer` entdeckt alle Stücke automatisch (ab v0.27.2, wie die Hintergrundbilder).
-  Daniel kommt erst später dazu — bis dahin kein GitHub-Release/DMG-Publish.
-- **Veröffentlichbarkeit prüfen** — ✅ auditiert (Stand 2026-06-22), Bestandsaufnahme in
+- **Mehr Musik VOR der GitHub-Veröffentlichung** — ✅ erledigt 2026-07-12: 13 Stücke im Bundle
+  (3 × ACE-Step XL Turbo, 10 × MiniMax Music 2.6), mit vollständiger zufälliger Reihenfolge statt
+  einer festen Schleife. Ein neues Stück als `musik-N.mp3` (lückenlos nummeriert) ins Bundle legen
+  genügt — `MusicPlayer` entdeckt alle automatisch (ab v0.27.2).
+- **Veröffentlichbarkeit prüfen** — ✅ auditiert (Stand 2026-07-12), Bestandsaufnahme in
   [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md). **Non-kommerziell ist sauber** (eigener Code MIT;
   FreeDoom-WAVs **und** -Grafiken BSD-3, Grenze Gotisch OFL, Edelstein-Assets Eigenwerk, Logo aus
-  lokalem FLUX.1 [dev]). README-Doku-Bugs gefixt (Pirata One → Grenze Gotisch, FreeDoom-Grafiken in
-  der Attribution, „six sets", `freedoom`-ID). **Offene Blocker NUR für eine spätere kommerzielle
-  Verbreitung** (kein Hindernis für non-kommerziell): (1) `logo.png` aus FLUX.1 [dev] = nicht-
-  kommerzielle Lizenz → Output-Rechte prüfen oder Logo ersetzen; (2) Bethlehem-Zitat „Tod macht
-  Fliegen aus uns allen" (Album-/Songtitel 1994) ersetzen/freigeben; (3) Sega/Columns-Trademark-
-  Disclaimer prominent halten. Details + Checkliste in THIRD-PARTY-ASSETS.md.
+  lokalem FLUX.1 [dev]; Hintergrundbilder Qwen-Image; drei Musiken ACE-Step XL Turbo; zehn
+  Musiken MiniMax Music 2.6). MiniMaxs aktuelle API-AGB (2026-03-30) belassen die Rechte am
+  generierten Inhalt beim Nutzer, vorbehaltlich geltenden Rechts; keine Garantie gegen
+  Drittansprüche. **Offene Blocker NUR für eine spätere kommerzielle Verbreitung** (kein Hindernis
+  für non-kommerziell): (1) `logo.png` aus FLUX.1 [dev] = nicht-kommerzielle Lizenz → Output-Rechte
+  prüfen oder Logo ersetzen; (2) Sega/Columns-Trademark-Disclaimer prominent halten. Details +
+  Checkliste in THIRD-PARTY-ASSETS.md.
 - **Git-History bereinigen vor Erstveröffentlichung** — History auf persönliche/private Daten
   durchsuchen, dann gezielt entfernen (history-rewrite) oder vor dem ersten Public-Push squashen.
 

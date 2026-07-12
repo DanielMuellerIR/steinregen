@@ -13,12 +13,13 @@
 # Voraussetzungen fürs Signieren/Notarisieren (einmalig je Mac — Schlüsselbund wird NICHT gesynct):
 #   1) Developer-ID-Application-Zertifikat in der Login-Keychain
 #        security find-identity -v -p codesigning
-#   2) notarytool-Keychain-Profil (Default: steinregen-notary)
-#        xcrun notarytool store-credentials steinregen-notary --apple-id <APPLE_ID> --team-id <TEAM_ID>
+#   2) notarytool-Keychain-Profil (Name beim Aufruf über NOTARY_PROFILE angeben)
+#        xcrun notarytool store-credentials <profil-name> --apple-id <APPLE_ID> --team-id <TEAM_ID>
 #
 # Überschreibbar per Umgebungsvariablen:
 #   SIGN_ID         Signing-Identität (Default unten).
-#   NOTARY_PROFILE  notarytool-Keychain-Profil (Default: steinregen-notary).
+#   NOTARY_PROFILE  notarytool-Keychain-Profil (beim Notarisieren Pflicht).
+#   GITHUB_REPO     GitHub-Repository in der Form owner/name (bei --publish Pflicht).
 #   GITHUB_REMOTE   git-Remote-Name fürs Tag-Pushen bei --publish (Default: github).
 set -euo pipefail
 
@@ -31,11 +32,11 @@ VOLNAME="Steinregen"
 BACKGROUND="assets/dmg-background.png"
 DMG="dist/Steinregen-$VERSION.dmg"
 RW_DMG="dist/Steinregen-$VERSION-rw.dmg"
-REPO="DanielMuellerIR/steinregen"
+REPO="${GITHUB_REPO:-}"
 GITHUB_REMOTE="${GITHUB_REMOTE:-github}"
 
 SIGN_ID="${SIGN_ID:-Developer ID Application: Daniel Mueller (9QSWKSR4NQ)}"
-NOTARY_PROFILE="${NOTARY_PROFILE:-steinregen-notary}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 
 # --- Argumente ---
 NOTARIZE=1
@@ -49,6 +50,19 @@ for arg in "$@"; do
 done
 if [ "$PUBLISH" = "1" ] && [ "$NOTARIZE" = "0" ]; then
     echo "FEHLER: --publish setzt eine signierte+notarisierte App voraus (nicht mit --no-notarize kombinierbar)."
+    exit 2
+fi
+if [ "$NOTARIZE" = "1" ] && [ -z "$NOTARY_PROFILE" ]; then
+    echo "FEHLER: NOTARY_PROFILE muss für die Notarisierung gesetzt sein."
+    echo "        Beispiel: NOTARY_PROFILE=<profil-name> bash tools/make-dmg.sh"
+    exit 2
+fi
+if [ "$PUBLISH" = "1" ] && [ -z "$REPO" ]; then
+    echo "FEHLER: GITHUB_REPO muss für --publish gesetzt sein (owner/name)."
+    exit 2
+fi
+if [ "$PUBLISH" = "1" ] && ! git remote get-url "$GITHUB_REMOTE" >/dev/null 2>&1; then
+    echo "FEHLER: Git-Remote »${GITHUB_REMOTE}« fehlt; Tag würde sonst nicht veröffentlicht."
     exit 2
 fi
 
@@ -65,13 +79,13 @@ if [ "$NOTARIZE" = "1" ]; then
     #  "befehl | grep -q" stirbt sonst an SIGPIPE und pipefail wertet es als Fehler.)
     IDENTITIES="$(security find-identity -v -p codesigning 2>/dev/null || true)"
     if ! grep -qF "$SIGN_ID" <<<"$IDENTITIES"; then
-        echo "FEHLER: Signing-Identität nicht in der Keychain gefunden: »$SIGN_ID«"
+        echo "FEHLER: Signing-Identität nicht in der Keychain gefunden: »${SIGN_ID}«"
         echo "        Vorhandene:"; sed 's/^/          /' <<<"$IDENTITIES"
         echo "        (Zum reinen Layout-Test ohne Zertifikat: bash tools/make-dmg.sh --no-notarize)"
         exit 1
     fi
     if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
-        echo "FEHLER: notarytool-Profil »$NOTARY_PROFILE« fehlt oder ist ungültig."
+        echo "FEHLER: notarytool-Profil »${NOTARY_PROFILE}« fehlt oder ist ungültig."
         echo "        Anlegen:  xcrun notarytool store-credentials $NOTARY_PROFILE --apple-id <APPLE_ID> --team-id <TEAM_ID>"
         exit 1
     fi

@@ -3,6 +3,14 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.10]
+
+- Release documentation: corrected the unpublished GitHub-release links and documented the
+  bundled music accurately — three tracks are local ACE-Step XL Turbo outputs, ten are from
+  MiniMax Music 2.6, all at 128 kbit/s stereo.
+- Notarization: the release scripts now require an explicit `NOTARY_PROFILE` instead of assuming
+  a machine-specific profile name.
+
 ## [0.27.9]
 
 - Music: added ten selected instrumental metal tracks to the bundle (13 in total). Playback
