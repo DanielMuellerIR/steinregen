@@ -85,7 +85,9 @@ public enum Theme {
     // MARK: - Hintergrundbilder
 
     private static var backdropNamesCached: [String]? = nil
-    private static var backdropCache: [Int: CGImage] = [:]
+    // Pro Partie wird genau ein Motiv dargestellt. Ein einzelner Slot verhindert, dass nach
+    // mehreren Neustarts doch wieder alle dekodierten Bilder dauerhaft im Speicher liegen.
+    private static var backdropCached: (index: Int, image: CGImage)?
 
     /// Ermittelt die Namen aller vorhandenen Hintergrundbilder in fester Reihenfolge — zuerst
     /// `hintergrund.png` (das ursprüngliche Friedhof-Motiv), dann `hintergrund-2.png`,
@@ -119,13 +121,22 @@ public enum Theme {
     public static func backdropImage(_ index: Int) -> CGImage? {
         let names = backdropNames()
         guard names.indices.contains(index) else { return nil }
-        if let cached = backdropCache[index] { return cached }
+        if let cached = backdropCached, cached.index == index { return cached.image }
+        // Beim Wechsel den alten Slot vor dem Laden freigeben. Auch ein seltener Decode-Fehler
+        // darf deshalb nicht das vorherige, nun nicht mehr aktuelle Motiv im Cache festhalten.
+        backdropCached = nil
         guard let url = resourceBundle.url(forResource: names[index], withExtension: "png"),
               let src = CGImageSourceCreateWithURL(url as CFURL, nil),
               let img = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return nil }
-        backdropCache[index] = img
+        backdropCached = (index, img)
         return img
     }
+
+    // Interne Beobachtungsnaht für einen unabhängigen Retention-Test. Sie wird vom normalen
+    // Startpfad nie aufgerufen und hält selbst keine zusätzliche Bildreferenz.
+    static var backdropCacheIndexForTesting: Int? { backdropCached?.index }
+    static var backdropCacheCountForTesting: Int { backdropCached == nil ? 0 : 1 }
+    static func resetBackdropCacheForTesting() { backdropCached = nil }
 
     private static var fontsRegistered = false
 

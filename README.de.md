@@ -138,8 +138,10 @@ setzen den Tag `v<version>` und legen das passende GitHub-Release mit dem DMG an
 `CHANGELOG.md`). Dafür
 braucht es ein angemeldetes `gh`, einen sauberen lokalen `main` und denselben Stand auf dem Remote
 `github` (oder `GITHUB_REMOTE=remote-name`). Gepusht wird nur dieser Release-Tag; lokale Archiv-Tags
-bleiben privat. Ein Release entsteht pro Versions-Bump — reine Doku- oder andere Änderungen ohne
-`VERSION`-Bump erzeugen kein neues DMG.
+bleiben privat. Remote-URL und `GITHUB_REPO` müssen kanonisch dasselbe GitHub-Repository benennen;
+nach dem Push muss der Remote-Release-Tag auf das geprüfte `HEAD` zeigen, und ein fehlender Tag wird
+bei der Release-Erstellung nicht automatisch erzeugt. Ein Release entsteht pro Versions-Bump —
+reine Doku- oder andere Änderungen ohne `VERSION`-Bump erzeugen kein neues DMG.
 
 ### iOS-App
 
@@ -160,8 +162,10 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test
 ```
 
 Der nicht veröffentlichende Release-Vorabcheck prüft Versionskonsistenz, Pflichtdokumente und
-Lizenzen, lokale Markdown-Links, Medien-Pools, Social Preview, Shell-Syntax, private Strings und —
-falls installiert — die Git-Historie mit gitleaks:
+Lizenzen, lokale Markdown-Links, Medien-Pools, Social Preview, Shell-Syntax, private Strings,
+Release-Verträge mit Fake-git/-gh sowie — falls lokal installiert — die Git-Historie mit gitleaks.
+Die CI checkt die vollständige Historie aus und führt gitleaks verpflichtend mit fest gepinnter
+Action- und Scanner-Version aus:
 
 ```bash
 bash tools/check-release-readiness.sh

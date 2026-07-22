@@ -134,8 +134,10 @@ Adding `GITHUB_REPO=owner/name` and the `--publish` argument to the signed comma
 `v<version>` and creates the matching GitHub release with the DMG attached (notes from
 `CHANGELOG.md`). It requires an authenticated `gh`, a clean local `main`, and an identical `main`
 on the configured `github` remote (or `GITHUB_REMOTE=remote-name`). Only that release tag is pushed;
-local archive tags remain private. A release is cut per version bump — documentation-only or other
-changes that don't bump `VERSION` produce no new DMG.
+local archive tags remain private. The configured remote URL and `GITHUB_REPO` must canonically name
+the same GitHub repository; after the push, the remote release tag must resolve to the checked
+`HEAD`, and release creation refuses a missing tag. A release is cut per version bump —
+documentation-only or other changes that don't bump `VERSION` produce no new DMG.
 
 ### iOS app
 
@@ -156,8 +158,9 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test
 ```
 
 The non-publishing release preflight checks version consistency, required documents and licenses,
-local Markdown links, media pools, the social preview, shell syntax, private strings, and — when
-installed — Git history with gitleaks:
+local Markdown links, media pools, the social preview, shell syntax, private strings, release
+publishing contracts with fake git/gh tools, and — when installed locally — Git history with
+gitleaks. CI always checks out the complete history and runs a SHA- and version-pinned gitleaks gate:
 
 ```bash
 bash tools/check-release-readiness.sh

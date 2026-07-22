@@ -28,6 +28,8 @@ required_files=(
     SECURITY.md
     THIRD-PARTY-ASSETS.md
     CHANGELOG.md
+    tools/github-release.sh
+    tools/test-github-release.sh
     assets/social-preview.png
     assets/dmg-background.png
     Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt
@@ -151,6 +153,26 @@ PY
 bash -n tools/*.sh
 git diff --check
 
+# CI muss wirklich die erreichbare Historie scannen: vollständiger Checkout, unveränderliche
+# Action-SHAs und eine explizite Scanner-Version. Diese Konstanten wurden am 2026-07-22 gegen die
+# offiziellen Upstream-Tags v7.0.0, v2.3.9 und v8.30.1 geprüft.
+CI_WORKFLOW=.github/workflows/ci.yml
+grep -qF 'actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0' "$CI_WORKFLOW" \
+    || fail "Checkout-Action ist nicht auf die verifizierte SHA gepinnt."
+grep -qE '^[[:space:]]+fetch-depth:[[:space:]]+0$' "$CI_WORKFLOW" \
+    || fail "CI checkt nicht die vollständige Git-Historie aus."
+grep -qF 'gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7' "$CI_WORKFLOW" \
+    || fail "Gitleaks-Action ist nicht auf die verifizierte SHA gepinnt."
+grep -qE '^[[:space:]]+GITLEAKS_VERSION:[[:space:]]+8\.30\.1$' "$CI_WORKFLOW" \
+    || fail "CI pinnt die Gitleaks-Version nicht auf 8.30.1."
+if grep -qE '^[[:space:]]+continue-on-error:' "$CI_WORKFLOW"; then
+    fail "CI-Gates dürfen nicht per continue-on-error optional werden."
+fi
+
+# Der echte Publish-Pfad bleibt opt-in; seine Git-/gh-Verträge werden vollständig mit Fakes
+# geprüft und führen weder Netzwerkzugriffe noch Tags oder Releases aus.
+bash tools/test-github-release.sh
+
 # Bash kann bei UTF-8-Locale ein direkt folgendes Unicode-Zeichen dem Variablennamen zurechnen.
 # Solche Stellen müssen `${NAME}` verwenden, sonst bricht `set -u` erst im seltenen Build-Pfad ab.
 python3 - <<'PY'
@@ -166,8 +188,9 @@ if problems:
     raise SystemExit("\n".join(problems))
 PY
 
-# Wenn gitleaks lokal oder in einer gehärteten CI installiert ist, prüfen wir die gesamte
-# erreichbare Historie. --redact verhindert, dass ein Fund als Klartext im Terminal landet.
+# Wenn gitleaks lokal installiert ist, prüfen wir zusätzlich die gesamte erreichbare Historie.
+# In CI ist der separat fest gepinnte Action-Schritt davor verpflichtend. --redact verhindert,
+# dass ein Fund als Klartext im Terminal landet.
 if command -v gitleaks >/dev/null 2>&1; then
     # Auch Diagnoseausgaben können Remote-Adressen enthalten. Deshalb bleibt der vollständige
     # Scanner-Output aus dem Sitzungs-/CI-Protokoll; bei einem Fund genügt die sichere Fehlermeldung.

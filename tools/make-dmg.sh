@@ -34,9 +34,6 @@ VOLNAME="Steinregen"
 BACKGROUND="assets/dmg-background.png"
 DMG="dist/Steinregen-$VERSION.dmg"
 RW_DMG="dist/Steinregen-$VERSION-rw.dmg"
-REPO="${GITHUB_REPO:-}"
-GITHUB_REMOTE="${GITHUB_REMOTE:-github}"
-
 SIGN_ID="${SIGN_ID:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 
@@ -59,41 +56,11 @@ if [ "$NOTARIZE" = "1" ] && [ -z "$NOTARY_PROFILE" ]; then
     echo "        Beispiel: NOTARY_PROFILE=profil-name bash tools/make-dmg.sh"
     exit 2
 fi
-if [ "$PUBLISH" = "1" ] && [ -z "$REPO" ]; then
-    echo "FEHLER: GITHUB_REPO muss für --publish gesetzt sein (owner/name)."
-    exit 2
-fi
-if [ "$PUBLISH" = "1" ] && ! [[ "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
-    echo "FEHLER: GITHUB_REPO muss die Form owner/name haben."
-    exit 2
-fi
-if [ "$PUBLISH" = "1" ] && ! git remote get-url "$GITHUB_REMOTE" >/dev/null 2>&1; then
-    echo "FEHLER: Git-Remote »${GITHUB_REMOTE}« fehlt; Tag würde sonst nicht veröffentlicht."
-    exit 2
-fi
-
 # Veröffentlichungsvoraussetzungen VOR dem langen Build prüfen. Diese Abfragen verändern weder
 # Git noch GitHub. Diagnoseausgaben der Netzwerkwerkzeuge bleiben unterdrückt, damit Remote- oder
 # Kontodaten nicht versehentlich im Terminalprotokoll landen.
 if [ "$PUBLISH" = "1" ]; then
-    command -v gh >/dev/null || { echo "FEHLER: gh CLI fehlt (brew install gh)"; exit 1; }
-    [ "$(git branch --show-current)" = "main" ] \
-        || { echo "FEHLER: Releases dürfen nur vom Branch main entstehen."; exit 1; }
-    [ -z "$(git status --porcelain --untracked-files=normal)" ] \
-        || { echo "FEHLER: Arbeitsbaum ist nicht sauber; Release abgebrochen."; exit 1; }
-    grep -qF "## [$VERSION]" CHANGELOG.md \
-        || { echo "FEHLER: CHANGELOG.md enthält keinen Abschnitt für $VERSION."; exit 1; }
-    if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-        [ "$(git rev-list -n 1 "$TAG")" = "$(git rev-parse HEAD)" ] \
-            || { echo "FEHLER: Lokaler Tag $TAG zeigt nicht auf HEAD."; exit 1; }
-    fi
-    gh auth status -h github.com >/dev/null 2>&1 \
-        || { echo "FEHLER: gh ist für github.com nicht angemeldet."; exit 1; }
-    REMOTE_MAIN="$(git ls-remote "$GITHUB_REMOTE" refs/heads/main 2>/dev/null | awk 'NR == 1 {print $1}')"
-    [ -n "$REMOTE_MAIN" ] \
-        || { echo "FEHLER: Remote-Branch main ist auf »${GITHUB_REMOTE}« nicht erreichbar."; exit 1; }
-    [ "$REMOTE_MAIN" = "$(git rev-parse HEAD)" ] \
-        || { echo "FEHLER: Remote-main und lokales HEAD sind nicht identisch."; exit 1; }
+    bash tools/github-release.sh preflight
 fi
 
 if [ ! -f "$BACKGROUND" ]; then
@@ -236,17 +203,8 @@ if [ "$PUBLISH" = "1" ]; then
     fi
     [ -s "$NOTES_FILE" ] || echo "Steinregen $TAG" > "$NOTES_FILE"
 
-    # Git-Tag lokal idempotent anlegen. Der Vorab-Check garantiert, dass ein bestehender Tag auf
-    # genau HEAD zeigt. Danach immer explizit diesen EINEN Tag pushen — niemals alle lokalen Tags.
-    if ! git rev-parse "$TAG" >/dev/null 2>&1; then
-        git tag -a "$TAG" -m "Steinregen $TAG"
-    fi
-    git push "$GITHUB_REMOTE" "refs/tags/$TAG"
-
-    if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
-        gh release upload "$TAG" "$DMG" -R "$REPO" --clobber
-    else
-        gh release create "$TAG" "$DMG" -R "$REPO" --title "Steinregen $TAG" --notes-file "$NOTES_FILE"
-    fi
-    echo "==> Release online: https://github.com/$REPO/releases/tag/$TAG"
+    # Unmittelbar vor der externen Mutation wird der gesamte Preflight wiederholt. Der Helfer
+    # prüft nach dem Einzel-Tag-Push zusätzlich den Remote-Tag gegen HEAD und lässt `gh release
+    # create` den vorhandenen Tag mit --verify-tag erzwingen.
+    bash tools/github-release.sh publish "$DMG" "$NOTES_FILE"
 fi

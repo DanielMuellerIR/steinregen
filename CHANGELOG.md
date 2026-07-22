@@ -3,6 +3,19 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.27.15]
+
+- Memory: the backdrop cache now retains only the currently selected decoded image; switching
+  repeatedly across several motifs is covered by a retention regression test.
+- CI security: checkout fetches the complete Git history and a SHA-pinned gitleaks action runs
+  Gitleaks 8.30.1 as a mandatory gate. All action/tag pins were verified against their official
+  upstream repositories.
+- Publish safety: the Git remote and `GITHUB_REPO` must resolve to the same canonical GitHub
+  repository. After the single release tag is pushed, its remote commit must equal `HEAD`, and a
+  new release requires `gh release create --verify-tag`; fake git/gh tests cover mismatches and
+  ordering without touching GitHub. A guarded `SKIP_SIGN=1` path permits local app-bundle build
+  verification without invoking codesign or producing a distribution ZIP.
+
 ## [0.27.14]
 
 - CI maintenance: pinned `actions/checkout` v7.0.0 (Node 24) to its verified commit SHA and remove

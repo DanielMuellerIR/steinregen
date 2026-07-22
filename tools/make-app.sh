@@ -8,6 +8,8 @@
 #   SIGN_ID    Signing-Identität. Leer = Ad-hoc-Signatur (nur lokal lauffähig). Gesetzt (z.B.
 #              "Developer ID Application: …") = echte Signatur MIT Hardened Runtime + Zeitstempel
 #              (Pflicht für Notarisierung). Wird von tools/make-notarized.sh genutzt.
+#   SKIP_SIGN   "1" = Bundle für einen lokalen Build-Nachweis gar nicht signieren. Nie für
+#              Distribution/Notarisierung verwenden; mit SIGN_ID absichtlich unvereinbar.
 #   SKIP_ZIP   "1" = das abschließende ZIP überspringen (die notarisierte Variante zippt selbst
 #              erst NACH dem Stapeln). Sonst wird wie bisher dist/Steinregen-<version>.zip gebaut.
 set -euo pipefail
@@ -20,6 +22,11 @@ EXE_NAME="Steinregen"                              # = Produktname in Package.sw
 RES_BUNDLE="Steinregen_SteinregenRender.bundle"
 BUNDLE_ID="com.steinregen.app"
 ICON="tools/AppIcon.icns"
+
+if [ "${SKIP_SIGN:-0}" = "1" ] && [ -n "${SIGN_ID:-}" ]; then
+    echo "FEHLER: SKIP_SIGN=1 und SIGN_ID dürfen nicht kombiniert werden."
+    exit 2
+fi
 
 echo "==> Release-Build (kann beim ersten Mal etwas dauern)…"
 swift build -c release
@@ -64,7 +71,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-if [ -n "${SIGN_ID:-}" ]; then
+if [ "${SKIP_SIGN:-0}" = "1" ]; then
+    echo "==> Signatur bewusst übersprungen (nur lokaler Build-Nachweis)."
+elif [ -n "${SIGN_ID:-}" ]; then
     # Echte Signatur mit Hardened Runtime (--options runtime) + Zeitstempel (--timestamp).
     # Beides ist Pflicht für die Notarisierung; KEIN --deep (Apple rät davon ab, und das Bundle
     # hat ohnehin nur EINE Mach-O-Datei — die Haupt-Binary; das Ressourcen-Bundle ist reiner Inhalt).

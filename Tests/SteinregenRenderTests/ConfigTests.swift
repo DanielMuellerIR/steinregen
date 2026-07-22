@@ -8,6 +8,24 @@ import XCTest
 import SteinregenCore
 
 @MainActor
+final class BackdropCacheTests: XCTestCase {
+
+    /// Mehrere nacheinander gewählte Motive dürfen nicht kumulativ gehalten werden. Der Test
+    /// beobachtet den Cache-Slot direkt und prüft zusätzlich, dass jeder Index wirklich lädt.
+    func testCacheRetainsOnlyCurrentBackdropAcrossIndices() {
+        Theme.resetBackdropCacheForTesting()
+        defer { Theme.resetBackdropCacheForTesting() }
+        XCTAssertGreaterThanOrEqual(Theme.backdropCount(), 3, "Fixture braucht mehrere Motive")
+
+        for index in [0, 1, 2, 0] {
+            XCTAssertNotNil(Theme.backdropImage(index), "Hintergrund \(index) muss dekodierbar sein")
+            XCTAssertEqual(Theme.backdropCacheCountForTesting, 1)
+            XCTAssertEqual(Theme.backdropCacheIndexForTesting, index)
+        }
+    }
+}
+
+@MainActor
 final class BoardConfigTests: XCTestCase {
 
     // Die von den einzelnen Tests angefassten UserDefaults-Schlüssel — vor jedem Test gesichert

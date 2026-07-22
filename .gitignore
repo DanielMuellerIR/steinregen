@@ -44,3 +44,6 @@ analyse/
 # Sound-Kandidaten zum Probehören (FreeDoom, BSD-3) – lokal, NICHT ins Repo.
 # Erst die finale Auswahl wandert (mit Lizenz/Attribution) in Sources/.../Resources/.
 assets/sound-candidates/
+
+# Per-Mac-Lock der sicheren Commit-Hilfe.
+.commit-lock
