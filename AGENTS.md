@@ -158,8 +158,12 @@ bash tools/make-app.sh
 Das erzeugt ad-hoc-signiert `dist/Steinregen.app` und ZIP. Notarisierung/DMG nur bei
 Distribution oder ausdrücklichem Wunsch:
 
-- `tools/make-notarized.sh`: Developer-ID, Notary, Stapling, ZIP;
-- `tools/make-dmg.sh`: DMG; `--publish` ist eine externe Veröffentlichung und nie automatisch;
+- `./install.sh`: baut, notarisiert und installiert nach `/Applications`;
+- `./release.sh`: baut, notarisiert und packt das DMG, installiert nie;
+  Profilname aus `NOTARY_PROFILE` oder `git config steinregen.notaryProfile`;
+- `tools/make-notarized.sh`: Developer-ID, Notary, Stapling, ZIP (Unterbau von `install.sh`);
+- `tools/make-dmg.sh`: DMG, notarisiert seit 2026-07-25 auch die App selbst vor dem Packen
+  (Unterbau von `release.sh`); `--publish` ist eine externe Veröffentlichung und nie automatisch;
 - `tools/make-ios-app.sh`: XcodeGen-Projekt und Simulatorbuild; mit `run` installieren/starten.
 
 `VERSION` und `steinregenVersion` immer gemeinsam ändern. Produktänderungen erhöhen die Version;

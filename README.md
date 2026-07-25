@@ -113,18 +113,37 @@ bash tools/make-app.sh
 Builds an arm64 `dist/Steinregen.app` (ad-hoc signed, with a procedurally drawn Dock icon — an
 inverted-pentagram sigil) plus a distributable `dist/Steinregen-<version>.zip`. Double-click the
 `.app` in Finder, or drag it into `/Applications`. For a notarized, Gatekeeper-friendly build use
-the command below (requires a Developer ID certificate and a notarytool keychain profile):
+the entry points below (they require a Developer ID certificate and a notarytool keychain profile).
+
+### Install and release
+
+Three entry points, deliberately separated:
 
 ```bash
-NOTARY_PROFILE=profile-name bash tools/make-notarized.sh
+bash tools/make-app.sh            # build only, stays in dist/
+./install.sh                      # build, notarize, install into /Applications
+./release.sh                      # build, notarize, package the DMG — never installs
+./release.sh --publish            # also tags + uploads the DMG to GitHub Releases
+./release.sh --no-finder-layout   # skip the Finder window layout (headless runs)
+./release.sh --no-notarize        # unsigned — quick local layout test
 ```
 
-### Notarized DMG (for distribution)
+`install.sh` and `release.sh` both notarize the **app itself** and staple its ticket before
+anything else happens. That matters: an app that only travels inside a notarized disk image loses
+its guarantee the moment someone drags it out. `release.sh` then notarizes and staples the disk
+image as well.
+
+Notarization needs a notarytool keychain profile. Keychain profiles are local to each Mac and are
+never synchronized, so the name is taken from `NOTARY_PROFILE` or from this clone's own
+configuration:
 
 ```bash
-NOTARY_PROFILE=profile-name bash tools/make-dmg.sh
-bash tools/make-dmg.sh --no-notarize   # unsigned — quick local layout test
+git config --local steinregen.notaryProfile <profile>
+xcrun notarytool store-credentials <profile> --apple-id <apple-id> --team-id <team-id>
 ```
+
+The underlying tools can still be called directly for finer control —
+`tools/make-notarized.sh` (app + notarized ZIP) and `tools/make-dmg.sh` (DMG).
 
 Builds `dist/Steinregen-<version>.dmg`: the signed app inside a DMG with an install background and
 an `Applications` shortcut, notarized and stapled so it opens without a Gatekeeper warning. The

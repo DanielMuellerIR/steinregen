@@ -8,6 +8,7 @@
 # Nutzung:
 #   bash tools/make-dmg.sh                  # signiert + notarisiert (braucht Zertifikat + Notar-Profil)
 #   bash tools/make-dmg.sh --no-notarize    # ad-hoc, UNSIGNIERT — nur zum lokalen Layout-Test
+#   bash tools/make-dmg.sh --no-finder-layout   # ohne Finder-Fensterlayout (headless)
 #   bash tools/make-dmg.sh --publish        # zusätzlich: Tag vX.Y.Z + GitHub-Release mit dem DMG
 #
 # Voraussetzungen fürs Signieren/Notarisieren (einmalig je Mac — Schlüsselbund wird NICHT gesynct):
@@ -40,10 +41,12 @@ NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 # --- Argumente ---
 NOTARIZE=1
 PUBLISH=0
+FINDER_LAYOUT=1
 for arg in "$@"; do
     case "$arg" in
-        --no-notarize) NOTARIZE=0 ;;
-        --publish)     PUBLISH=1 ;;
+        --no-notarize)      NOTARIZE=0 ;;
+        --publish)          PUBLISH=1 ;;
+        --no-finder-layout) FINDER_LAYOUT=0 ;;
         *) echo "Unbekanntes Argument: $arg"; exit 2 ;;
     esac
 done
@@ -102,6 +105,20 @@ if [ "$NOTARIZE" = "1" ]; then
     grep -q "flags=.*runtime" <<<"$CODESIGN_INFO" \
         && echo "    Hardened Runtime aktiv." \
         || { echo "FEHLER: Hardened Runtime nicht gesetzt — Notarisierung würde abgelehnt."; exit 1; }
+
+    # Die APP bekommt ihr eigenes Ticket — vor dem DMG-Bau, damit hdiutil es
+    # mitkopiert. Sonst hat, wer die App aus dem Image herauszieht, ein Bundle
+    # ohne Ticket: Das DMG-Ticket reist nicht mit. (notarytool nimmt kein
+    # nacktes .app, deshalb der Umweg über ein ZIP.)
+    echo "==> App notarisieren (Profil $NOTARY_PROFILE) — kann ein paar Minuten dauern…"
+    APP_ZIP="dist/Steinregen-$VERSION-submit.zip"
+    rm -f "$APP_ZIP"
+    ditto -c -k --keepParent "$APP" "$APP_ZIP"
+    xcrun notarytool submit "$APP_ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
+    rm -f "$APP_ZIP"
+    xcrun stapler staple "$APP"
+    xcrun stapler validate "$APP"
+    spctl --assess --type execute -vvv "$APP" 2>&1 | sed 's/^/    /' || true
 else
     echo "==> Bauen (ad-hoc, UNSIGNIERT — nur Layout-Test)…"
     SKIP_ZIP=1 bash tools/make-app.sh
@@ -126,6 +143,11 @@ chflags hidden "$MOUNT_DIR/.background"
 
 # Finder-Ansicht setzen. Fenster-Innenmaß 600×400 = Hintergrundbild-Größe; Icon-Positionen
 # müssen zu generate-dmg-background.swift passen (App 150,180 · Applications 450,180).
+# --no-finder-layout überspringt diesen Schritt: Er öffnet ein echtes
+# Finder-Fenster und reißt den Fokus an sich, was headless-Läufe (und Läufe neben
+# laufender Arbeit) stört. Das DMG ist dann funktional, nur ohne Icon-Positionen
+# und Hintergrundbild — für ein Release also nicht benutzen.
+if [ "$FINDER_LAYOUT" = "1" ]; then
 osascript <<APPLESCRIPT
 tell application "Finder"
   tell disk "$VOLNAME"
@@ -155,6 +177,9 @@ tell application "Finder"
   end tell
 end tell
 APPLESCRIPT
+else
+    echo "    (Finder-Layout übersprungen: --no-finder-layout)"
+fi
 
 sync; sleep 2                       # Race: DS_Store-Schreibpuffer vs. detach
 hdiutil detach "$MOUNT_DIR" -force

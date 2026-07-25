@@ -116,18 +116,37 @@ bash tools/make-app.sh
 Baut eine arm64-`dist/Steinregen.app` (ad-hoc-signiert, mit einem prozedural erzeugten Dock-Icon —
 umgekehrtes Pentagramm) plus ein weitergebbares `dist/Steinregen-<version>.zip`. Die `.app` im
 Finder doppelklicken oder nach `/Programme` ziehen. Für einen notarisierten, Gatekeeper-tauglichen
-Build mit Developer-ID-Zertifikat und notarytool-Schlüsselbund-Profil:
+Build mit Developer-ID-Zertifikat und notarytool-Schlüsselbund-Profil dienen die Einstiegspunkte
+unten.
+
+### Installieren und Release bauen
+
+Drei Einstiegspunkte, bewusst getrennt:
 
 ```bash
-NOTARY_PROFILE=profil-name bash tools/make-notarized.sh
+bash tools/make-app.sh            # baut nur, bleibt in dist/
+./install.sh                      # baut, notarisiert, installiert nach /Applications
+./release.sh                      # baut, notarisiert, packt das DMG — installiert nie
+./release.sh --publish            # setzt zusätzlich Tag + lädt das DMG zu GitHub Releases
+./release.sh --no-finder-layout   # ohne Finder-Fensterlayout (für headless Läufe)
+./release.sh --no-notarize        # unsigniert — schneller lokaler Layout-Test
 ```
 
-### Notarisiertes DMG (zur Weitergabe)
+`install.sh` und `release.sh` notarisieren zuerst die **App selbst** und heften ihr das Ticket an.
+Das ist der Punkt: Eine App, die nur im notarisierten Disk-Image steckt, verliert ihre Garantie in
+dem Moment, in dem jemand sie herauszieht. `release.sh` notarisiert danach zusätzlich das Image.
+
+Für die Notarisierung wird ein notarytool-Keychain-Profil gebraucht. Solche Profile sind pro Mac
+lokal und werden nie synchronisiert, deshalb kommt der Name aus `NOTARY_PROFILE` oder aus der
+Konfiguration dieses Clones:
 
 ```bash
-NOTARY_PROFILE=profil-name bash tools/make-dmg.sh
-bash tools/make-dmg.sh --no-notarize   # unsigniert — schneller lokaler Layout-Test
+git config --local steinregen.notaryProfile <profil>
+xcrun notarytool store-credentials <profil> --apple-id <apple-id> --team-id <team-id>
 ```
+
+Für feinere Steuerung lassen sich die Werkzeuge darunter weiterhin direkt aufrufen —
+`tools/make-notarized.sh` (App + notarisiertes ZIP) und `tools/make-dmg.sh` (DMG).
 
 Baut `dist/Steinregen-<version>.dmg`: die signierte App in einem DMG mit Installations-Hintergrund
 und `Applications`-Shortcut, notarisiert und gestapelt, sodass es ohne Gatekeeper-Warnung öffnet.
