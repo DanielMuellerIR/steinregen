@@ -58,7 +58,20 @@ if ! grep -qF "$SIGN_ID" <<<"$IDENTITIES"; then
     sed 's/^/          /' <<<"$IDENTITIES"
     exit 1
 fi
-if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
+# Fünf Versuche statt einem: `notarytool history` meldet gelegentlich fälschlich
+# „No Keychain password item found", obwohl das Profil da ist (2026-07-26 auf M3
+# belegt — Versuch 1 fehlgeschlagen, Versuch 2 sofort ok). Ein einzelner
+# Fehlversuch würde sonst einen ganzen Lauf grundlos abbrechen; ein wirklich
+# fehlendes Profil scheitert auch nach fünf Versuchen.
+notary_profile_works() {
+    local attempt
+    for attempt in 1 2 3 4 5; do
+        xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 && return 0
+        sleep 3
+    done
+    return 1
+}
+if ! notary_profile_works; then
     echo "FEHLER: notarytool-Profil »${NOTARY_PROFILE}« fehlt oder ist ungültig."
     echo "        Anlegen:  xcrun notarytool store-credentials $NOTARY_PROFILE \\"
     echo "                    --apple-id apple-id@example.com --team-id TEAMID1234"
