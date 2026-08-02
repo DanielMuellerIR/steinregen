@@ -39,11 +39,22 @@ preflight() {
     [[ "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] \
         || fail "GITHUB_REPO muss die Form owner/name haben."
 
-    local remote_url push_url remote_repo push_repo requested_repo head remote_main
+    local remote_url push_urls push_url push_url_count remote_repo push_repo requested_repo head remote_main
     remote_url="$(git remote get-url "$REMOTE" 2>/dev/null)" \
         || fail "Git-Remote »${REMOTE}« fehlt."
-    push_url="$(git remote get-url --push "$REMOTE" 2>/dev/null)" \
+    # `--all` ist Pflicht: Ohne die Option zeigt Git nur die ERSTE Push-URL, während `git push`
+    # an ALLE konfigurierten `remote.<name>.pushurl` schreibt. Ein zweites, nie geprüftes Ziel
+    # bekäme den Release-Tag sonst still mit (2026-08-03 mit zwei lokalen Bare-Repos belegt).
+    # Deshalb ist genau eine Push-URL erlaubt; die URLs selbst bleiben aus der Ausgabe, damit
+    # keine Remote- oder Kontodaten im Terminalprotokoll landen.
+    push_urls="$(git remote get-url --push --all "$REMOTE" 2>/dev/null)" \
         || fail "Git-Remote »${REMOTE}« hat keine Push-URL."
+    # `grep -c` endet bei null Treffern mit Status 1; ohne `|| true` bräche `set -e` hier
+    # kommentarlos ab, statt die aussagekräftige Fehlermeldung unten auszugeben.
+    push_url_count="$(printf '%s\n' "$push_urls" | grep -c . || true)"
+    [ "$push_url_count" = "1" ] \
+        || fail "Git-Remote »${REMOTE}« hat $push_url_count Push-URLs; genau eine ist erlaubt."
+    push_url="$push_urls"
     remote_repo="$(canonical_github_repo "$remote_url")" \
         || fail "Git-Remote »${REMOTE}« ist keine kanonische github.com-Repository-URL."
     push_repo="$(canonical_github_repo "$push_url")" \
@@ -103,7 +114,11 @@ case "$MODE" in
             git tag -a "$TAG" -m "Steinregen $TAG"
         fi
         # Explizite Ziel-Ref: Nie andere lokale Tags oder Branches mitsenden.
-        git push "$REMOTE" "refs/tags/$TAG:refs/tags/$TAG"
+        # `--no-follow-tags` ist dafür nötig: Mit lokal gesetztem `push.followTags=true` schickt
+        # Git trotz Einzel-Refspec zusätzlich jeden annotierten Tag mit, der vom gepushten Stand
+        # aus erreichbar ist — also genau die privaten Archivtags, die laut AGENTS.md nie
+        # veröffentlicht werden dürfen (2026-08-03 lokal belegt).
+        git push --no-follow-tags "$REMOTE" "refs/tags/$TAG:refs/tags/$TAG"
 
         HEAD_SHA="$(git rev-parse HEAD)"
         REMOTE_TAG_SHA="$(remote_tag_commit)"

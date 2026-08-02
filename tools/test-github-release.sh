@@ -32,7 +32,11 @@ case "$1" in
     remote)
         [ "$2" = get-url ] || exit 90
         if [ "${3:-}" = --push ]; then
-            printf '%s\n' "${FAKE_PUSH_URL:-$FAKE_REMOTE_URL}"
+            urls="${FAKE_PUSH_URL:-$FAKE_REMOTE_URL}"
+            # Echtes Git zeigt ohne --all NUR die erste Push-URL, pusht aber an alle. Genau
+            # diese Lücke soll der Preflight schließen, also muss der Fake sie nachbilden.
+            [ "${4:-}" = --all ] || urls="${urls%%$'\n'*}"
+            printf '%s\n' "$urls"
         else
             printf '%s\n' "$FAKE_REMOTE_URL"
         fi
@@ -137,6 +141,23 @@ if GITHUB_REPO=danielmuellerir/steinregen \
 fi
 grep -qF 'nicht dasselbe Repository' "$TMP_ROOT/push-mismatch.out"
 
+# Mehrere `remote.<name>.pushurl`-Einträge: `git push` schreibt an alle, `git remote get-url --push`
+# zeigt aber nur die erste. Der Preflight muss diesen Fall ablehnen, bevor irgendetwas passiert.
+reset_fake_state
+if GITHUB_REPO=danielmuellerir/steinregen \
+        FAKE_REMOTE_URL=https://github.com/danielmuellerir/steinregen.git \
+        FAKE_PUSH_URL="$(printf 'https://github.com/danielmuellerir/steinregen.git\nhttps://github.com/someone/else.git')" \
+        bash tools/github-release.sh preflight >"$TMP_ROOT/multi-push.out" 2>&1; then
+    echo "Mehrere Push-URLs wurden akzeptiert" >&2
+    exit 1
+fi
+grep -qF 'Push-URLs; genau eine ist erlaubt' "$TMP_ROOT/multi-push.out"
+if grep -qE 'git ls-remote|gh release' "$EVENT_LOG"; then
+    echo "Mehrere Push-URLs erreichten Remote-/Release-Aufrufe" >&2
+    exit 1
+fi
+grep -qF 'git remote get-url --push --all github' "$EVENT_LOG"
+
 # main muss genau dem geprüften lokalen HEAD entsprechen.
 reset_fake_state
 if GITHUB_REPO=danielmuellerir/steinregen \
@@ -149,11 +170,13 @@ fi
 grep -qF 'Remote-main und lokales HEAD' "$TMP_ROOT/main-mismatch.out"
 
 # Erfolgsweg: einzelner Tag-Push, danach Remote-Tag-Prüfung, erst danach Release mit --verify-tag.
+# `--no-follow-tags` gehört zum Vertrag: sonst würde ein lokal gesetztes `push.followTags=true`
+# erreichbare annotierte Archivtags mitschicken.
 reset_fake_state
 GITHUB_REPO=danielmuellerir/steinregen \
 FAKE_REMOTE_URL=https://github.com/danielmuellerir/steinregen.git \
     bash tools/github-release.sh publish app.dmg notes.md >/dev/null
-grep -qF 'git push github refs/tags/v0.27.15:refs/tags/v0.27.15' "$EVENT_LOG"
+grep -qF 'git push --no-follow-tags github refs/tags/v0.27.15:refs/tags/v0.27.15' "$EVENT_LOG"
 grep -qF 'git ls-remote github refs/tags/v0.27.15 refs/tags/v0.27.15^{}' "$EVENT_LOG"
 grep -qE '^gh release create .*--verify-tag' "$EVENT_LOG"
 TAG_CHECK_LINE="$(grep -nF 'git ls-remote github refs/tags/v0.27.15' "$EVENT_LOG" | cut -d: -f1)"
