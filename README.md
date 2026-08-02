@@ -124,7 +124,7 @@ bash tools/make-app.sh            # build only, stays in dist/
 ./install.sh                      # build, notarize, install into /Applications
 ./release.sh                      # build, notarize, package the DMG — never installs
 ./release.sh --publish            # also tags + uploads the DMG to GitHub Releases
-./release.sh --no-finder-layout   # skip the Finder window layout (headless runs)
+./release.sh --no-finder-layout   # skip the Finder window layout (headless test, never a release)
 ./release.sh --no-notarize        # unsigned — quick local layout test
 ```
 

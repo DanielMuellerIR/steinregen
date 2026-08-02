@@ -190,9 +190,11 @@ Nebenaufgabe. Bis zur Entscheidung bei einem öffentlichen Push nur den ausdrüc
 Versionschronik, lange Featureberichte, erledigte Todos und weitere Modusideen gehören in
 CHANGELOG/Backlog, nicht zurück in diese Daueranweisung.
 
-Die frühere Regel- und Featurechronik liegt unverändert unter
+Die frühere, sehr lange Regel- und Featurechronik wurde beim Aufräumen dieser Datei entfernt.
 [`docs/archive/agent-context-legacy-2026-07-14.md`](docs/archive/agent-context-legacy-2026-07-14.md)
-und ist keine aktive Anweisung.
+ist nur eine Weiterleitung für ältere Links und enthält den alten Text nicht. Wer eine frühere
+Entscheidung nachlesen will, findet sie in der Git-Historie dieser Datei (Stand vor Commit
+`77e8020`); aktive Anweisung ist sie in keinem Fall.
 
 ## Verzeichnisstruktur
 
@@ -201,4 +203,4 @@ und ist keine aktive Anweisung.
 - [`THIRD-PARTY-ASSETS.md`](THIRD-PARTY-ASSETS.md): Assetlizenzen.
 - [`CHANGELOG.md`](CHANGELOG.md): veröffentlichte Änderungen.
 - [`BACKLOG.md`](BACKLOG.md): verifizierte offene Arbeit.
-- [`docs/archive/agent-context-legacy-2026-07-14.md`](docs/archive/agent-context-legacy-2026-07-14.md): frühere Chronik.
+- [`docs/archive/agent-context-legacy-2026-07-14.md`](docs/archive/agent-context-legacy-2026-07-14.md): Weiterleitung für ältere Links.

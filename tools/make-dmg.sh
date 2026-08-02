@@ -8,7 +8,7 @@
 # Nutzung:
 #   bash tools/make-dmg.sh                  # signiert + notarisiert (braucht Zertifikat + Notar-Profil)
 #   bash tools/make-dmg.sh --no-notarize    # ad-hoc, UNSIGNIERT — nur zum lokalen Layout-Test
-#   bash tools/make-dmg.sh --no-finder-layout   # ohne Finder-Fensterlayout (headless)
+#   bash tools/make-dmg.sh --no-finder-layout   # ohne Finder-Fensterlayout (headless, kein Release)
 #   bash tools/make-dmg.sh --publish        # zusätzlich: Tag vX.Y.Z + GitHub-Release mit dem DMG
 #
 # Voraussetzungen fürs Signieren/Notarisieren (einmalig je Mac — Schlüsselbund wird NICHT gesynct):
@@ -52,6 +52,13 @@ for arg in "$@"; do
 done
 if [ "$PUBLISH" = "1" ] && [ "$NOTARIZE" = "0" ]; then
     echo "FEHLER: --publish setzt eine signierte+notarisierte App voraus (nicht mit --no-notarize kombinierbar)."
+    exit 2
+fi
+# Ohne Finder-Layout fehlen dem DMG Icon-Positionen und Hintergrundbild (siehe Kommentar beim
+# Layout-Schritt weiter unten). Ein solches Image ist ein Testartefakt und kein Release.
+if [ "$PUBLISH" = "1" ] && [ "$FINDER_LAYOUT" = "0" ]; then
+    echo "FEHLER: --publish braucht das Finder-Layout (nicht mit --no-finder-layout kombinierbar)."
+    echo "        Ohne Layout fehlen Icon-Positionen und Hintergrundbild — das ist kein Release-DMG."
     exit 2
 fi
 if [ "$NOTARIZE" = "1" ] && [ -z "$NOTARY_PROFILE" ]; then

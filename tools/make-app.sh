@@ -10,6 +10,8 @@
 #              (Pflicht für Notarisierung). Wird von tools/make-notarized.sh genutzt.
 #   SKIP_SIGN   "1" = Bundle für einen lokalen Build-Nachweis gar nicht signieren. Nie für
 #              Distribution/Notarisierung verwenden; mit SIGN_ID absichtlich unvereinbar.
+#              Erzwingt SKIP_ZIP=1, damit kein unsigniertes Bundle unter dem normalen
+#              Weitergabenamen dist/Steinregen-<version>.zip liegen bleibt.
 #   SKIP_ZIP   "1" = das abschließende ZIP überspringen (die notarisierte Variante zippt selbst
 #              erst NACH dem Stapeln). Sonst wird wie bisher dist/Steinregen-<version>.zip gebaut.
 set -euo pipefail
@@ -87,8 +89,16 @@ else
     codesign --verify --deep --strict "$APP" && echo "    Signatur ok."
 fi
 
+# Ein unsigniertes Bundle darf nicht unter dem normalen Weitergabenamen liegen bleiben, sonst
+# lässt es sich mit einem verteilbaren Build verwechseln. SKIP_SIGN=1 unterdrückt das ZIP deshalb
+# automatisch — genau so ist der Prüfpfad auch im Changelog beschrieben.
+if [ "${SKIP_SIGN:-0}" = "1" ] && [ "${SKIP_ZIP:-0}" != "1" ]; then
+    SKIP_ZIP=1
+    ZIP_SKIP_GRUND="SKIP_SIGN=1: ein unsigniertes Bundle wird nicht weitergegeben"
+fi
+
 if [ "${SKIP_ZIP:-0}" = "1" ]; then
-    echo "==> ZIP übersprungen (SKIP_ZIP=1)."
+    echo "==> ZIP übersprungen (${ZIP_SKIP_GRUND:-SKIP_ZIP=1})."
     echo ""
     echo "Fertig:"
     echo "  $ROOT/$APP   (doppelklickbar)"

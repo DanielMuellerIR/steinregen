@@ -128,7 +128,7 @@ bash tools/make-app.sh            # baut nur, bleibt in dist/
 ./install.sh                      # baut, notarisiert, installiert nach /Applications
 ./release.sh                      # baut, notarisiert, packt das DMG — installiert nie
 ./release.sh --publish            # setzt zusätzlich Tag + lädt das DMG zu GitHub Releases
-./release.sh --no-finder-layout   # ohne Finder-Fensterlayout (für headless Läufe)
+./release.sh --no-finder-layout   # ohne Finder-Fensterlayout (headless-Test, nie ein Release)
 ./release.sh --no-notarize        # unsigniert — schneller lokaler Layout-Test
 ```
 
