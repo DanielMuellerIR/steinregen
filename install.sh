@@ -43,6 +43,18 @@ STAGED="/Applications/.Steinregen.app.install-$$"
 rm -rf "$STAGED"
 trap 'rm -rf "$STAGED"' EXIT
 ditto "$APP" "$STAGED"
+
+# Gatekeeper-Bewertung VOR dem Austausch: Wird erst danach geprüft, ist eine funktionierende
+# Installation bereits durch ein abgelehntes Bundle ersetzt. Bewertet wird genau die gestagte
+# Kopie, die gleich ins Ziel wandert; die fehlende .app-Endung stört spctl nicht (geprüft).
+# Ausgabe erst sammeln, dann anzeigen — sonst liefert die Pipeline nur den Status von tail.
+if ! SPCTL_STAGED_OUT="$(spctl -a -t exec -vv "$STAGED" 2>&1)"; then
+    printf '%s\n' "$SPCTL_STAGED_OUT" | tail -2
+    echo "FEHLER: Gatekeeper lehnt das gebaute Bundle ab; $DESTINATION bleibt unverändert." >&2
+    exit 1
+fi
+printf '%s\n' "$SPCTL_STAGED_OUT" | tail -2
+
 pkill -x Steinregen 2>/dev/null || true
 /usr/bin/swift - "$STAGED" "$DESTINATION" <<'SWIFT'
 import Foundation

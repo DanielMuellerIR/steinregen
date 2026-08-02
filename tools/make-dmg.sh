@@ -131,7 +131,15 @@ if [ "$NOTARIZE" = "1" ]; then
     rm -f "$APP_ZIP"
     xcrun stapler staple "$APP"
     xcrun stapler validate "$APP"
-    spctl --assess --type execute -vvv "$APP" 2>&1 | sed 's/^/    /' || true
+    # Harte Bewertung statt bloßer Anzeige: Eine von Gatekeeper abgelehnte App darf gar nicht
+    # erst ins DMG wandern und mit --publish veröffentlicht werden. Die Ausgabe wird erst
+    # gesammelt und dann eingerückt gezeigt — `befehl | sed` würde den Fehlerstatus verschlucken.
+    if ! SPCTL_APP_OUT="$(spctl --assess --type execute -vvv "$APP" 2>&1)"; then
+        sed 's/^/    /' <<<"$SPCTL_APP_OUT"
+        echo "FEHLER: Gatekeeper lehnt die notarisierte App ab — Abbruch vor dem DMG-Bau."
+        exit 1
+    fi
+    sed 's/^/    /' <<<"$SPCTL_APP_OUT"
 else
     echo "==> Bauen (ad-hoc, UNSIGNIERT — nur Layout-Test)…"
     SKIP_ZIP=1 bash tools/make-app.sh
@@ -212,7 +220,13 @@ if [ "$NOTARIZE" = "1" ]; then
     echo "==> Ticket anheften (stapler)…"
     xcrun stapler staple "$DMG"
     xcrun stapler validate "$DMG"
-    spctl --assess --type open --context context:primary-signature -v "$DMG" 2>&1 | sed 's/^/    /' || true
+    # Auch hier ein echtes Gate: Ein abgelehntes DMG ist kein veröffentlichbares Release.
+    if ! SPCTL_DMG_OUT="$(spctl --assess --type open --context context:primary-signature -v "$DMG" 2>&1)"; then
+        sed 's/^/    /' <<<"$SPCTL_DMG_OUT"
+        echo "FEHLER: Gatekeeper lehnt das fertige DMG ab — keine Veröffentlichung."
+        exit 1
+    fi
+    sed 's/^/    /' <<<"$SPCTL_DMG_OUT"
 else
     echo "==> (übersprungen: Signieren/Notarisieren — UNSIGNIERTES Test-DMG)"
 fi

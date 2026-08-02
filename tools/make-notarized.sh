@@ -105,7 +105,16 @@ echo "==> Ticket anheften (stapler)…"
 xcrun stapler staple "$APP"
 xcrun stapler validate "$APP"
 echo "==> Gatekeeper-Bewertung:"
-spctl --assess --type execute -vvv "$APP" 2>&1 | sed 's/^/    /' || true
+# Hartes Gate statt bloßer Anzeige: install.sh baut auf diesem Skript auf und tauscht die App in
+# /Applications aus. Eine abgelehnte App darf hier gar nicht erst als fertig gemeldet werden.
+# (Ausgabe erst in eine Variable, dann eingerückt ausgeben — `befehl | sed` verschluckt sonst den
+# Fehlerstatus von spctl.)
+if ! SPCTL_OUT="$(spctl --assess --type execute -vvv "$APP" 2>&1)"; then
+    sed 's/^/    /' <<<"$SPCTL_OUT"
+    echo "FEHLER: Gatekeeper lehnt die notarisierte App ab."
+    exit 1
+fi
+sed 's/^/    /' <<<"$SPCTL_OUT"
 
 # --- 5) Finale, GESTAPELTE App neu zippen; Zwischen-ZIP entfernen --------------------------
 OUT_ZIP="dist/Steinregen-$VERSION-notarized.zip"
