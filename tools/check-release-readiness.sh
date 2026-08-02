@@ -30,6 +30,9 @@ required_files=(
     CHANGELOG.md
     tools/github-release.sh
     tools/test-github-release.sh
+    install.sh
+    release.sh
+    notarize-lib.sh
     assets/social-preview.png
     assets/dmg-background.png
     Sources/SteinregenRender/Resources/FREEDOOM-LICENSE.txt
@@ -37,6 +40,12 @@ required_files=(
 )
 for path in "${required_files[@]}"; do
     [ -s "$path" ] || fail "Pflichtdatei fehlt oder ist leer: $path"
+done
+
+# install.sh und release.sh werden als ./install.sh bzw. ./release.sh aufgerufen und brauchen
+# deshalb das Ausführbar-Bit. notarize-lib.sh wird nur gesourct und steht bewusst nicht hier.
+for path in install.sh release.sh; do
+    [ -x "$path" ] || fail "Einstiegsskript ist nicht ausführbar: $path"
 done
 
 # README-Fensterbilder müssen PNGs mit Alpha sein. JPEG würde die runden Fensterecken wieder mit
@@ -149,8 +158,14 @@ if problems:
     raise SystemExit(1)
 PY
 
-# Syntaxfehler in einem Release-Skript sollen vor einem teuren Build auffallen.
-bash -n tools/*.sh
+# Syntaxfehler in einem Release-Skript sollen vor einem teuren Build auffallen. Die drei
+# Einstiegspunkte im Wurzelverzeichnis gehören ausdrücklich dazu — sonst fiele ein Tippfehler
+# in install.sh oder release.sh erst beim echten Installations- oder Release-Aufruf auf.
+# Je Datei ein eigener Aufruf: `bash -n a.sh b.sh` prüft NUR a.sh und reicht den Rest als
+# Positionsparameter durch — die bisherige Sammelprüfung sah also nur die erste Datei.
+for path in tools/*.sh install.sh release.sh notarize-lib.sh; do
+    bash -n "$path" || fail "Syntaxfehler in $path"
+done
 git diff --check
 
 # CI muss wirklich die erreichbare Historie scannen: vollständiger Checkout, unveränderliche
@@ -180,7 +195,10 @@ from pathlib import Path
 import re
 
 problems: list[str] = []
-for path in Path("tools").glob("*.sh"):
+# Die Einstiegspunkte im Wurzelverzeichnis werden mitgeprüft, nicht nur tools/.
+scripts = sorted(Path("tools").glob("*.sh"))
+scripts += [Path("install.sh"), Path("release.sh"), Path("notarize-lib.sh")]
+for path in scripts:
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if re.search(r"\$[A-Za-z_][A-Za-z0-9_]*[^\x00-\x7f]", line):
             problems.append(f"{path}:{line_number}: Unicode direkt hinter unklammerter Variable")
