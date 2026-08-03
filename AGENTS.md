@@ -166,6 +166,12 @@ Distribution oder ausdrücklichem Wunsch:
   (Unterbau von `release.sh`); `--publish` ist eine externe Veröffentlichung und nie automatisch;
 - `tools/make-ios-app.sh`: XcodeGen-Projekt und Simulatorbuild; mit `run` installieren/starten.
 
+Nach `/Applications` schreibt ausschließlich `./install.sh`, und nur mit angeheftetem
+Notary-Ticket; ad hoc gebaut wird nur nach `dist/`. `tools/check-release-readiness.sh` hält beides
+an der Quelle fest (Reihenfolge in `install.sh`, festes Bauziel in `tools/make-app.sh`) — ohne zu
+bauen, zu signieren oder zu installieren. Diese Prüfung nie dadurch „belegen", dass der echte
+Installationsweg gegen `/Applications` läuft: Das ersetzt Daniels installierte App.
+
 `VERSION` und `steinregenVersion` immer gemeinsam ändern. Produktänderungen erhöhen die Version;
 reine README-/Regelpflege kann ohne Bump bleiben.
 

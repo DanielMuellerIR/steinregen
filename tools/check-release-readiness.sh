@@ -48,6 +48,29 @@ for path in install.sh release.sh; do
     [ -x "$path" ] || fail "Einstiegsskript ist nicht ausführbar: $path"
 done
 
+# Fleet-Regel (2026-08-03): In /Applications gehören ausschließlich Bundles mit angeheftetem
+# Notary-Ticket; ad hoc gebaut wird nur im Projektordner. Geprüft wird hier die QUELLE von
+# install.sh, nicht der Ablauf — ein Test, der den echten Installationsweg starten müsste, würde
+# dabei die installierte App ersetzen und neu notarisieren. Genau das soll die Regel verhindern.
+first_line_in_install() {   # $1 = fester Text; Ausgabe: Zeilennummer des ersten Vorkommens
+    grep -nF -- "$1" install.sh | head -1 | cut -d: -f1
+}
+TICKET_LINE="$(first_line_in_install 'xcrun stapler validate "$APP"')"
+# Erster Schreibzugriff in /Applications: das Anlegen des Staging-Pfads.
+STAGE_LINE="$(first_line_in_install 'STAGED="/Applications/')"
+[ -n "$TICKET_LINE" ] && [ -n "$STAGE_LINE" ] \
+    || fail "install.sh hat sich strukturell geändert; die Ticket-Prüfung ist nicht mehr auffindbar."
+[ "$TICKET_LINE" -lt "$STAGE_LINE" ] \
+    || fail "install.sh schreibt nach /Applications, bevor das Notary-Ticket geprüft ist."
+grep -qF 'spctl -a -t exec -vv "$STAGED"' install.sh \
+    || fail "install.sh bewertet die gestagte Kopie nicht mehr mit Gatekeeper vor dem Austausch."
+# Das Bauziel darf nicht aus der Umgebung kommen: make-app.sh löscht es per `rm -rf`, ein
+# umbiegbarer Wert könnte damit die installierte App treffen und durch einen ad-hoc-Build ersetzen.
+grep -qE '^APP="dist/Steinregen\.app"$' tools/make-app.sh \
+    || fail "tools/make-app.sh baut nicht mehr fest nach dist/ — Bauziel darf nicht umbiegbar sein."
+grep -qE '^APP="dist/Steinregen\.app"$' tools/make-notarized.sh \
+    || fail "tools/make-notarized.sh arbeitet nicht mehr fest auf dist/."
+
 # README-Fensterbilder müssen PNGs mit Alpha sein. JPEG würde die runden Fensterecken wieder mit
 # Weiß oder Schwarz füllen und fällt auf GitHubs hellem Hintergrund sofort negativ auf.
 readme_screenshots=(
