@@ -73,6 +73,21 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
+# Debug-Symbole entfernen, BEVOR signiert wird (strip macht eine vorhandene
+# Signatur ungültig). `swift build -c release` legt eine Debug-Map in die
+# Binärdatei: für jede übersetzte Quelldatei einen Eintrag mit dem vollen Pfad
+# ihrer .o-Datei auf DIESEM Mac. Die App braucht das nicht, es verrät nur
+# Benutzername und Projektaufbau (gefunden am 2026-08-04). `strip -S` nimmt
+# genau diese Debug-Symbole und lässt die normale Symboltabelle stehen, damit
+# Absturzberichte lesbar bleiben. Xcode tut das bei Release-Builds von sich aus
+# (STRIP_STYLE=debugging), SwiftPM nicht.
+echo "==> Debug-Symbole entfernen…"
+while IFS= read -r macho; do
+    case "$(file -b "$macho")" in
+        Mach-O*) strip -S "$macho" ;;
+    esac
+done < <(find "$APP" -type f \( -name '*.dylib' -o -name '*.so' -o -perm +111 \))
+
 if [ "${SKIP_SIGN:-0}" = "1" ]; then
     echo "==> Signatur bewusst übersprungen (nur lokaler Build-Nachweis)."
 elif [ -n "${SIGN_ID:-}" ]; then
