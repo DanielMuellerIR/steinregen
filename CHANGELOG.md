@@ -3,6 +3,25 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.28.1]
+
+- First building block of the TypeScript port in `web/`: both random number generators
+  (`SplitMix64`, `Xoshiro256StarStar`) reproduce all ten reference sequences from the golden data
+  bit for bit. Everything else in the core depends on this — a different sequence means different
+  stones, hits, and scores.
+- 64-bit arithmetic uses `bigint` with an explicit `BigInt.asUintN(64, …)` after every operation,
+  because BigInt never overflows on its own the way Swift's `&+`, `&*`, and `<<` do. Verified by
+  reintroducing two typical porting mistakes — a missing truncation and a swapped shift width —
+  both of which the tests catch.
+- `below()` deliberately keeps Swift's slightly biased `next() % n`. Replacing it with a
+  statistically cleaner draw would yield different stone colours for the same seed.
+- Measured rather than assumed: one draw costs about 100 ns, so BigInt is irrelevant to this
+  game's performance and a 32-bit-halves implementation would be needless complexity.
+- Honest gap, documented in code and in `web/README.md`: the all-zero state guard cannot be
+  triggered from outside, since SplitMix64 never yields four zeros. Removing it leaves the suite
+  green; no test covers it.
+- No build tooling: Node 23.6+ runs the TypeScript sources directly, `tsconfig.json` only type-checks.
+
 ## [0.28.0]
 
 - Golden data for the game core: `golden/steinregen-golden.json` records complete games for all six

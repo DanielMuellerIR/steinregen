@@ -1,0 +1,18 @@
+{
+  "name": "steinregen-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portierung des Steinregen-Spielkerns nach TypeScript (mobile Webapp)",
+  "type": "module",
+  "engines": {
+    "node": ">=23.6"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^5.9.3"
+  }
+}

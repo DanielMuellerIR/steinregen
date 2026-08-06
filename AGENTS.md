@@ -19,6 +19,7 @@ keine zweite Regelkopie anlegen.
 - `Sources/SteinregenRender`: SpriteKit, Spielloop, Assets, Audio.
 - `Sources/SteinregenApp`: SwiftUI-Shell, Persistenz und plattformspezifische Eingabe.
 - `Sources/SteinregenGolden`: erzeugt die Vergleichsdaten des Kerns; hängt nur am Kern.
+- `web`: TypeScript-Portierung des Kerns für eine mobile Webapp (begonnen, siehe unten).
 - Aktuelle Implementierung und Tests schlagen datierte Statusabsätze. Offene Ideen nicht aus alten
   Versionsnotizen ableiten.
 
@@ -189,6 +190,22 @@ den Test grün zu bekommen. Eine Programmversion steht bewusst nicht in der Date
 Versionssprung allein sie nicht anfasst. Die bekannten Lücken (kein Kapsel-Sieg, Magic Jewel nur
 einmal) stehen in `golden/README.md` und gehören dort gepflegt, nicht verschwiegen.
 
+## Web-Portierung
+
+`web/` ist die TypeScript-Fassung des Kerns für eine mobile Webapp. Sie ist eine zweite Umsetzung
+derselben Regeln, kein Ersatz: **Der Swift-Kern ist die Wahrheit.** Weicht die Portierung ab, ist
+sie falsch. Regeländerungen also zuerst in Swift, dann Vergleichsdaten neu erzeugen, dann `web/`
+nachziehen — nie umgekehrt.
+
+Geprüft wird mit `npm test` und `npm run typecheck` in `web/` (Node 23.6+; Node führt die
+TypeScript-Dateien direkt aus, es gibt bewusst kein Build-Werkzeug). Fertig ist bisher nur der
+Zufallsgenerator; den Stand hält `web/README.md` fest.
+
+Der Kern rechnet mit 64 Bit, JavaScript nur mit 53 — deshalb `bigint` und nach jeder Operation
+`BigInt.asUintN(64, …)`. Die Ziehung `next() % n` bleibt buchstabengetreu wie in Swift, auch wenn
+sie statistisch leicht schief ist: Jede „Verbesserung" ergäbe eine andere Steinfolge und damit ein
+anderes Spiel bei gleichem Seed.
+
 ## Testmatrix
 
 - Core-Regel/Engine: vollständige Swift-Tests, Seed-Replay, Reihenfolge und Randfälle.
@@ -200,6 +217,7 @@ einmal) stehen in `golden/README.md` und gehören dort gepflegt, nicht verschwie
 - iOS: XcodeGen-/Simulatorbuild und relevante Hochformatansicht; abgenommene Optik schützen.
 - Release: Lizenzbestand, Signatur/Notary nur bei echtem Releaseauftrag.
 - Vergleichsdaten: `SteinregenGoldenTests` muss grün sein; Abweichungen erklären, nicht wegdrücken.
+- Web-Portierung: `npm test` und `npm run typecheck` in `web/`, geprüft gegen die Vergleichsdaten.
 
 ## Öffentliche Veröffentlichung
 
