@@ -32,7 +32,7 @@ export interface RandomNumberGenerator {
 
 /**
  * 64-Bit-Zustands-Generator (SplitMix64). Einfach und schnell; dient auch dazu, den groesseren
- * xoshiro-Generator mit einem Seed zu „verteilen".
+ * xoshiro-Generator mit einem Seed zu „verteilen“.
  */
 export class SplitMix64 implements RandomNumberGenerator {
   #state: bigint;
@@ -62,7 +62,7 @@ export class Xoshiro256StarStar implements RandomNumberGenerator {
   #s3: bigint;
 
   constructor(seed: bigint) {
-    // Seed ueber SplitMix64 auf 256 Bit Zustand „aufblasen".
+    // Seed ueber SplitMix64 auf 256 Bit Zustand „aufblasen“.
     const sm = new SplitMix64(seed);
     this.#s0 = sm.next();
     this.#s1 = sm.next();
@@ -101,7 +101,7 @@ export class Xoshiro256StarStar implements RandomNumberGenerator {
  * Das ist genau die Rechnung, die der Swift-Kern ueberall benutzt (`rng.next() % UInt64(n)`),
  * und sie muss buchstabengetreu dieselbe bleiben. Sie ist statistisch leicht schief — die
  * niedrigen Reste kommen minimal haeufiger vor —, aber das ist hier gleichgueltig und darf auf
- * keinen Fall „verbessert" werden: Jede andere Rechnung ergaebe eine andere Steinfolge und
+ * keinen Fall „verbessert“ werden: Jede andere Rechnung ergaebe eine andere Steinfolge und
  * damit ein anderes Spiel als die Mac-Fassung.
  */
 export function below(rng: RandomNumberGenerator, bound: number): number {

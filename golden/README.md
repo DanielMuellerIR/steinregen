@@ -126,8 +126,21 @@ Eine Zeichenkette: **oberste Reihe zuerst**, Reihen durch `/` getrennt, ein Zeic
 
 Achtung beim Nachbauen: Die **Koordinaten** des Spiels beginnen unten links (`row` 0 ist die
 unterste Reihe und wächst nach oben), die **Zeichenkette** beginnt dagegen oben — so liest sie sich
-wie das Bild auf dem Schirm. Zellen in `cells`, `marked` und `curses` stehen als `[Spalte, Reihe]`
-in Spielkoordinaten und sind immer sortiert (erst Reihe, dann Spalte).
+wie das Bild auf dem Schirm. Zellen stehen überall als `[Spalte, Reihe]` in Spielkoordinaten.
+
+### Reihenfolge der Zellen
+
+Hier lohnt ein genauer Blick, weil sie nicht überall dieselbe ist:
+
+- `marked` und `curses` sind **immer sortiert** (erst Reihe, dann Spalte). Sie stammen aus Mengen,
+  deren Speicher-Reihenfolge zufällig ist — ohne Sortierung sähe dieselbe Partie bei jedem Lauf
+  anders aus.
+- `cells` einer Räum-Welle steht dagegen **genau in der Reihenfolge, in der der Kern die Zellen
+  einsammelt**, und wird hier bewusst nicht nachsortiert. Diese Reihenfolge ist sichtbar: Die
+  Darstellung lässt die Steine in genau dieser Folge verschwinden. In den meisten Modi ist sie
+  ohnehin die Brett-Reihenfolge, weil der Kern dort selbst sortiert (die Treffer stammen aus einer
+  Menge). Nur im Modus „Blutklumpen" liefert die Flutfüllung die Zellen in ihrer eigenen Ordnung —
+  eine Portierung muss sie also gleich durchlaufen, nicht bloß dieselbe Menge finden.
 
 ### Stein-Bauarten
 

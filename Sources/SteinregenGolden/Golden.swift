@@ -295,7 +295,13 @@ extension GoldenEngine {
 
 /// Wandelt eine Raeum-Welle des Kerns in die Ausgabeform.
 func encode(_ step: ClearStep) -> GoldenStep {
-    GoldenStep(cells: encode(step.cells),
+    // Bewusst OHNE Sortierung: `ClearStep.cells` ist bereits eine Liste, keine Menge — ihre
+    // Reihenfolge steht also fest und ist sichtbar, weil die Darstellung die Steine in genau
+    // dieser Folge verschwinden laesst. Wer hier sortierte, verstiesse gegen den Zweck der
+    // Datei: Eine Portierung, die ihre Treffer in anderer Reihenfolge einsammelt, fiele nicht
+    // mehr auf. (Die Modi, die aus einer Menge schoepfen, sortieren bereits im Kern selbst;
+    // `curses` und `marked` unten sind echte Mengen und werden hier weiterhin sortiert.)
+    GoldenStep(cells: step.cells.map(encode),
                kind: encode(step.kind),
                color: step.color.map(code),
                chain: step.chain,

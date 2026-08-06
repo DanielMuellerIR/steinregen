@@ -3,6 +3,24 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.28.2]
+
+- TypeScript port continues in `web/`: board, cells, match detection, settling, and the cascade
+  loop. Checked against the recordings rather than invented examples — every board round-trips
+  through encoding (about 900 of them), and every clear wave the Swift core produced in a real
+  game is recalculated with its cells, chain level, points, and resulting board.
+- Verified by reintroducing four typical porting mistakes, each caught by the suite: a missing
+  board copy, dropped diagonals in `findMatches`, `findGroups` connecting across corners, and
+  `settlePinned` letting stones slip past a curse.
+- Golden data made stricter: `ClearStep.cells` is now exported in the order the core collects the
+  cells instead of being sorted first. That order is visible — the display removes stones in
+  exactly that sequence. Only the "Blutklumpen" mode is affected, where the flood fill has its own
+  order; every other mode already sorts inside the core. `curses` and `marked` stay sorted, since
+  those really are sets. Documented in `golden/README.md`.
+- Two Swift-to-JavaScript pitfalls documented where they bite, in code and in `web/README.md`:
+  `Board` is a value type in Swift and needs an explicit `clone()` here, and `Cell` cannot go into
+  a plain `Set` because JavaScript compares objects by identity.
+
 ## [0.28.1]
 
 - First building block of the TypeScript port in `web/`: both random number generators

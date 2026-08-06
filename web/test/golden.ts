@@ -19,18 +19,56 @@ export interface GoldenPRNG {
   values: string[];
 }
 
+/// Der aktive Spielstein. Welche Felder gesetzt sind, haengt von der Bauart ab.
+export interface GoldenPiece {
+  kind: "column" | "pair" | "tetromino" | "square";
+  col: number;
+  row: number;
+  gems: string[];
+  orientation?: "up" | "right" | "down" | "left";
+  type?: string;
+  offsets?: number[][];
+}
+
+/// Eine Raeum-Welle. `cells` sind Paare `[Spalte, Reihe]`.
+export interface GoldenStep {
+  cells: number[][];
+  kind: "match" | "magic";
+  color?: string;
+  chain: number;
+  points: number;
+  boardAfter: string;
+}
+
+/// Was beim Aufsetzen eines Steins passiert ist.
+export interface GoldenLock {
+  landed: GoldenPiece;
+  boardBefore: string;
+  wasMagic?: boolean;
+  steps: GoldenStep[];
+}
+
 /// Ein Spielzustand nach genau einem Befehl. Optionale Felder fehlen, wenn sie sich nicht
 /// geaendert haben — siehe golden/README.md.
 export interface GoldenSnapshot {
   i: number;
   cmd: string;
   ok?: boolean;
+  /// Nur vorhanden, wenn sich das Brett geaendert hat.
   board?: string;
+  piece?: GoldenPiece;
   score: number;
   level: number;
   phase: string;
   cleared: number;
-  [extra: string]: unknown;
+  next?: string[];
+  nextType?: string;
+  lock?: GoldenLock;
+  harvest?: GoldenStep;
+  sweepCol?: number;
+  /// Nur bei Aenderung: markierte Zellen („Schnitter“) bzw. verbliebene Flueche („Austreibung“).
+  marked?: number[][];
+  curses?: number[][];
 }
 
 /// Eine aufgezeichnete Partie.

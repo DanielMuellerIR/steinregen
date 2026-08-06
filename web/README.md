@@ -13,7 +13,9 @@ die Vergleichsdaten neu erzeugt und diese Portierung nachgezogen.
 | Baustein | Zustand |
 |---|---|
 | Zufallsgeneratoren (`src/core/prng.ts`) | fertig, gegen alle 10 Vektoren geprüft |
-| Brett, Treffer-Erkennung, Nachrutschen | offen |
+| Brett und Zellen (`src/core/models.ts`) | fertig, gegen ~900 aufgezeichnete Bretter geprüft |
+| Treffer-Erkennung und Kaskade (`src/core/matching.ts`) | fertig, gegen jede aufgezeichnete Räum-Welle geprüft |
+| Punkte und Ziehung (`src/core/rules.ts`) | fertig |
 | die sechs Engines | offen |
 | Darstellung, Bedienung, Ton | offen |
 
@@ -44,6 +46,22 @@ Umsetzung mit zwei 32-Bit-Hälften wäre unnötige Komplexität.
 Ebenso wichtig: `below()` ist bewusst `next() % n` — dieselbe leicht schiefe Rechnung wie im
 Swift-Kern. Sie darf **nicht** durch eine statistisch sauberere ersetzt werden, sonst zieht die
 Webfassung andere Steinfarben als die Mac-App, und derselbe Seed ergäbe ein anderes Spiel.
+
+## Der zweite Fallstrick: Wert gegen Verweis
+
+In Swift ist `Board` ein Werttyp. `let vorher = board` legt dort eine **Kopie** an, und spätere
+Änderungen am Original lassen `vorher` unberührt. In JavaScript zeigen nach derselben Zeile beide
+Namen auf dasselbe Brett. Überall, wo der Swift-Kern sich auf dieses Kopieren verlässt — vor allem
+beim Festhalten des Bretts je Räum-Welle —, steht hier ein ausdrückliches `clone()`.
+
+Nachgeprüft, indem genau diese Kopie entfernt wurde: Drei Tests schlagen dann fehl, weil alle
+Wellen einer Kaskade plötzlich denselben Endstand zeigen. In der fertigen Darstellung sähe man das
+daran, dass sich beim Auflösen einer Kette nichts mehr bewegt.
+
+Der zweite Unterschied derselben Art: Swift kann `Cell` in ein `Set` legen, weil Werte dort nach
+Inhalt verglichen werden. JavaScript vergleicht Objekte nach Identität — `new Set([{col:1,row:2}])`
+fände `{col:1,row:2}` nicht wieder. Dafür gibt es `CellSet`, das intern mit Zeichenketten arbeitet
+und seine Zellen nur sortiert herausgibt.
 
 ## Was die Tests nicht abdecken
 
