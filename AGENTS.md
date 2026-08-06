@@ -18,6 +18,7 @@ keine zweite Regelkopie anlegen.
 - `Sources/SteinregenCore`: reine deterministische Spiellogik.
 - `Sources/SteinregenRender`: SpriteKit, Spielloop, Assets, Audio.
 - `Sources/SteinregenApp`: SwiftUI-Shell, Persistenz und plattformspezifische Eingabe.
+- `Sources/SteinregenGolden`: erzeugt die Vergleichsdaten des Kerns; hängt nur am Kern.
 - Aktuelle Implementierung und Tests schlagen datierte Statusabsätze. Offene Ideen nicht aus alten
   Versionsnotizen ableiten.
 
@@ -175,6 +176,19 @@ Installationsweg gegen `/Applications` läuft: Das ersetzt Daniels installierte 
 `VERSION` und `steinregenVersion` immer gemeinsam ändern. Produktänderungen erhöhen die Version;
 reine README-/Regelpflege kann ohne Bump bleiben.
 
+## Vergleichsdaten des Kerns
+
+`golden/steinregen-golden.json` hält komplette Partien aller sechs Modi Zug für Zug fest und ist
+der Prüfmaßstab für eine Portierung des Kerns in eine andere Sprache. Erzeugt und geprüft wird sie
+mit `bash tools/make-golden.sh` bzw. `--check`; `SteinregenGoldenTests` hängt sie an den aktuellen
+Kern.
+
+Schlägt dieser Test fehl, hat sich das Spielverhalten geändert. Dann **erst prüfen, ob das gewollt
+war**, und den Unterschied im Diff durchsehen — die Datei nie stillschweigend neu erzeugen, nur um
+den Test grün zu bekommen. Eine Programmversion steht bewusst nicht in der Datei, damit ein
+Versionssprung allein sie nicht anfasst. Die bekannten Lücken (kein Kapsel-Sieg, Magic Jewel nur
+einmal) stehen in `golden/README.md` und gehören dort gepflegt, nicht verschwiegen.
+
 ## Testmatrix
 
 - Core-Regel/Engine: vollständige Swift-Tests, Seed-Replay, Reihenfolge und Randfälle.
@@ -185,6 +199,7 @@ reine README-/Regelpflege kann ohne Bump bleiben.
 - macOS-UI: startbare Bundle-App, Menü/Steuerung/Fokus und gezielter Screenshot.
 - iOS: XcodeGen-/Simulatorbuild und relevante Hochformatansicht; abgenommene Optik schützen.
 - Release: Lizenzbestand, Signatur/Notary nur bei echtem Releaseauftrag.
+- Vergleichsdaten: `SteinregenGoldenTests` muss grün sein; Abweichungen erklären, nicht wegdrücken.
 
 ## Öffentliche Veröffentlichung
 
@@ -209,4 +224,5 @@ Entscheidung nachlesen will, findet sie in der Git-Historie dieser Datei (Stand 
 - [`THIRD-PARTY-ASSETS.md`](THIRD-PARTY-ASSETS.md): Assetlizenzen.
 - [`CHANGELOG.md`](CHANGELOG.md): veröffentlichte Änderungen.
 - [`BACKLOG.md`](BACKLOG.md): verifizierte offene Arbeit.
+- [`golden/README.md`](golden/README.md): Vergleichsdaten des Kerns — Format, Nutzung, Lücken.
 - [`docs/archive/agent-context-legacy-2026-07-14.md`](docs/archive/agent-context-legacy-2026-07-14.md): Weiterleitung für ältere Links.

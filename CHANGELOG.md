@@ -3,6 +3,23 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.28.0]
+
+- Golden data for the game core: `golden/steinregen-golden.json` records complete games for all six
+  modes move by move — board, score, and every clear wave — plus the raw output of both random
+  number generators. It is the reference a port of the core in another language (planned:
+  TypeScript for a mobile web app) has to reproduce field by field. Format and known gaps are
+  documented in `golden/README.md`.
+- New `steinregen-golden` tool (library `SteinregenGolden` plus a thin CLI target) with
+  `--out`/`--check`/`--list` and meaningful exit codes, driven by `tools/make-golden.sh`. It depends
+  on the core alone, so it builds without the Xcode toolchain.
+- `SteinregenGoldenTests` ties the checked-in data to the current core: any core change makes the
+  test fail and names the first differing line, so the data can never drift unnoticed. Verified by
+  temporarily altering both the data file and a scoring rule.
+- Recording uses a simple placement heuristic rather than random moves. A purely random player
+  towered up and lost before anything interesting happened — it cleared no row at all in the
+  row-clearing modes. The heuristic is recording machinery, not part of the game.
+
 ## [0.27.15]
 
 - Memory: the backdrop cache now retains only the currently selected decoded image; switching

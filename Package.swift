@@ -13,7 +13,9 @@ let package = Package(
         .library(name: "SteinregenCore", targets: ["SteinregenCore"]),
         .library(name: "SteinregenRender", targets: ["SteinregenRender"]),
         // Das ausfuehrbare Produkt heisst schlicht "Steinregen" (= Fenster-/App-Titel).
-        .executable(name: "Steinregen", targets: ["SteinregenApp"])
+        .executable(name: "Steinregen", targets: ["SteinregenApp"]),
+        // Werkzeug fuer die Vergleichsdaten des Spielkerns (Pruefmassstab der Web-Portierung).
+        .executable(name: "steinregen-golden", targets: ["SteinregenGoldenCLI"])
     ],
     dependencies: [],
     targets: [
@@ -33,9 +35,25 @@ let package = Package(
             name: "SteinregenApp",
             dependencies: ["SteinregenCore", "SteinregenRender"]
         ),
+        // Erzeugt die Vergleichsdaten (JSON) aus dem Kern. Haengt NUR am Kern — so laeuft das
+        // Werkzeug mit den blossen CommandLineTools, ohne Xcode-Toolchain und ohne SpriteKit.
+        .target(
+            name: "SteinregenGolden",
+            dependencies: ["SteinregenCore"]
+        ),
+        // Duennes Kommandozeilen-Ziel darueber: nur Startpunkt und Exit-Code.
+        .executableTarget(
+            name: "SteinregenGoldenCLI",
+            dependencies: ["SteinregenGolden"]
+        ),
         .testTarget(
             name: "SteinregenCoreTests",
             dependencies: ["SteinregenCore"]
+        ),
+        // Haelt die eingecheckten Vergleichsdaten an den aktuellen Kern gebunden.
+        .testTarget(
+            name: "SteinregenGoldenTests",
+            dependencies: ["SteinregenGolden", "SteinregenCore"]
         ),
         // Tests der Render-/Spielloop-Schicht (Lock-Delay-Verhalten u.ae.). Braucht SpriteKit,
         // laeuft daher nur mit der Xcode-Toolchain (DEVELOPER_DIR=… xcrun swift test).
