@@ -3,12 +3,14 @@
 #   Steinregen.app (Developer-ID-signiert, Hardened Runtime) IN einem DMG mit Hintergrundbild,
 #   Applications-Shortcut und festen Icon-Positionen; das DMG wird signiert, notarisiert und
 #   gestapelt → öffnet auf jedem Mac per Doppelklick ohne Gatekeeper-Warnung.
-#   Ergebnis: dist/Steinregen-<version>.dmg
+#   Ergebnis: dist/Steinregen-<version>.dmg — Testläufe: dist/Steinregen-<version>-test.dmg
 #
 # Nutzung:
 #   bash tools/make-dmg.sh                  # signiert + notarisiert (braucht Zertifikat + Notar-Profil)
 #   bash tools/make-dmg.sh --no-notarize    # ad-hoc, UNSIGNIERT — nur zum lokalen Layout-Test
 #   bash tools/make-dmg.sh --no-finder-layout   # ohne Finder-Fensterlayout (headless, kein Release)
+#   (beide Testmodi schreiben nach dist/Steinregen-<version>-test.dmg und lassen ein fertiges
+#    Release-DMG derselben Version unangetastet)
 #   bash tools/make-dmg.sh --publish        # zusätzlich: Tag vX.Y.Z + GitHub-Release mit dem DMG
 #
 # Voraussetzungen fürs Signieren/Notarisieren (einmalig je Mac — Schlüsselbund wird NICHT gesynct):
@@ -65,6 +67,15 @@ if [ "$NOTARIZE" = "1" ] && [ -z "$NOTARY_PROFILE" ]; then
     echo "FEHLER: NOTARY_PROFILE muss für die Notarisierung gesetzt sein."
     echo "        Beispiel: NOTARY_PROFILE=profil-name bash tools/make-dmg.sh"
     exit 2
+fi
+# Ein Testlauf bekommt einen EIGENEN Dateinamen. Sonst überschreibt ein unsigniertes oder
+# layout-loses Testimage das fertige, geprüfte Release-DMG derselben Version, und im Ausgabeordner
+# läge unter dem Weitergabenamen ein ausdrücklich nicht veröffentlichbares Artefakt.
+# --publish setzt NOTARIZE=1 und FINDER_LAYOUT=1 voraus (siehe oben) und trifft diesen Fall nie.
+if [ "$NOTARIZE" = "0" ] || [ "$FINDER_LAYOUT" = "0" ]; then
+    DMG="dist/Steinregen-$VERSION-test.dmg"
+    RW_DMG="dist/Steinregen-$VERSION-test-rw.dmg"
+    echo "==> Testlauf: Das Ergebnis heißt $DMG und ist kein Release."
 fi
 # Veröffentlichungsvoraussetzungen VOR dem langen Build prüfen. Diese Abfragen verändern weder
 # Git noch GitHub. Diagnoseausgaben der Netzwerkwerkzeuge bleiben unterdrückt, damit Remote- oder
@@ -154,15 +165,57 @@ fi
 
 # --- 2) DMG-Layout (schreibbares HFS+ → mounten → Inhalt rein → Finder-Ansicht) -------------
 echo "==> Erzeuge DMG-Layout…"
+MOUNT_DIR="/Volumes/$VOLNAME"
+
+# Ein bereits vorhandenes Volume gleichen Namens wird NICHT blind ausgeworfen. Früher stand hier
+# ein `hdiutil detach -force` auf jeden Mountpunkt dieses Namens — das kann ein FREMDES Disk-Image
+# treffen, in das gerade jemand schreibt. Ausgehängt wird nur noch ein Rest dieses Skripts, also
+# ein Image, dessen Datei genau unser eigenes RW-DMG ist.
+image_behind_mount() {      # $1 = Mountpunkt; Ausgabe: Pfad der Image-Datei (leer = kein Image)
+    # `hdiutil info` listet je Image erst `image-path`, danach seine Geräte; in deren Zeilen steht
+    # der Mountpunkt als letztes Feld. Also den zuletzt gesehenen Pfad merken und beim Treffer
+    # ausgeben.
+    hdiutil info | awk -v mount="$1" '
+        /^image-path[[:space:]]*:/ {
+            path = $0
+            sub(/^image-path[[:space:]]*:[[:space:]]*/, "", path)
+        }
+        $NF == mount { print path; exit }
+    '
+}
+if [ -d "$MOUNT_DIR" ]; then
+    MOUNTED_IMAGE="$(image_behind_mount "$MOUNT_DIR")"
+    # `-ef` vergleicht die Datei selbst (Gerät + Inode), nicht ihre Schreibweise — ein Symlink im
+    # Pfad führt so nicht zu einem falschen Nein.
+    if [ -n "$MOUNTED_IMAGE" ] && [ "$MOUNTED_IMAGE" -ef "$ROOT/$RW_DMG" ]; then
+        echo "    (Rest eines früheren Laufs wird ausgehängt: $MOUNT_DIR)"
+        hdiutil detach "$MOUNT_DIR" -force >/dev/null
+    else
+        echo "FEHLER: $MOUNT_DIR ist belegt und gehört nicht zu diesem Build."
+        echo "        Das kann ein fremdes Disk-Image sein, in das gerade geschrieben wird;"
+        echo "        zwangsweise ausgehängt wird es deshalb nicht."
+        echo "        Bitte selbst auswerfen und den Lauf wiederholen."
+        exit 1
+    fi
+fi
+
 rm -f "$DMG" "$RW_DMG"
-[ -d "/Volumes/$VOLNAME" ] && hdiutil detach "/Volumes/$VOLNAME" -force >/dev/null 2>&1 || true
 
 SIZE=$(( $(du -sm "$APP" | cut -f1) + 40 ))
 hdiutil create -srcfolder "$APP" -volname "$VOLNAME" -fs HFS+ \
     -fsargs "-c c=64,a=16,e=16" -format UDRW -size "${SIZE}m" "$RW_DMG"
 
-MOUNT_DIR="/Volumes/$VOLNAME"
-hdiutil attach "$RW_DMG" -mountpoint "$MOUNT_DIR" -nobrowse -noverify -noautoopen
+# Das eigene Gerät merken und per `trap` genau dieses wieder aushängen — auch wenn das Skript
+# zwischendrin abbricht. Ohne das bliebe nach einem Fehlschlag ein gemountetes Volume zurück,
+# und genau daraus entstand die Versuchung, beim nächsten Lauf blind zu detachen.
+ATTACH_OUT="$(hdiutil attach "$ROOT/$RW_DMG" -mountpoint "$MOUNT_DIR" -nobrowse -noverify -noautoopen)"
+printf '%s\n' "$ATTACH_OUT"
+DEVICE="$(awk 'NR == 1 { print $1; exit }' <<<"$ATTACH_OUT")"   # z. B. /dev/disk4
+if [ -z "$DEVICE" ]; then
+    echo "FEHLER: hdiutil attach hat kein Gerät gemeldet."
+    exit 1
+fi
+trap 'hdiutil detach "$DEVICE" -force >/dev/null 2>&1 || true' EXIT
 
 ln -s /Applications "$MOUNT_DIR/Applications"
 mkdir -p "$MOUNT_DIR/.background"
@@ -210,7 +263,8 @@ else
 fi
 
 sync; sleep 2                       # Race: DS_Store-Schreibpuffer vs. detach
-hdiutil detach "$MOUNT_DIR" -force
+hdiutil detach "$DEVICE" -force     # genau unser Gerät, nicht „irgendwas an diesem Mountpunkt"
+trap - EXIT                         # ab hier gibt es nichts mehr auszuhängen
 
 echo "==> Komprimiere zu read-only DMG…"
 hdiutil convert "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG"

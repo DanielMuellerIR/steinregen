@@ -179,8 +179,9 @@ reine README-/Regelpflege kann ohne Bump bleiben.
 
 ## Vergleichsdaten des Kerns
 
-`golden/steinregen-golden.json` hält komplette Partien aller sechs Modi Zug für Zug fest und ist
-der Prüfmaßstab für eine Portierung des Kerns in eine andere Sprache. Erzeugt und geprüft wird sie
+`golden/steinregen-golden.json` hält Partien aller sechs Modi Zug für Zug fest — je Modus
+mindestens eine bis zum Spielende, die übrigen bis zu einer festen Zahl aufgesetzter Steine — und
+ist der Prüfmaßstab für eine Portierung des Kerns in eine andere Sprache. Erzeugt und geprüft wird sie
 mit `bash tools/make-golden.sh` bzw. `--check`; `SteinregenGoldenTests` hängt sie an den aktuellen
 Kern.
 
@@ -198,8 +199,9 @@ sie falsch. Regeländerungen also zuerst in Swift, dann Vergleichsdaten neu erze
 nachziehen — nie umgekehrt.
 
 Geprüft wird mit `npm test` und `npm run typecheck` in `web/` (Node 23.6+; Node führt die
-TypeScript-Dateien direkt aus, es gibt bewusst kein Build-Werkzeug). Fertig ist bisher nur der
-Zufallsgenerator; den Stand hält `web/README.md` fest.
+TypeScript-Dateien direkt aus, es gibt bewusst kein Build-Werkzeug). Welche Bausteine fertig sind
+und welche offen, steht ausschließlich in [`web/README.md`](web/README.md). Hier keine zweite
+Standliste führen — sonst widersprechen sich beide, und man beginnt am falschen Einstiegspunkt.
 
 Der Kern rechnet mit 64 Bit, JavaScript nur mit 53 — deshalb `bigint` und nach jeder Operation
 `BigInt.asUintN(64, …)`. Die Ziehung `next() % n` bleibt buchstabengetreu wie in Swift, auch wenn

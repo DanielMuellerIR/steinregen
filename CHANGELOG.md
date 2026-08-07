@@ -3,6 +3,45 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.28.3]
+
+Follow-up to the code review of 2026-08-06; no gameplay rule changed.
+
+- Golden data now cover the end of a game for every mode. `saeulen`, `klumpen`, and `schnitter`
+  previously stopped mid-play because a recording ends after a fixed number of pieces, so no replay
+  ever exercised their blocked-spawn/game-over path. Three short games on a narrow 4×8 board
+  (`saeulen-ende`, `klumpen-ende`, `schnitter-ende`) now run all the way to `gameOver`, and a new
+  test pins that minimum coverage. The existing cases are untouched — the new ones are appended, so
+  the diff of the data file is purely additive.
+- Honest gap instead of a test that only looked like it checked something: no recorded capsule game
+  ever clears a curse, so the curse bonus and the settling afterwards were never exercised. The
+  golden-driven test dropped that claim from its name, and a staged board now covers the bonus of
+  100 points, the shrinking curse set, and the loose stone dropping all the way down. Verified by
+  scoring the bonus after settling instead of before — exactly that one test fails.
+- `steinregen-golden` rejects surplus arguments for `--list` and `--help`. `--list --check FILE`
+  used to list the cases and report success without ever running the requested comparison.
+- The PRNG test compares against fixed published reference numbers now (SplitMix64 from state 0,
+  the first xoshiro256** value for seed 1) and pins the exact set of seeds. It previously only
+  checked that the exported strings parse back into a 64-bit number, which cannot fail for values
+  produced by `String(rng.next())`.
+- `tools/make-dmg.sh` no longer force-ejects any volume named `Steinregen` before building. It
+  unmounts only a leftover of its own run (same image file, compared by inode) and otherwise stops
+  with a clear message, so a foreign disk image that is being written to stays mounted. Its own
+  device is unmounted through a `trap`, so an aborted run no longer leaves a volume behind.
+- Test runs of `tools/make-dmg.sh` (`--no-notarize`, `--no-finder-layout`) write
+  `dist/Steinregen-<version>-test.dmg` instead of overwriting an already notarized release DMG of
+  the same version.
+- `tools/make-app.sh` removes a stale `dist/Steinregen-<version>.zip` when `SKIP_SIGN=1` skips the
+  ZIP. The distributable name could otherwise keep an older archive that looked like the result of
+  the unsigned run.
+- The release gate checks that `install.sh` evaluates the staged copy with Gatekeeper *before* the
+  swap, by line number, instead of merely finding the text somewhere in the file. Its lookup helper
+  no longer aborts the whole script silently when a searched line is missing.
+- Dead error case `GoldenError.mismatch` removed; `--check` writes its diagnosis to stderr directly.
+- Documentation corrected where it contradicted the code: the port status lives in `web/README.md`
+  alone, `ClearStep.cells` keeps the core's collection order (flood-fill order for "Blutklumpen")
+  instead of always board order, and the golden data no longer claim to cover the capsule victory.
+
 ## [0.28.2]
 
 - TypeScript port continues in `web/`: board, cells, match detection, settling, and the cascade

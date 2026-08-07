@@ -599,7 +599,12 @@ func landingScore(_ board: Board, _ piece: GoldenPiece, col: Int,
 public enum GoldenData {
 
     /// Alle aufgezeichneten Partien. Zusammen decken sie jeden Modus, beide Level-Regeln
-    /// (Steine bzw. Reihen), die Sieg-Bedingung der Kapseln und das Ernten der Sense ab.
+    /// (Steine bzw. Reihen), das Ernten der Sense und je Modus mindestens ein Spielende ab.
+    ///
+    /// NICHT abgedeckt ist der Kapsel-Sieg (`phase: "won"`): Der einfache Spieler tilgt in den
+    /// aufgezeichneten Partien keinen einzigen Fluch. Diese Luecke steht ausdruecklich in
+    /// `golden/README.md` und braucht einen eigenen Test mit gestelltem Brett — sie hier als
+    /// abgedeckt zu bezeichnen, waere eine falsche Sicherheit.
     static let specs: [CaseSpec] = [
         CaseSpec(id: "saeulen-a",      mode: "saeulen",      seed: 1),
         CaseSpec(id: "saeulen-b",      mode: "saeulen",      seed: 20260806, startLevel: 3),
@@ -626,6 +631,18 @@ public enum GoldenData {
                  width: 6, height: 10, pieces: 40, strategy: .curses),
         CaseSpec(id: "schnitter-a",    mode: "schnitter",    seed: 1),
         CaseSpec(id: "schnitter-b",    mode: "schnitter",    seed: 20260806),
+        // Kurze Partien BIS ZUM SPIELENDE. Auf den vollen Brettern oben bricht die Aufzeichnung
+        // nach `pieces` Steinen ab, waehrend das Spiel noch laeuft — der blockierte Einwurf und
+        // damit der modusspezifische Spawn-/Game-over-Pfad kaeme dann in keinem Replay vor.
+        // Ein enges Brett (4×8) fuellt sich schnell genug, dass diese drei Modi ihr Ende wirklich
+        // erreichen. Sie stehen bewusst am Ende der Liste: So bleiben die Bloecke der
+        // bestehenden Faelle in der JSON-Datei unveraendert und der Diff zeigt nur Neues.
+        CaseSpec(id: "saeulen-ende",   mode: "saeulen",      seed: 11,
+                 width: 4, height: 8, pieces: 40),
+        CaseSpec(id: "klumpen-ende",   mode: "klumpen",      seed: 11,
+                 width: 4, height: 8, pieces: 40),
+        CaseSpec(id: "schnitter-ende", mode: "schnitter",    seed: 11,
+                 width: 4, height: 8, pieces: 40),
     ]
 
     /// Erzeugt die Engine eines Falls. Fehlen Breite/Hoehe, gilt das Standardmass des Modus.
@@ -920,14 +937,17 @@ public enum GoldenData {
     }
 }
 
+/// Fehler beim Erzeugen der Vergleichsdaten.
+///
+/// Eine Abweichung beim Vergleich (`--check`) steht bewusst NICHT hier: Sie ist kein Fehler des
+/// Erzeugens, sondern das Ergebnis des Werkzeugs — `--check` schreibt sie mit vollstaendiger
+/// Anleitung direkt nach stderr und liefert Exit-Code 1.
 enum GoldenError: Error, CustomStringConvertible {
     case encoding
-    case mismatch(String)
 
     var description: String {
         switch self {
         case .encoding: return "JSON liess sich nicht als UTF-8 lesen"
-        case .mismatch(let path): return "Vergleichsdaten weichen ab: \(path)"
         }
     }
 }
@@ -959,6 +979,14 @@ public func goldenMain(_ arguments: [String] = Array(CommandLine.arguments.dropF
             print(try GoldenData.json(), terminator: "")
 
         case "--list":
+            // Ueberzaehlige Argumente sind fast immer ein Tippfehler oder ein falsch
+            // zusammengesetzter Automationsaufruf. Frueher lief `--list --check DATEI` durch,
+            // listete nur auf und meldete mit Exit-Code 0 Erfolg — der verlangte Vergleich
+            // fand nie statt.
+            guard args.count == 1 else {
+                FileHandle.standardError.write(Data("--list nimmt keine weiteren Argumente\n".utf8))
+                return 1
+            }
             for spec in GoldenData.specs {
                 print("\(spec.id)\t\(spec.mode)\tseed=\(spec.seed)\tlevel=\(spec.startLevel)")
             }
@@ -991,6 +1019,10 @@ public func goldenMain(_ arguments: [String] = Array(CommandLine.arguments.dropF
             print("Vergleichsdaten stimmen: \(args[1])")
 
         case "--help", "-h":
+            guard args.count == 1 else {
+                FileHandle.standardError.write(Data("\(args[0]) nimmt keine weiteren Argumente\n".utf8))
+                return 1
+            }
             print(usage)
 
         default:

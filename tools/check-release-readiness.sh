@@ -52,8 +52,11 @@ done
 # Notary-Ticket; ad hoc gebaut wird nur im Projektordner. Geprüft wird hier die QUELLE von
 # install.sh, nicht der Ablauf — ein Test, der den echten Installationsweg starten müsste, würde
 # dabei die installierte App ersetzen und neu notarisieren. Genau das soll die Regel verhindern.
+# `|| true` ist hier Pflicht: Fehlt der gesuchte Text, liefert die Pipeline unter `pipefail` den
+# Status 1 — und schon die Zuweisung würde das Skript unter `set -e` kommentarlos beenden, also
+# bevor die vorgesehene `fail`-Meldung darunter überhaupt erreicht wäre.
 first_line_in_install() {   # $1 = fester Text; Ausgabe: Zeilennummer des ersten Vorkommens
-    grep -nF -- "$1" install.sh | head -1 | cut -d: -f1
+    grep -nF -- "$1" install.sh | head -1 | cut -d: -f1 || true
 }
 TICKET_LINE="$(first_line_in_install 'xcrun stapler validate "$APP"')"
 # Erster Schreibzugriff in /Applications: das Anlegen des Staging-Pfads.
@@ -62,8 +65,16 @@ STAGE_LINE="$(first_line_in_install 'STAGED="/Applications/')"
     || fail "install.sh hat sich strukturell geändert; die Ticket-Prüfung ist nicht mehr auffindbar."
 [ "$TICKET_LINE" -lt "$STAGE_LINE" ] \
     || fail "install.sh schreibt nach /Applications, bevor das Notary-Ticket geprüft ist."
-grep -qF 'spctl -a -t exec -vv "$STAGED"' install.sh \
+# Die Gatekeeper-Bewertung muss VOR dem Austausch stehen, nicht bloß irgendwo in der Datei. Das
+# bloße Suchen nach dem Text ließ genau die gefährliche Reihenfolge durch: hinter den Swift-Block
+# mit `replaceItemAt` verschoben, wäre die Prüfung grün geblieben, obwohl dann eine von Gatekeeper
+# abgelehnte App die funktionierende Installation längst ersetzt hätte.
+SPCTL_LINE="$(first_line_in_install 'spctl -a -t exec -vv "$STAGED"')"
+REPLACE_LINE="$(first_line_in_install 'replaceItemAt')"
+[ -n "$SPCTL_LINE" ] && [ -n "$REPLACE_LINE" ] \
     || fail "install.sh bewertet die gestagte Kopie nicht mehr mit Gatekeeper vor dem Austausch."
+[ "$SPCTL_LINE" -lt "$REPLACE_LINE" ] \
+    || fail "install.sh tauscht die App aus, bevor Gatekeeper die gestagte Kopie bewertet hat."
 # Das Bauziel darf nicht aus der Umgebung kommen: make-app.sh löscht es per `rm -rf`, ein
 # umbiegbarer Wert könnte damit die installierte App treffen und durch einen ad-hoc-Build ersetzen.
 grep -qE '^APP="dist/Steinregen\.app"$' tools/make-app.sh \

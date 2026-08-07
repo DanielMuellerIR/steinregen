@@ -168,15 +168,37 @@ Befehlsfolge in `commands`.
 
 Ehrlich benannt, damit die Portierung diese Punkte selbst prüft:
 
-- **Der Sieg im Modus „Austreibung" (`phase: "won"`) kommt nicht vor.** Der einfache Spieler tilgt
-  regelmäßig drei von vier Flüchen, aber nie den letzten; in 90 Probeläufen über verschiedene Seeds
-  und Brettmaße gab es keinen Sieg. Die Regel selbst ist knapp — sind alle Flüche getilgt, wechselt
-  die Phase auf `won` und es wird kein Stein mehr eingeworfen — aber sie braucht einen eigenen Test
-  mit einem gestellten Brett.
+- **Im Modus „Austreibung" wird kein einziger Fluch getilgt.** In keiner aufgezeichneten Partie
+  liegt ein Treffer auf einer Fluch-Zelle; das Feld `curses` ändert sich deshalb in keinem einzigen
+  Zustand. Damit fehlen hier gleich drei Dinge: der Sieg (`phase: "won"`), der Bonus von 100 Punkten
+  je getilgtem Fluch und das anschließende Nachrutschen ohne den entfernten Fluch. Die Regeln selbst
+  sind knapp — sind alle Flüche getilgt, wechselt die Phase auf `won` und es wird kein Stein mehr
+  eingeworfen —, aber sie brauchen eigene Tests mit gestelltem Brett: im Swift-Kern
+  `CapsuleEngineTests` (`testRunOfFourClearsOnLockWithCurseBonus` und Nachbarn), in der Portierung
+  der gestellte Fall in `web/test/matching.test.ts`.
 - **Der Magic Jewel** kommt nur in `saeulen-b` vor (eine Räumung). Er erscheint im Schnitt bei
   jeder vierzigsten Säule; eine Portierung sollte ihn zusätzlich gezielt prüfen.
 - **Lock Delay, Fallgeschwindigkeit und der Takt der Sense** stehen bewusst nicht hier: Sie sind
   Echtzeit-Verhalten der Darstellungsschicht, nicht des Kerns. Der Kern kennt nur den Schritt
   (`gravityTick`, `sweepTick`), nicht seine Dauer.
-- **Sehr lange Partien.** Jeder Fall bricht nach 30 bis 60 aufgesetzten Steinen ab, damit die Datei
-  handlich bleibt.
+- **Sehr lange Partien.** Die großen Fälle brechen nach 30 bis 60 aufgesetzten Steinen ab, damit die
+  Datei handlich bleibt — sie enden also mitten im Spiel. Das Spielende ist trotzdem für jeden Modus
+  abgedeckt, siehe unten.
+
+## Partien bis zum Spielende
+
+Ein abgebrochener Fall endet in `phase: "falling"` und enthält keinen blockierten Einwurf. Der
+modusspezifische Spawn-/Game-over-Pfad wäre dann in keinem Replay geprüft. Deshalb gibt es zu jedem
+Modus mindestens eine kurze Partie, die wirklich bis `gameOver` läuft:
+
+| Modus          | Fall bis zum Ende     |
+|----------------|-----------------------|
+| Steinschlag    | `saeulen-ende`        |
+| Eingemauert    | `verschuettet-schmal` |
+| Blutklumpen    | `klumpen-ende`        |
+| Erdrückt       | `fuenfling-a`         |
+| Austreibung    | `kapseln-a/-b/-klein` |
+| Schnitter      | `schnitter-ende`      |
+
+Die drei `…-ende`-Fälle spielen auf einem engen 4×8-Brett, weil sich das schnell genug füllt.
+`GoldenDataTests.testEveryModeReachesTheEndOfAGame` hält diese Mindestabdeckung fest.

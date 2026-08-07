@@ -20,6 +20,10 @@ cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 VERSION="$(tr -d '[:space:]' < VERSION)"
 APP="dist/Steinregen.app"
+# Der Weitergabename steht bewusst hier oben und nicht erst im ZIP-Zweig: Auch die Zweige, die
+# gar kein ZIP bauen, müssen ihn kennen — sonst bliebe ein gleichnamiges ZIP aus einem früheren
+# Lauf unbemerkt liegen (siehe SKIP_SIGN weiter unten).
+ZIP="dist/Steinregen-$VERSION.zip"
 EXE_NAME="Steinregen"                              # = Produktname in Package.swift
 RES_BUNDLE="Steinregen_SteinregenRender.bundle"
 BUNDLE_ID="com.steinregen.app"
@@ -111,6 +115,11 @@ if [ "${SKIP_SIGN:-0}" = "1" ] && [ "${SKIP_ZIP:-0}" != "1" ]; then
     SKIP_ZIP=1
     ZIP_SKIP_GRUND="SKIP_SIGN=1: ein unsigniertes Bundle wird nicht weitergegeben"
 fi
+if [ "${SKIP_SIGN:-0}" = "1" ]; then
+    # Das ZIP zu überspringen genügt nicht: Ein gleichnamiges ZIP aus einem früheren Lauf bliebe
+    # sonst im Ausgabeordner liegen und würde für das Ergebnis DIESES unsignierten Laufs gehalten.
+    rm -f "$ZIP"
+fi
 
 if [ "${SKIP_ZIP:-0}" = "1" ]; then
     echo "==> ZIP übersprungen (${ZIP_SKIP_GRUND:-SKIP_ZIP=1})."
@@ -119,7 +128,6 @@ if [ "${SKIP_ZIP:-0}" = "1" ]; then
     echo "  $ROOT/$APP   (doppelklickbar)"
 else
     echo "==> ZIP für die Weitergabe…"
-    ZIP="dist/Steinregen-$VERSION.zip"
     rm -f "$ZIP"
     ( cd dist && zip -qry "Steinregen-$VERSION.zip" "Steinregen.app" )
 

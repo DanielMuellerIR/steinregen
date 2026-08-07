@@ -69,6 +69,10 @@ Die Abfrage auf den komplett leeren Generator-Zustand (`s0…s3 == 0`) lässt si
 auslösen, weil SplitMix64 für keinen Seed vier Nullen liefert. Nachgeprüft: Entfernt man sie,
 bleibt die Testsuite grün. Sie steht im Code, weil der Swift-Kern sie ebenso enthält.
 
-Die weiteren Lücken der Vergleichsdaten selbst — kein gewonnenes Kapsel-Spiel, Magic Jewel nur
-einmal — stehen in [`../golden/README.md`](../golden/README.md) und brauchen hier später eigene
-Tests mit gestelltem Brett.
+Die weiteren Lücken der Vergleichsdaten selbst stehen in
+[`../golden/README.md`](../golden/README.md). In den aufgezeichneten Kapsel-Partien wird kein
+einziger Fluch getilgt; der Fluch-Bonus und das Nachrutschen ohne den entfernten Fluch haben deshalb
+einen eigenen Test mit gestelltem Brett in `test/matching.test.ts`. Nachgeprüft, indem der Bonus
+versehentlich erst nach dem Nachrutschen verrechnet wurde: Genau dieser eine Test schlägt dann fehl,
+alle anderen bleiben grün. Offen bleiben das gewonnene Kapsel-Spiel und der Magic Jewel (nur eine
+einzige Räumung in den Daten).

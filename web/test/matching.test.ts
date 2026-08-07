@@ -110,7 +110,11 @@ describe("Treffer-Kaskade gegen die Vergleichsdaten", () => {
     }
   });
 
-  it("„Austreibung“: Vierer-Läufe ohne Diagonalen, mit Fluch-Bonus", () => {
+  it("„Austreibung“: Vierer-Läufe ohne Diagonalen", () => {
+    // Achtung, hier wird der Fluch-Bonus NICHT geprüft: In den aufgezeichneten Kapsel-Partien
+    // liegt kein Treffer je auf einem Fluch (kein einziger Zustand ändert `curses`), der
+    // `bonus`-Hook weiter unten liefert also durchweg 0. Diesen Fall deckt der gestellte Test
+    // „ein getilgter Fluch bringt Bonus …“ im letzten Abschnitt ab.
     const locks = locksOf("kapseln").filter((l) => l.lock.steps.length > 0);
     assert.ok(locks.length > 3, `zu wenige Aufsetzer mit Treffern: ${locks.length}`);
 
@@ -254,6 +258,47 @@ describe("Treffer-Regeln im Einzelnen", () => {
     assert.ok(result.steps.length >= 2, `Kaskade zu kurz für diesen Test: ${result.steps.length}`);
     const boards = result.steps.map((s) => s.boardAfter.encode());
     assert.equal(new Set(boards).size, boards.length, "die Wellen teilen sich ein Brett");
+  });
+
+  it("„Austreibung“: ein getilgter Fluch bringt Bonus und nagelt danach nichts mehr fest", () => {
+    // Gestelltes Brett, weil die Vergleichsdaten diesen Fall nicht enthalten: In allen
+    // aufgezeichneten Kapsel-Partien wird kein einziger Fluch geräumt. Der Aufbau entspricht dem
+    // Swift-Test `CapsuleEngineTests.testRunOfFourClearsOnLockWithCurseBonus`:
+    //   Reihe 0: vier Rubine; der linke (0,0) ist der Fluch, den der Vierer-Lauf tilgt.
+    //   (0,2):   ein loser Topas. Er muss nach dem Räumen bis auf den Boden durchfallen —
+    //            bliebe der getilgte Fluch festgenagelt, käme er nur bis (0,1).
+    const board = Board.decode("t..../...../rrrr.");
+    const remaining = new CellSet([cell(0, 0)]);
+
+    // Wie im Kern: erst fluch-bewusst nachrutschen, dann die Kaskade auflösen.
+    settlePinned(board, remaining);
+    assert.equal(board.encode(), "...../t..../rrrr.", "der Topas bleibt auf dem Fluch liegen");
+
+    const result = resolveCascade({
+      board,
+      find: (b) => findLines(b, 4),
+      settleBoard: (b) => settlePinned(b, remaining),
+      bonus: (cells) => {
+        const cleared = remaining.intersection(cells);
+        remaining.subtract(cleared);
+        return cleared.length * 100;
+      },
+      score: 0,
+      gemsCleared: 0,
+    });
+
+    assert.equal(result.steps.length, 1, "genau eine Räum-Welle");
+    const step = result.steps[0];
+    assert.ok(step !== undefined);
+    assert.deepEqual(step.cells, [cell(0, 0), cell(1, 0), cell(2, 0), cell(3, 0)]);
+    // 4 Steine × 10 × Kettenstufe 1 + ein getilgter Fluch × 100 Bonus = 140 — wie im Swift-Kern.
+    assert.equal(step.points, 140);
+    assert.equal(result.score, 140);
+    assert.equal(result.gemsCleared, 4);
+    assert.ok(remaining.isEmpty, "der geräumte Fluch ist aus der Fluch-Menge ausgetragen");
+    // Und erst dadurch fällt der Topas ganz durch: Der Fluch klebt nicht mehr an (0,0).
+    assert.equal(board.encode(), "...../...../t....");
+    assert.equal(step.boardAfter.encode(), board.encode());
   });
 
   it("Punkte steigen mit der Kettenstufe", () => {

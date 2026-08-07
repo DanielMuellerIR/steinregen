@@ -63,18 +63,37 @@ final class GoldenDataTests: XCTestCase {
     }
 
     /// Stichprobe auf den wichtigsten Einzelbaustein: Der Zufallsgenerator muss die bekannte
-    /// xoshiro256**-Folge liefern. Stimmt die nicht, ist jede weitere Zeile der Datei wertlos.
-    func testPRNGVectorsAreComplete() {
+    /// Folge liefern. Stimmt die nicht, ist jede weitere Zeile der Datei wertlos.
+    ///
+    /// Frueher stand hier nur `UInt64(value) != nil`. Das konnte gar nicht fehlschlagen, denn
+    /// die Werte entstehen als `String(rng.next())` — die Pruefung sagte also nichts ueber den
+    /// Generator aus. Jetzt stehen feste Vergleichszahlen im Test: die veroeffentlichte
+    /// Referenzfolge von SplitMix64 ab Zustand 0 und der erste xoshiro256**-Wert fuer Seed 1,
+    /// den auch `golden/README.md` nennt. Diese Zahlen haengen nicht an der eingecheckten Datei.
+    func testPRNGVectorsMatchKnownReference() {
         let vectors = GoldenData.prngVectors()
-        XCTAssertEqual(Set(vectors.map(\.generator)), ["SplitMix64", "Xoshiro256StarStar"])
-        for vector in vectors {
-            XCTAssertEqual(vector.values.count, 16, "\(vector.generator)/\(vector.seed)")
-            // Als Zeichenkette exportiert, weil JavaScript nur 53 Bit genau rechnet — die Werte
-            // muessen sich verlustfrei als 64-Bit-Zahl zurueckwandeln lassen.
-            for value in vector.values {
-                XCTAssertNotNil(UInt64(value), "keine gueltige 64-Bit-Zahl: \(value)")
+
+        // Beide Generatoren mit genau denselben fuenf Seeds — inklusive der Randfaelle 0 und
+        // groesster 64-Bit-Wert. Faellt ein Seed weg, faellt hier auf.
+        let seeds = ["0", "1", "42", "20260806", "18446744073709551615"]
+        for generator in ["SplitMix64", "Xoshiro256StarStar"] {
+            let own = vectors.filter { $0.generator == generator }
+            XCTAssertEqual(own.map(\.seed), seeds, "\(generator): andere Seed-Menge")
+            for vector in own {
+                XCTAssertEqual(vector.values.count, 16, "\(generator)/\(vector.seed)")
             }
         }
+        XCTAssertEqual(vectors.count, 2 * seeds.count, "unerwartete Zahl an Vektoren")
+
+        /// Die Werte eines einzelnen Vektors herausgreifen.
+        func values(_ generator: String, seed: String) -> [String] {
+            vectors.first { $0.generator == generator && $0.seed == seed }?.values ?? []
+        }
+        XCTAssertEqual(Array(values("SplitMix64", seed: "0").prefix(3)),
+                       ["16294208416658607535", "7960286522194355700", "487617019471545679"],
+                       "SplitMix64 weicht von der veroeffentlichten Referenzfolge ab")
+        XCTAssertEqual(values("Xoshiro256StarStar", seed: "1").first, "12966619160104079557",
+                       "xoshiro256** weicht vom dokumentierten ersten Wert ab")
     }
 
     /// Eine Partie ohne Zuege waere ein stiller Ausfall — etwa wenn jede Engine sofort
@@ -87,5 +106,35 @@ final class GoldenDataTests: XCTestCase {
                            "\(spec.id): Befehle und Zustaende muessen sich entsprechen")
             XCTAssertGreaterThan(recorded.snapshots.count, 20, "\(spec.id): verdaechtig kurz")
         }
+    }
+
+    /// Mindestabdeckung des Spielendes: Zu JEDEM Modus muss mindestens eine Partie wirklich zu
+    /// Ende gespielt sein. Bricht eine Aufzeichnung nur wegen der Stein-Obergrenze ab, endet sie
+    /// mitten im Fallen — dann kommt der blockierte Einwurf dieses Modus in keinem Replay vor,
+    /// und eine Portierung duerfte dort abweichen, ohne dass es auffaellt.
+    func testEveryModeReachesTheEndOfAGame() {
+        var reached: Set<String> = []
+        for spec in GoldenData.specs {
+            guard let last = GoldenData.record(spec).snapshots.last else {
+                return XCTFail("\(spec.id): keine Zustaende aufgezeichnet")
+            }
+            if last.phase == "gameOver" || last.phase == "won" { reached.insert(spec.mode) }
+        }
+        XCTAssertEqual(reached,
+                       ["saeulen", "verschuettet", "klumpen", "fuenfling", "kapseln", "schnitter"],
+                       "diese Modi enden in keinem Fall mit einer Endphase")
+    }
+
+    /// Die Kommandozeile darf ueberzaehlige Argumente nicht stillschweigend schlucken.
+    /// `--list --check DATEI` meldete frueher Erfolg (0), ohne den verlangten Vergleich
+    /// auszufuehren — ein Tippfehler in einer Automation waere so unbemerkt geblieben.
+    func testCommandLineRejectsExtraArguments() {
+        XCTAssertEqual(goldenMain(["--help"]), 0)
+        XCTAssertEqual(goldenMain(["--help", "zuviel"]), 1)
+        XCTAssertEqual(goldenMain(["-h", "zuviel"]), 1)
+        XCTAssertEqual(goldenMain(["--list", "--check", "datei.json"]), 1)
+        XCTAssertEqual(goldenMain(["--out"]), 1, "--out ohne Datei")
+        XCTAssertEqual(goldenMain(["--out", "a.json", "b.json"]), 1, "--out mit zwei Dateien")
+        XCTAssertEqual(goldenMain(["--unbekannt"]), 1)
     }
 }

@@ -282,7 +282,14 @@ export type ClearKind = "match" | "magic";
 
 /** Eine einzelne Räum-Welle der Kaskade. */
 export interface ClearStep {
-  /** In diesem Schritt verschwindende Zellen — immer in Brett-Reihenfolge. */
+  /**
+   * In diesem Schritt verschwindende Zellen — in genau der Reihenfolge, in der der Swift-Kern
+   * sie einsammelt. Meist ist das die Brett-Reihenfolge (erst Reihe, dann Spalte), weil die
+   * Treffer dort aus einer sortierten Menge kommen; bei der Gruppensuche des „Blutklumpen“
+   * (`findGroups`) ist es dagegen die Reihenfolge der Flutfüllung. Diese Liste darf deshalb
+   * **nicht** nachsortiert werden: Die Darstellung lässt die Steine genau in dieser Folge
+   * verschwinden, und die Vergleichsdaten halten sie so fest (siehe `golden/README.md`).
+   */
   readonly cells: readonly Cell[];
   readonly kind: ClearKind;
   /** Bei `magic`: die getroffene Farbe; sonst `null`. */
