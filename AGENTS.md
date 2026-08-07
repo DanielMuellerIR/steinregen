@@ -206,6 +206,21 @@ Der Kern rechnet mit 64 Bit, JavaScript nur mit 53 — deshalb `bigint` und nach
 sie statistisch leicht schief ist: Jede „Verbesserung" ergäbe eine andere Steinfolge und damit ein
 anderes Spiel bei gleichem Seed.
 
+## Bestätigte Fallen
+
+Aus realen Fehlern dieses Projekts; nur nach belegtem Verhalten ergänzen, nicht aus Vermutungen.
+
+- **Vergleichsdaten dürfen keine semantische Reihenfolge verdecken.** Der Golden-Exporter darf
+  geordnete Ergebnislisten nicht pauschal sortieren — das verbirgt genau die Ablaufunterschiede,
+  die eine Portierung aufdecken soll. Nur echte Mengen (`Set`) werden für stabile Ausgabe
+  sortiert. Beleg: Der Exporter sortierte `ClearStep.cells`, obwohl deren Reihenfolge semantisch
+  feststeht.
+- **Swift-Werttypen brauchen in TypeScript eine ausdrückliche Kopie.** Eine Swift-`struct` wird
+  bei der Zuweisung kopiert, ein JavaScript-/TypeScript-Objekt nur verwiesen. Schnappschüsse des
+  Zustands in der Portierung deshalb explizit klonen; Koordinatenobjekte brauchen außerdem
+  wertbasierte Schlüssel statt eines gewöhnlichen JavaScript-`Set`. Ausführlich in
+  [`web/README.md`](web/README.md).
+
 ## Testmatrix
 
 - Core-Regel/Engine: vollständige Swift-Tests, Seed-Replay, Reihenfolge und Randfälle.
