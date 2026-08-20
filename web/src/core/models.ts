@@ -73,12 +73,15 @@ export interface Cell {
 export const cell = (col: number, row: number): Cell => ({ col, row });
 
 /**
- * Feste Brett-Reihenfolge: erst Reihe, dann Spalte.
+ * Feste Brett-Reihenfolge: erst Reihe, dann Spalte. In Swift macht das `Cell: Comparable`, hier
+ * diese Funktion.
  *
- * Wichtig für den Determinismus: Die Treffer-Suche sammelt ihre Funde in einer Menge, und die
- * Reihenfolge einer Menge ist nicht die Reihenfolge des Bretts. Vor jeder Rückgabe wird deshalb
- * sortiert, damit die geräumten Zellen bei gleichem Seed immer gleich aussehen. In Swift macht
- * das `Cell: Comparable`, hier diese Funktion.
+ * Wichtig für den Determinismus — aber **nicht überall**: `findMatches` und `findLines` sammeln
+ * ihre Funde in einer Menge, deren Reihenfolge nicht die des Bretts ist; sie sortieren deshalb
+ * vor der Rückgabe. `findGroups` dagegen liefert bewusst die Reihenfolge der Flutfüllung, weil
+ * die semantisch feststeht: Die Darstellung lässt die Steine in genau dieser Folge verschwinden,
+ * und die Vergleichsdaten halten sie so fest. Wer hier nachsortiert, bricht den Abgleich im
+ * Modus „Blutklumpen". Siehe auch den Kommentar an `ClearStep.cells`.
  */
 export function compareCells(a: Cell, b: Cell): number {
   return a.row !== b.row ? a.row - b.row : a.col - b.col;

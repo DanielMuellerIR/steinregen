@@ -6,7 +6,7 @@
 // (Klumpen) und Linien ohne Diagonalen (Austreibung). Die Kaskaden-Schleife darüber ist für
 // alle drei dieselbe.
 
-import { Board, CellSet, cell, isMagic, sortCells, type Cell, type ClearStep, type Gem } from "./models.ts";
+import { Board, CellSet, cell, isMagic, type Cell, type ClearStep, type Gem } from "./models.ts";
 import { Scoring } from "./rules.ts";
 
 /**
@@ -253,8 +253,16 @@ export function resolveCascade(options: CascadeOptions): CascadeResult {
 }
 
 /**
- * Der Magic-Jewel-Effekt: räumt brettweit alle Steine der Farbe, die unter der Aufsetzposition
- * liegt. Liegt dort nichts, verpufft er.
+ * Der Magic-Jewel-Effekt: räumt brettweit alle Steine der Farbe `target`.
+ *
+ * **Die Farbe kommt von aussen — diese Funktion sieht nicht unter die Aufsetzposition.** Im
+ * Swift-Kern steht die Vorbedingung beim Aufrufer (`Engine.lock()`): Nur wenn unter dem
+ * untersten Magic-Stein überhaupt eine Zelle liegt und die keine Magic-Zelle ist, wird geräumt;
+ * sonst verpufft der Stein ganz ohne Welle. Diese Vorbedingung ist hier **noch nicht portiert**
+ * — sie gehört in die Säulen-Engine. Wer sie weglässt und `applyMagic` blind für eine Farbe
+ * aufruft, die im Brett gar nicht liegt, erzeugt eine Phantom-Welle mit null Zellen und null
+ * Punkten. Die Vergleichsdaten enthalten genau so einen verpuffenden Magic-Aufsetzer
+ * (`saeulen-ende`, i=20): dort steht `steps: []`, eben KEINE leere Welle.
  *
  * Steht hier und nicht in der Säulen-Engine, weil er dieselben Bausteine benutzt wie die
  * Kaskade. **Ändert das übergebene Brett.**
@@ -265,7 +273,11 @@ export function applyMagic(
   score: number,
   gemsCleared: number,
 ): { step: ClearStep; score: number; gemsCleared: number } {
-  const cells = sortCells(board.cellsOf(target));
+  // Kein Nachsortieren: `cellsOf` läuft schon Reihe für Reihe, Spalte für Spalte — also genau
+  // in Brett-Reihenfolge. Der Swift-Gegenpart sortiert hier ebenfalls nicht. Ein `sortCells`
+  // davor wäre heute folgenlos, würde aber eine künftige Reihenfolge-Änderung in `cellsOf`
+  // verdecken; die Zusicherung gehört dorthin, wo die Reihenfolge entsteht.
+  const cells = board.cellsOf(target);
   for (const c of cells) board.set(c.col, c.row, null);
   settle(board);
   const points = Scoring.points(cells.length, 1);

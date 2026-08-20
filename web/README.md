@@ -13,11 +13,18 @@ die Vergleichsdaten neu erzeugt und diese Portierung nachgezogen.
 | Baustein | Zustand |
 |---|---|
 | Zufallsgeneratoren (`src/core/prng.ts`) | fertig, gegen alle 10 Vektoren geprüft |
-| Brett und Zellen (`src/core/models.ts`) | fertig, gegen ~900 aufgezeichnete Bretter geprüft |
-| Treffer-Erkennung und Kaskade (`src/core/matching.ts`) | fertig, gegen jede aufgezeichnete Räum-Welle geprüft |
-| Punkte und Ziehung (`src/core/rules.ts`) | fertig |
+| Brett und Zellen (`src/core/models.ts`) | fertig, gegen rund 1100 aufgezeichnete Bretter geprüft |
+| Treffer-Erkennung und Kaskade (`src/core/matching.ts`) | fertig, geprüft gegen jede Räum-Welle der drei Kaskaden-Modi (Steinschlag, Blutklumpen, Austreibung) |
+| Punkte und Ziehung (`src/core/rules.ts`) | `points` und `draw` geprüft; `gemsPerLevel` ist bisher nur Gerüst für die Engines |
 | die sechs Engines | offen |
 | Darstellung, Bedienung, Ton | offen |
+
+Was die Zeile zu `matching.ts` bewusst NICHT sagt: Die Reihen-Wellen von „Eingemauert"/„Erdrückt"
+und die 19 Sensen-Ernten des „Schnitters" sind ungeprüft. Sie gehören zu Engines, die es hier noch
+nicht gibt — `findLines` mit voller Reihe und das Ernten einer markierten Spaltensektion laufen
+anders als eine Farb-Kaskade. Ausgezählt: 67 der 102 aufgezeichneten Wellen sind geprüft, die
+übrigen 35 (16 Reihen-Wellen, 19 Ernten) nicht. Wer die Zeile als „alle Wellen geprüft" liest,
+hält diese 35 fälschlich für abgesichert.
 
 ## Prüfen
 
@@ -74,5 +81,11 @@ Die weiteren Lücken der Vergleichsdaten selbst stehen in
 einziger Fluch getilgt; der Fluch-Bonus und das Nachrutschen ohne den entfernten Fluch haben deshalb
 einen eigenen Test mit gestelltem Brett in `test/matching.test.ts`. Nachgeprüft, indem der Bonus
 versehentlich erst nach dem Nachrutschen verrechnet wurde: Genau dieser eine Test schlägt dann fehl,
-alle anderen bleiben grün. Offen bleiben das gewonnene Kapsel-Spiel und der Magic Jewel (nur eine
-einzige Räumung in den Daten).
+alle anderen bleiben grün. Offen bleiben das gewonnene Kapsel-Spiel und der Magic Jewel (eine
+Räumung plus ein verpuffender Aufsetzer in den Daten).
+
+`applyMagic` hat eine offene Stelle, die keine Lücke der Daten ist, sondern der Portierung: Die
+**Vorbedingung** des Magic Jewels — liegt unter der Aufsetzposition überhaupt ein Stein, und ist
+er selbst kein Magic-Stein? — steht im Swift-Kern beim Aufrufer `Engine.lock()` und gehört
+entsprechend in die Säulen-Engine. Ohne sie erzeugt ein verpuffender Magic-Stein hier eine Welle
+mit null Zellen statt gar keiner.

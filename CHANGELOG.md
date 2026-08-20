@@ -3,6 +3,74 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.28.4]
+
+Follow-up to the code review of 2026-08-20; no gameplay rule changed. The recorded games grew by
+two cases and one changed case — the game itself behaves exactly as before, which the byte-for-byte
+comparison of the 15 untouched cases confirms.
+
+- Golden data now really cover **both** level rules. The comment claimed they did, but no
+  row-clearing mode ever changed its level: the best case cleared 3 of the 10 rows a level needs.
+  The new case `verschuettet-level` (5×20, starting at level 2) clears 10 rows and steps up to
+  level 3, and because it is the only row case with a level other than 0 or 1 it also pins the
+  factor `max(1, level)` in `linePoints` — 200 instead of 100 points per single row.
+  `testRowModeLevelRuleIsCovered` keeps it that way.
+- „Erdrückt" has its own end-of-game case. Its coverage rested on `fuenfling-a`, whose blocked
+  spawn happened to fall on the 30th of 30 allowed pieces; one piece more survival time and the
+  recording would have ended mid-fall again. `fuenfling-ende` (6×12) reaches the end after 11
+  pieces.
+- `kapseln-klein` now starts at level 5 instead of 1, so the **cap** in `curseCount`
+  (`min(4 · level, (width · curseRows) / 2)`) actually binds: 18 curses instead of the 20 the level
+  alone would ask for. At level 1 the case placed 4 curses — the same as on the large board, so the
+  second branch of the formula was never exercised despite the comment promising it.
+  `testCurseCountCapIsCovered` pins it.
+- `steinregen-golden --out --check` used to write a 1.4 MB file literally named `--check` and
+  report success while the requested comparison never ran — the same class of typo that was already
+  closed for `--list` and `--help`, but in the only writing branch. Both `--out` and `--check` now
+  reject a file argument starting with `--`.
+- `tools/make-app.sh` removes a stale `dist/Steinregen-<version>.zip` whenever it skips the ZIP.
+  This hung on `SKIP_SIGN=1`, which nothing in the repository sets; the real callers
+  (`make-dmg.sh`, `make-notarized.sh`) use `SKIP_ZIP=1`, so on the path actually taken the outdated
+  archive stayed put. The archive name is also taken from the single `ZIP` variable now instead of
+  being reassembled from `VERSION`.
+- `tools/make-dmg.sh` recognizes a leftover volume of its own across modes and versions. The check
+  compared against the current run's RW name only, so after the split into `…-rw.dmg` and
+  `…-test-rw.dmg` — or after a version bump — its own leftover was reported as a foreign disk
+  image and the release run stopped with a wrong diagnosis. A plain empty directory under
+  `/Volumes` no longer counts as a mount either.
+- Same script: the `EXIT` trap is armed directly after `hdiutil attach`, not after parsing its
+  output — that error branch used to leave a mounted volume behind, the very state the trap exists
+  to prevent. And `hdiutil info` is captured into a variable before `awk` reads it, because `awk`'s
+  `exit` on a hit closes the pipe and `pipefail` would abort the run with status 141 in exactly the
+  case the check is for.
+- The release gate binds `ditto "$APP" "$STAGED"` by text and by position. All four previous checks
+  stayed green if that line was changed to write to `$DESTINATION`, which would overwrite a working
+  installation before Gatekeeper ever evaluated it. Verified by making exactly that change: the
+  gate now fails. The repeated order checks moved into one `require_order` helper.
+- CI runs the TypeScript port. `npm ci`, `npm test` and `npm run typecheck` in `web/` ran nowhere
+  automatically, although AGENTS.md lists them as mandatory.
+- `draw` in the port is tested instead of merely being called "done": it is checked against the
+  starting piece and preview of every recorded game of the three colour modes. It consumes PRNG
+  values, so a single value too many shifts the whole piece sequence. Verified by drawing one extra
+  value — exactly those tests fail.
+- `npm test` runs `test/*.test.ts` instead of everything under `test/`. The helper modules
+  `replay.ts` and `golden.ts` showed up in the report as test files with zero tests and loaded the
+  1.4 MB data file twice more.
+- `applyMagic` in the port no longer sorts what `cellsOf` already delivers in board order (Swift
+  does not sort there either), and its documentation says what the function does: it takes the
+  colour as an argument, never looks below the landing position, and has no fizzle branch. That
+  precondition lives with the caller in Swift and is still unported — noted as such.
+- Corrected comments that the data contradict: the capsule cases do not reach the win condition,
+  the full-width row cases do clear the odd row (`verschuettet-schmal` is there for its double
+  row), and seed 0 does not exercise the xoshiro null-state branch, because SplitMix64 never yields
+  four zeros. `golden/README.md` gains the second, fizzling Magic Jewel and the note that `m` never
+  appears in a board string.
+- `GoldenSnapshot.piece` is no longer optional — all six modes always have a piece, in all 7168
+  recorded states — and the recording player moved into its own `ScriptedPlayer` type, so `record`
+  is left with recording and the field diff. The placeholder check throws its own error case
+  instead of borrowing "JSON could not be read as UTF-8". `testEveryModeReachesTheEndOfAGame`
+  continues past an empty case instead of aborting the whole test function on the first one.
+
 ## [0.28.3]
 
 Follow-up to the code review of 2026-08-06; no gameplay rule changed.

@@ -58,23 +58,37 @@ done
 first_line_in_install() {   # $1 = fester Text; Ausgabe: Zeilennummer des ersten Vorkommens
     grep -nF -- "$1" install.sh | head -1 | cut -d: -f1 || true
 }
-TICKET_LINE="$(first_line_in_install 'xcrun stapler validate "$APP"')"
-# Erster Schreibzugriff in /Applications: das Anlegen des Staging-Pfads.
-STAGE_LINE="$(first_line_in_install 'STAGED="/Applications/')"
-[ -n "$TICKET_LINE" ] && [ -n "$STAGE_LINE" ] \
-    || fail "install.sh hat sich strukturell geändert; die Ticket-Prüfung ist nicht mehr auffindbar."
-[ "$TICKET_LINE" -lt "$STAGE_LINE" ] \
-    || fail "install.sh schreibt nach /Applications, bevor das Notary-Ticket geprüft ist."
+# Eine Reihenfolgeregel als Einzeiler. Vorher stand dieser Block je Regel wortgleich noch einmal
+# da, was jede weitere Regel sechs Zeilen Kopie kostete — und deshalb unterblieb.
+require_order() {           # $1 = Text davor, $2 = Text danach, $3 = Meldung bei Verstoß
+    local davor danach
+    davor="$(first_line_in_install "$1")"
+    danach="$(first_line_in_install "$2")"
+    [ -n "$davor" ] && [ -n "$danach" ] \
+        || fail "install.sh hat sich strukturell geändert; nicht mehr auffindbar: »$1« / »$2«."
+    [ "$davor" -lt "$danach" ] || fail "$3"
+}
+
+# Erster Schreibzugriff in /Applications ist das Anlegen des Staging-Pfads.
+require_order 'xcrun stapler validate "$APP"' 'STAGED="/Applications/' \
+    "install.sh schreibt nach /Applications, bevor das Notary-Ticket geprüft ist."
 # Die Gatekeeper-Bewertung muss VOR dem Austausch stehen, nicht bloß irgendwo in der Datei. Das
 # bloße Suchen nach dem Text ließ genau die gefährliche Reihenfolge durch: hinter den Swift-Block
 # mit `replaceItemAt` verschoben, wäre die Prüfung grün geblieben, obwohl dann eine von Gatekeeper
 # abgelehnte App die funktionierende Installation längst ersetzt hätte.
-SPCTL_LINE="$(first_line_in_install 'spctl -a -t exec -vv "$STAGED"')"
-REPLACE_LINE="$(first_line_in_install 'replaceItemAt')"
-[ -n "$SPCTL_LINE" ] && [ -n "$REPLACE_LINE" ] \
-    || fail "install.sh bewertet die gestagte Kopie nicht mehr mit Gatekeeper vor dem Austausch."
-[ "$SPCTL_LINE" -lt "$REPLACE_LINE" ] \
-    || fail "install.sh tauscht die App aus, bevor Gatekeeper die gestagte Kopie bewertet hat."
+require_order 'spctl -a -t exec -vv "$STAGED"' 'replaceItemAt' \
+    "install.sh tauscht die App aus, bevor Gatekeeper die gestagte Kopie bewertet hat."
+# Und schließlich: WOHIN geschrieben wird. Die drei Prüfungen oben binden nur Zeilennummern
+# aneinander; sie blieben alle grün, wenn `ditto "$APP" "$STAGED"` zu `ditto "$APP" "$DESTINATION"`
+# würde — dann überschriebe die neue App die funktionierende Installation, noch bevor Gatekeeper
+# sie bewertet hat. Deshalb den Staging-Kopierbefehl wörtlich verlangen und zwischen das Anlegen
+# des Staging-Pfads und die Bewertung einordnen.
+grep -qF -- 'ditto "$APP" "$STAGED"' install.sh \
+    || fail "install.sh kopiert nicht mehr nach \$STAGED — es würde direkt ins Ziel geschrieben."
+require_order 'STAGED="/Applications/' 'ditto "$APP" "$STAGED"' \
+    "install.sh kopiert die App, bevor der Staging-Pfad feststeht."
+require_order 'ditto "$APP" "$STAGED"' 'spctl -a -t exec -vv "$STAGED"' \
+    "install.sh bewertet mit Gatekeeper, bevor die gestagte Kopie überhaupt existiert."
 # Das Bauziel darf nicht aus der Umgebung kommen: make-app.sh löscht es per `rm -rf`, ein
 # umbiegbarer Wert könnte damit die installierte App treffen und durch einen ad-hoc-Build ersetzen.
 grep -qE '^APP="dist/Steinregen\.app"$' tools/make-app.sh \

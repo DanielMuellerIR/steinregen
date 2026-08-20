@@ -51,8 +51,13 @@ Der wichtigste Einzeltest. JavaScript rechnet nur mit 53 Bit genau und braucht f
 
 Alle 64-Bit-Zahlen stehen als **Dezimalzahl in einer Zeichenkette**, nie als JSON-Zahl — sonst
 würde JavaScript sie beim Einlesen still verfälschen. Die Seeds decken auch die Randfälle ab:
-`0` (der xoshiro-Zustand darf nie komplett null sein — diese Sonderbehandlung übersieht eine
-Portierung leicht) und `18446744073709551615` (der größte 64-Bit-Wert).
+`0` und `18446744073709551615` (der größte 64-Bit-Wert).
+
+Seed `0` deckt dabei **nicht** die Abfrage auf den komplett leeren xoshiro-Zustand ab, auch wenn
+das naheliegt: Der Zustand entsteht aus SplitMix64, und das liefert ab Zustand 0 die Werte
+16294208416658607535, 7960286522194355700, 487617019471545679 und 17909611376780542444 — also nie
+vier Nullen. Dieser Zweig ist von außen unerreichbar (in `web/README.md` nachgeprüft: entfernt man
+ihn, bleibt die Testsuite grün). Seed `0` steht hier als Randfall von SplitMix64 selbst.
 
 ### `cases` — die Partien
 
@@ -113,6 +118,9 @@ Sparsamkeit wäre die Datei mehrfach so groß, denn ein Zug zur Seite ändert da
 
 Eine Zeichenkette: **oberste Reihe zuerst**, Reihen durch `/` getrennt, ein Zeichen je Zelle.
 
+Die Tabelle listet die **Zeichen der Steinsorten** — sie gelten für Brett, `piece.gems` und
+`next` gleichermaßen:
+
 | Zeichen | Stein                  |
 |---------|------------------------|
 | `.`     | leere Zelle            |
@@ -123,6 +131,12 @@ Eine Zeichenkette: **oberste Reihe zuerst**, Reihen durch `/` getrennt, ein Zeic
 | `s`     | Saphir (blau)          |
 | `a`     | Amethyst (violett)     |
 | `m`     | Magic Jewel            |
+
+**`m` kommt im Brett nie vor** — nur in `piece.gems` und `next`. Ein Magic Jewel landet nicht im
+Brett: Er räumt beim Aufsetzen die Farbe unter sich weg und verschwindet dabei selbst. Nachgezählt
+über alle 1102 Brett-Zeichenketten der Datei: kein einziges `m`. Eine Portierung sollte daraus
+nicht schließen, ein Magic-Stein dürfe im Brett stehen — der Kern hält ausdrücklich fest, dass er
+dort nie hinkommt. Beim Einlesen darf `m` trotzdem bekannt bleiben; nur erzeugen wird es niemand.
 
 Achtung beim Nachbauen: Die **Koordinaten** des Spiels beginnen unten links (`row` 0 ist die
 unterste Reihe und wächst nach oben), die **Zeichenkette** beginnt dagegen oben — so liest sie sich
@@ -174,10 +188,16 @@ Ehrlich benannt, damit die Portierung diese Punkte selbst prüft:
   je getilgtem Fluch und das anschließende Nachrutschen ohne den entfernten Fluch. Die Regeln selbst
   sind knapp — sind alle Flüche getilgt, wechselt die Phase auf `won` und es wird kein Stein mehr
   eingeworfen —, aber sie brauchen eigene Tests mit gestelltem Brett: im Swift-Kern
-  `CapsuleEngineTests` (`testRunOfFourClearsOnLockWithCurseBonus` und Nachbarn), in der Portierung
-  der gestellte Fall in `web/test/matching.test.ts`.
-- **Der Magic Jewel** kommt nur in `saeulen-b` vor (eine Räumung). Er erscheint im Schnitt bei
-  jeder vierzigsten Säule; eine Portierung sollte ihn zusätzlich gezielt prüfen.
+  `CapsuleEngineTests` (`testRunOfFourClearsOnLockWithCurseBonus`,
+  `testClearedCurseNoLongerPinsTheStoneAbove` und Nachbarn), in der Portierung der gestellte Fall
+  in `web/test/matching.test.ts`.
+- **Der Magic Jewel** kommt zweimal vor, und die beiden Fälle sind verschieden: In `saeulen-b`
+  (`i=242`) räumt er wirklich eine Farbe weg — eine Welle mit `kind: "magic"`. In `saeulen-ende`
+  (`i=20`) setzt er auf leerem Boden auf (`landed.row = 0`), findet unter sich nichts und
+  **verpufft**: Der Aufsetzer trägt `wasMagic: true`, aber `steps: []`. Dieser zweite Fall ist der
+  wichtigere Grenzfall, weil eine Portierung dort leicht eine Phantom-Welle mit null Zellen und
+  null Punkten erzeugt statt gar keiner. Zwei Aufsetzer sind trotzdem dünn — er erscheint im
+  Schnitt bei jeder vierzigsten Säule, eine Portierung sollte ihn zusätzlich gezielt prüfen.
 - **Lock Delay, Fallgeschwindigkeit und der Takt der Sense** stehen bewusst nicht hier: Sie sind
   Echtzeit-Verhalten der Darstellungsschicht, nicht des Kerns. Der Kern kennt nur den Schritt
   (`gravityTick`, `sweepTick`), nicht seine Dauer.
@@ -196,9 +216,38 @@ Modus mindestens eine kurze Partie, die wirklich bis `gameOver` läuft:
 | Steinschlag    | `saeulen-ende`        |
 | Eingemauert    | `verschuettet-schmal` |
 | Blutklumpen    | `klumpen-ende`        |
-| Erdrückt       | `fuenfling-a`         |
+| Erdrückt       | `fuenfling-ende`      |
 | Austreibung    | `kapseln-a/-b/-klein` |
 | Schnitter      | `schnitter-ende`      |
 
-Die drei `…-ende`-Fälle spielen auf einem engen 4×8-Brett, weil sich das schnell genug füllt.
+Für „Erdrückt" gab es dafür lange keinen eigenen Fall: `fuenfling-a` erreichte das Ende nur
+zufällig, weil sein blockierter Einwurf ausgerechnet auf den 30. von 30 erlaubten Steinen fiel.
+Ein Stein mehr Überlebenszeit, und die Aufzeichnung hätte wieder mitten im Fallen geendet.
+`fuenfling-ende` auf engem Brett ersetzt diesen Zufall.
+
+Die drei `…-ende`-Fälle der Farb-Modi spielen auf einem engen 4×8-Brett, weil sich das schnell
+genug füllt; `fuenfling-ende` braucht 6×12, sonst passt kein Fünfling hinein.
 `GoldenDataTests.testEveryModeReachesTheEndOfAGame` hält diese Mindestabdeckung fest.
+
+## Die beiden Level-Regeln
+
+Steinschlag, Blutklumpen, Austreibung und Schnitter steigen je 30 geräumte **Steine** eine Stufe
+(`Scoring.gemsPerLevel`), Eingemauert und Erdrückt je 10 geräumte **Reihen**
+(`TetrominoEngine.linesPerLevel`). Beide Regeln stehen in den Daten:
+
+| Regel                    | Fall mit Stufenanstieg                          |
+|--------------------------|-------------------------------------------------|
+| Steine (30 je Stufe)     | `saeulen-a/-b`, `klumpen-a/-b`, `schnitter-a/-b` |
+| Reihen (10 je Stufe)     | `verschuettet-level` (Stufe 2 → 3 bei `i=338`)  |
+
+`verschuettet-level` ist dafür eigens gebaut: Auf den übrigen Reihen-Feldern räumt der einfache
+Spieler höchstens drei Reihen, und dann bleibt die Stufe stehen. Der Fall trägt zugleich den
+einzigen Reihen-Punktestand mit einer Stufe ungleich 0 oder 1 — in `linePoints` steckt der Faktor
+`max(1, level)`, hier also 200 statt 100 Punkte je Einzelreihe und 600 statt 300 je Doppelreihe.
+Wer ihn entfernt, lässt beide Regeln ungeprüft; `GoldenDataTests.testRowModeLevelRuleIsCovered`
+schlägt dann fehl.
+
+Ebenso festgehalten ist der **Deckel der Fluch-Vorbefüllung**: `curseCount` ist
+`min(4 · Stufe, (Breite · curseRows) / 2)`. Auf den großen Kapsel-Brettern gewinnt immer der erste
+Zweig; erst `kapseln-klein` (6×10, Stufe 5) läuft in den zweiten und startet deshalb mit 18 statt
+20 Flüchen (`curseCountAtStart`). Wächter: `GoldenDataTests.testCurseCountCapIsCovered`.

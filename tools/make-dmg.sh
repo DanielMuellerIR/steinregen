@@ -175,19 +175,43 @@ image_behind_mount() {      # $1 = Mountpunkt; Ausgabe: Pfad der Image-Datei (le
     # `hdiutil info` listet je Image erst `image-path`, danach seine Geräte; in deren Zeilen steht
     # der Mountpunkt als letztes Feld. Also den zuletzt gesehenen Pfad merken und beim Treffer
     # ausgeben.
-    hdiutil info | awk -v mount="$1" '
+    #
+    # Ausgabe erst in eine Variable, dann per Here-String an awk — nicht `hdiutil info | awk`:
+    # Das `exit` beim Treffer schließt die Pipe, hdiutil stirbt an SIGPIPE, und unter `pipefail`
+    # brächte die Zuweisung den Lauf mit Status 141 zum Abbruch. Ausgerechnet im Trefferfall.
+    # Dieselbe Falle ist in tools/make-notarized.sh und weiter oben in dieser Datei dokumentiert.
+    local info
+    info="$(hdiutil info)"
+    awk -v mount="$1" '
         /^image-path[[:space:]]*:/ {
             path = $0
             sub(/^image-path[[:space:]]*:[[:space:]]*/, "", path)
         }
         $NF == mount { print path; exit }
-    '
+    ' <<<"$info"
 }
-if [ -d "$MOUNT_DIR" ]; then
+# Ist der Pfad überhaupt ein Mountpunkt? Ein gewöhnliches leeres Restverzeichnis unter /Volumes
+# ist keiner und darf den Lauf nicht aufhalten — `[ -d … ]` allein unterschied das nicht.
+# `mount` liefert je Volume eine Zeile der Form „/dev/disk4s1 on /Volumes/Name (hfs, …)". Auch
+# hier die Ausgabe erst in eine Variable, aus demselben Grund wie bei `hdiutil info` weiter unten.
+MOUNT_TABLE="$(mount)"
+if [ -d "$MOUNT_DIR" ] && grep -qF " on $MOUNT_DIR (" <<<"$MOUNT_TABLE"; then
     MOUNTED_IMAGE="$(image_behind_mount "$MOUNT_DIR")"
+    # Gegen ALLE Namen prüfen, die dieses Skript erzeugen kann — nicht nur gegen den des
+    # aktuellen Laufs. Seit den getrennten Testnamen heißt das RW-Image je nach Modus
+    # Steinregen-<version>-rw.dmg oder Steinregen-<version>-test-rw.dmg, und nach einem
+    # VERSION-Bump ohnehin anders. Sonst meldet der eigene Rest sich als „fremdes Image".
+    #
     # `-ef` vergleicht die Datei selbst (Gerät + Inode), nicht ihre Schreibweise — ein Symlink im
     # Pfad führt so nicht zu einem falschen Nein.
-    if [ -n "$MOUNTED_IMAGE" ] && [ "$MOUNTED_IMAGE" -ef "$ROOT/$RW_DMG" ]; then
+    EIGENER_REST=0
+    if [ -n "$MOUNTED_IMAGE" ]; then
+        for kandidat in "$ROOT"/dist/Steinregen-*-rw.dmg; do
+            [ -e "$kandidat" ] || continue
+            if [ "$MOUNTED_IMAGE" -ef "$kandidat" ]; then EIGENER_REST=1; break; fi
+        done
+    fi
+    if [ "$EIGENER_REST" = "1" ]; then
         echo "    (Rest eines früheren Laufs wird ausgehängt: $MOUNT_DIR)"
         hdiutil detach "$MOUNT_DIR" -force >/dev/null
     else
@@ -209,6 +233,13 @@ hdiutil create -srcfolder "$APP" -volname "$VOLNAME" -fs HFS+ \
 # zwischendrin abbricht. Ohne das bliebe nach einem Fehlschlag ein gemountetes Volume zurück,
 # und genau daraus entstand die Versuchung, beim nächsten Lauf blind zu detachen.
 ATTACH_OUT="$(hdiutil attach "$ROOT/$RW_DMG" -mountpoint "$MOUNT_DIR" -nobrowse -noverify -noautoopen)"
+# Der Trap steht direkt hinter dem `attach` und noch VOR dem Auswerten der Ausgabe: Ab hier ist
+# ein Volume gemountet, und jeder Ausstieg muss es wieder loswerden. Stand er erst hinter der
+# Geräte-Prüfung, hinterließ genau deren Fehlerzweig ein gemountetes Volume — also den Zustand,
+# den der Trap verhindern soll, und der zusammen mit dem Mount-Schutz oben den nächsten Lauf
+# blockiert. Ausgehängt wird zunächst über den Mountpunkt; sobald das Gerät bekannt ist, über
+# dieses (das löst auch ein Image, dessen Volume schon verschwunden ist).
+trap 'hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true' EXIT
 printf '%s\n' "$ATTACH_OUT"
 DEVICE="$(awk 'NR == 1 { print $1; exit }' <<<"$ATTACH_OUT")"   # z. B. /dev/disk4
 if [ -z "$DEVICE" ]; then

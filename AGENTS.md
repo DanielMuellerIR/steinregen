@@ -189,7 +189,8 @@ Schlägt dieser Test fehl, hat sich das Spielverhalten geändert. Dann **erst pr
 war**, und den Unterschied im Diff durchsehen — die Datei nie stillschweigend neu erzeugen, nur um
 den Test grün zu bekommen. Eine Programmversion steht bewusst nicht in der Datei, damit ein
 Versionssprung allein sie nicht anfasst. Die bekannten Lücken (kein Kapsel-Sieg, Magic Jewel nur
-einmal) stehen in `golden/README.md` und gehören dort gepflegt, nicht verschwiegen.
+zweimal — davon einmal verpuffend) stehen in `golden/README.md` und gehören dort gepflegt, nicht
+verschwiegen.
 
 ## Web-Portierung
 

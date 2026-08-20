@@ -179,7 +179,12 @@ struct GoldenSnapshot: Encodable, Equatable {
     /// Das Brett — nur vorhanden, wenn es sich gegenueber dem vorigen Schritt GEAENDERT hat.
     /// Fehlt das Feld, gilt der vorige Stand unveraendert weiter.
     var board: String? = nil
-    let piece: GoldenPiece?
+    /// Der aktive Stein. NICHT optional: Alle sechs Modi haben in jedem aufgezeichneten Zustand
+    /// einen — auch im letzten, in dem der Einwurf bereits blockiert ist. Als Optional getarnt
+    /// taeuschte das Feld einen Grenzfall vor, den eine Portierung nachbauen muesste, obwohl er
+    /// nicht vorkommt. Kaeme spaeter ein Modus ohne fallenden Stein dazu (Cursor/Band), gehoert
+    /// die Optionalitaet zurueck — dann aendern sich diese Daten ohnehin.
+    let piece: GoldenPiece
     let score: Int
     let level: Int
     let phase: String
@@ -270,7 +275,7 @@ protocol GoldenEngine {
     mutating func goldenSweep() -> GoldenStep?
 
     var goldenBoard: Board { get }
-    var goldenPiece: GoldenPiece? { get }
+    var goldenPiece: GoldenPiece { get }
     var goldenScore: Int { get }
     var goldenLevel: Int { get }
     var goldenPhase: Phase { get }
@@ -336,7 +341,7 @@ extension Engine: GoldenEngine {
     }
 
     var goldenBoard: Board { board }
-    var goldenPiece: GoldenPiece? { current.golden }
+    var goldenPiece: GoldenPiece { current.golden }
     var goldenScore: Int { score }
     var goldenLevel: Int { level }
     var goldenPhase: Phase { phase }
@@ -373,7 +378,7 @@ extension TetrominoEngine: GoldenEngine {
     }
 
     var goldenBoard: Board { board }
-    var goldenPiece: GoldenPiece? { current.golden }
+    var goldenPiece: GoldenPiece { current.golden }
     var goldenScore: Int { score }
     var goldenLevel: Int { level }
     var goldenPhase: Phase { phase }
@@ -408,7 +413,7 @@ extension PairEngine: GoldenEngine {
     }
 
     var goldenBoard: Board { board }
-    var goldenPiece: GoldenPiece? { current.golden(kind: "pair") }
+    var goldenPiece: GoldenPiece { current.golden(kind: "pair") }
     var goldenScore: Int { score }
     var goldenLevel: Int { level }
     var goldenPhase: Phase { phase }
@@ -434,7 +439,7 @@ extension CapsuleEngine: GoldenEngine {
     }
 
     var goldenBoard: Board { board }
-    var goldenPiece: GoldenPiece? { current.golden(kind: "pair") }
+    var goldenPiece: GoldenPiece { current.golden(kind: "pair") }
     var goldenScore: Int { score }
     var goldenLevel: Int { level }
     var goldenPhase: Phase { phase }
@@ -471,7 +476,7 @@ extension SquareEngine: GoldenEngine {
     mutating func goldenSweep() -> GoldenStep? { sweepTick().map(encode) }
 
     var goldenBoard: Board { board }
-    var goldenPiece: GoldenPiece? { current.golden }
+    var goldenPiece: GoldenPiece { current.golden }
     var goldenScore: Int { score }
     var goldenLevel: Int { level }
     var goldenPhase: Phase { phase }
@@ -495,8 +500,10 @@ enum PlayStrategy {
     /// Zielt auf die Spalte mit dem niedrigsten Stapel. Haelt das Brett flach, wodurch in den
     /// Reihen-Modi Reihen voll werden und in den Farb-Modi gleiche Steine zusammenfinden.
     case lowest
-    /// Zielt auf die Spalte, in der noch ein Fluch liegt („Austreibung"): nur so kommt die
-    /// Sieg-Bedingung ueberhaupt in Reichweite. Ohne verbliebene Flueche wie `lowest`.
+    /// Zielt auf die Spalte, in der noch ein Fluch liegt („Austreibung"). Das haelt das Spiel
+    /// dort in Gang, wo es hingehoert — den Sieg erreicht der einfache Spieler damit aber NICHT:
+    /// In keiner aufgezeichneten Kapsel-Partie wird ein Fluch getilgt (siehe `specs`).
+    /// Ohne verbliebene Flueche wie `lowest`.
     case curses
 }
 
@@ -567,7 +574,7 @@ func relativeCells(_ piece: GoldenPiece) -> [(dc: Int, dr: Int, gem: String)] {
 /// aufgezeichneten Kapsel-Partien kein einziges Mal. Wer gleiche Farben aneinanderlegt,
 /// erzeugt Treffer, haelt das Brett dadurch niedrig und spielt laenger.
 func landingScore(_ board: Board, _ piece: GoldenPiece, col: Int,
-                  curses: Set<Cell> = []) -> (top: Int, matches: Int, curseMatches: Int)? {
+                  curses: Set<Cell>) -> (top: Int, matches: Int, curseMatches: Int)? {
     let cells = relativeCells(piece)
     var landRow = Int.min
     for (dc, dr, _) in cells {
@@ -596,6 +603,57 @@ func landingScore(_ board: Board, _ piece: GoldenPiece, col: Int,
     return (top, matches, curseMatches)
 }
 
+/// Der aufgezeichnete „Spieler" — bewusst als eigener Typ neben der Aufzeichnung.
+///
+/// Warum getrennt? `record` vereinte frueher drei Aufgaben auf rund 170 Zeilen: die Aufzeichnung,
+/// den Feld-Diff (welche Felder haben sich geaendert?) und diese Zugwahl. Die Zugwahl ist aber
+/// ausdruecklich KEIN Teil des Spiels (siehe `golden/README.md`) — nur ein Mittel, damit die
+/// Partie lange genug laeuft. Getrennt laesst sie sich lesen und aendern, ohne die Aufzeichnung
+/// anzufassen, und die Vergleichsdaten bleiben dabei nachweislich unveraendert.
+struct ScriptedPlayer {
+    let strategy: PlayStrategy
+
+    /// Waehlt die Zielspalte fuer den naechsten Stein.
+    ///
+    /// `script` ist der zweite, vom Spiel unabhaengige Generator — er entscheidet nur zwischen
+    /// gleich guten Spalten und wird dabei weitergedreht. Deshalb `inout`: Die gezogene Zahl
+    /// darf nicht zweimal dieselbe sein.
+    func targetColumn(board: Board, piece: GoldenPiece, curses: [[Int]]?,
+                      script: inout Xoshiro256StarStar) -> Int {
+        // „Austreibung": Solange Flueche liegen, eine Fluch-Spalte anfahren — dort passiert das
+        // Modus-Eigene. Unter den Fluch-Spalten die mit dem niedrigsten Stapel, sonst schuettet
+        // der Spieler immer dieselbe Spalte zu und verliert frueh. Ist auch die niedrigste davon
+        // schon gefaehrlich hoch, geht Ueberleben vor.
+        if strategy == .curses, let curses, !curses.isEmpty {
+            let cols = Set(curses.map { $0[0] }).sorted()   // sortiert = reproduzierbar
+            if let best = cols.min(by: { columnHeight(board, $0) < columnHeight(board, $1) }),
+               columnHeight(board, best) * 3 < board.height * 2 {
+                return best
+            }
+        }
+        // Sonst: jede Spalte bewerten und die beste nehmen. Gleiche Farben nebeneinander
+        // wiegen schwerer als eine flache Landung — nur so entstehen ueberhaupt Treffer;
+        // die Landehoehe entscheidet dann unter den farblich gleich guten Plaetzen.
+        // Unter mehreren gleich guten Spalten waehlt der Skript-Generator, sonst landete
+        // alles immer ganz links.
+        //
+        // Die Fluch-Zellen als Menge, damit die Bewertung sie erkennt (leer in allen Modi
+        // ausser „Austreibung").
+        let curseCells = Set((curses ?? []).map { Cell(col: $0[0], row: $0[1]) })
+        var bestValue = Int.min
+        var candidates: [Int] = []
+        for col in 0..<board.width {
+            guard let (top, matches, curseMatches) =
+                    landingScore(board, piece, col: col, curses: curseCells) else { continue }
+            let value = curseMatches * 12 + matches * 4 - top
+            if value > bestValue { bestValue = value; candidates = [col] }
+            else if value == bestValue { candidates.append(col) }
+        }
+        guard !candidates.isEmpty else { return board.width / 2 }
+        return candidates[Int(script.next() % UInt64(candidates.count))]
+    }
+}
+
 public enum GoldenData {
 
     /// Alle aufgezeichneten Partien. Zusammen decken sie jeden Modus, beide Level-Regeln
@@ -605,29 +663,39 @@ public enum GoldenData {
     /// aufgezeichneten Partien keinen einzigen Fluch. Diese Luecke steht ausdruecklich in
     /// `golden/README.md` und braucht einen eigenen Test mit gestelltem Brett — sie hier als
     /// abgedeckt zu bezeichnen, waere eine falsche Sicherheit.
+    ///
+    /// „Beide Level-Regeln" ist woertlich gemeint und war frueher zu grosszuegig formuliert:
+    /// Die Reihen-Regel (`TetrominoEngine.linesPerLevel`, Stufe je 10 geraeumte Reihen) steigt
+    /// nur in `verschuettet-level` wirklich an — die uebrigen Reihen-Faelle raeumen dafuer zu
+    /// wenige Reihen. Dieser eine Fall traegt also die Reihen-Level-Regel und zugleich den
+    /// Faktor `max(1, level)` aus `linePoints`; faellt er weg, sind beide ungeprueft.
     static let specs: [CaseSpec] = [
         CaseSpec(id: "saeulen-a",      mode: "saeulen",      seed: 1),
         CaseSpec(id: "saeulen-b",      mode: "saeulen",      seed: 20260806, startLevel: 3),
         CaseSpec(id: "verschuettet-a", mode: "verschuettet", seed: 1),
         CaseSpec(id: "verschuettet-b", mode: "verschuettet", seed: 20260806, startLevel: 2),
-        // Schmales Brett: Auf voller Breite raeumt der einfache Spieler keine einzige Reihe,
-        // und genau die Reihen-Regeln (volle Reihe finden, Block nachrutschen lassen, Punkte
-        // nach Reihenzahl) waeren dann in den Vergleichsdaten gar nicht enthalten. Freie
-        // Brettmaße sind ein regulaerer Spielzustand — die App bietet sie als Einstellung an.
+        // Schmales Brett: Auf voller Breite raeumt der einfache Spieler kaum Reihen (`-a` und
+        // `fuenfling-a` je genau eine), und MEHRFACHREIHEN kommen dort ueberhaupt nicht vor.
+        // Genau die braucht es aber, um die Punktetabelle nach Reihenzahl zu pruefen: Dieser
+        // Fall ist der einzige mit einer Doppelreihe (300 Punkte). Freie Brettmaße sind ein
+        // regulaerer Spielzustand — die App bietet sie als Einstellung an.
         CaseSpec(id: "verschuettet-schmal", mode: "verschuettet", seed: 7,
                  width: 5, height: 10, pieces: 40),
         CaseSpec(id: "klumpen-a",      mode: "klumpen",      seed: 1),
         CaseSpec(id: "klumpen-b",      mode: "klumpen",      seed: 20260806),
         CaseSpec(id: "fuenfling-a",    mode: "fuenfling",    seed: 1),
-        // Die Kapsel-Faelle zielen auf die Flueche: nur so wird die Sieg-Bedingung erreicht.
+        // Die Kapsel-Faelle zielen auf die Fluch-Spalten — dort passiert das Modus-Eigene.
+        // Den SIEG erreichen sie nicht: kein einziger Fluch wird getilgt (siehe oben).
         CaseSpec(id: "kapseln-a",      mode: "kapseln",      seed: 1, startLevel: 1,
                  pieces: 60, strategy: .curses),
         CaseSpec(id: "kapseln-b",      mode: "kapseln",      seed: 20260806, startLevel: 3,
                  pieces: 60, strategy: .curses),
-        // Kleines Brett: prueft die Fluch-Vorbefuellung an ihrer unteren Grenze — wie viele
-        // Flueche auf ein enges Brett passen und in welchen Reihen sie liegen duerfen,
-        // rechnen `curseCount` und `curseRows` aus den Brettmassen aus.
-        CaseSpec(id: "kapseln-klein",  mode: "kapseln",      seed: 3, startLevel: 1,
+        // Kleines Brett mit hoher Stufe: prueft den DECKEL der Fluch-Vorbefuellung. `curseCount`
+        // ist `min(4 * level, (Breite * curseRows) / 2)`; auf 6×10 sind das Reihen 0…5 und damit
+        // hoechstens 18 Flueche. Stufe 5 wuerde 20 verlangen — der zweite Zweig bindet also, und
+        // `curseCountAtStart` steht auf 18. Bei Stufe 1 (frueherer Stand) gewann immer der erste
+        // Zweig mit 4, genau wie auf dem grossen Brett: Der Deckel war dann ungeprueft.
+        CaseSpec(id: "kapseln-klein",  mode: "kapseln",      seed: 3, startLevel: 5,
                  width: 6, height: 10, pieces: 40, strategy: .curses),
         CaseSpec(id: "schnitter-a",    mode: "schnitter",    seed: 1),
         CaseSpec(id: "schnitter-b",    mode: "schnitter",    seed: 20260806),
@@ -643,6 +711,21 @@ public enum GoldenData {
                  width: 4, height: 8, pieces: 40),
         CaseSpec(id: "schnitter-ende", mode: "schnitter",    seed: 11,
                  width: 4, height: 8, pieces: 40),
+        // „Erdrueckt" braucht ein eigenes Spielende. Vorher trug `fuenfling-a` es allein — und
+        // zwar zufaellig: Dort faellt der blockierte Einwurf auf den 30. von 30 erlaubten
+        // Steinen. Ein Stein mehr Ueberlebenszeit, und die Aufzeichnung endete wieder mitten im
+        // Fallen. Dieser Fall auf engem Brett erreicht das Ende nach 11 Steinen und raeumt
+        // nebenbei drei Reihen.
+        CaseSpec(id: "fuenfling-ende", mode: "fuenfling",    seed: 17,
+                 width: 6, height: 12, pieces: 40),
+        // Der einzige Fall, in dem die REIHEN-Level-Regel wirklich zuschlaegt: Nach 10 geraeumten
+        // Reihen steigt die Stufe (`linesPerLevel = 10`), hier von 2 auf 3. Zugleich der einzige
+        // Reihen-Fall mit einer Stufe ungleich 0 oder 1 — damit steht auch der Faktor
+        // `max(1, level)` aus `linePoints` in den Daten (200 statt 100 Punkte je Einzelreihe).
+        // Das schmale, hohe Brett und die grosse Steinzahl sind noetig, weil der einfache
+        // Spieler auf voller Breite nie so weit kommt.
+        CaseSpec(id: "verschuettet-level", mode: "verschuettet", seed: 106, startLevel: 2,
+                 width: 5, height: 20, pieces: 300),
     ]
 
     /// Erzeugt die Engine eines Falls. Fehlen Breite/Hoehe, gilt das Standardmass des Modus.
@@ -766,41 +849,7 @@ public enum GoldenData {
             return ok ?? true
         }
 
-        /// Waehlt die Zielspalte fuer den naechsten Stein.
-        func targetColumn() -> Int {
-            let board = engine.goldenBoard
-            // „Austreibung": Solange Flueche liegen, eine Fluch-Spalte anfahren — dort muss
-            // geraeumt werden, um zu gewinnen. Unter den Fluch-Spalten die mit dem niedrigsten
-            // Stapel, sonst schuettet der Spieler immer dieselbe Spalte zu und verliert frueh.
-            // Ist auch die niedrigste davon schon gefaehrlich hoch, geht Ueberleben vor.
-            if spec.strategy == .curses, let curses = engine.goldenCurses, !curses.isEmpty {
-                let cols = Set(curses.map { $0[0] }).sorted()   // sortiert = reproduzierbar
-                if let best = cols.min(by: { columnHeight(board, $0) < columnHeight(board, $1) }),
-                   columnHeight(board, best) * 3 < board.height * 2 {
-                    return best
-                }
-            }
-            // Sonst: jede Spalte bewerten und die beste nehmen. Gleiche Farben nebeneinander
-            // wiegen schwerer als eine flache Landung — nur so entstehen ueberhaupt Treffer;
-            // die Landehoehe entscheidet dann unter den farblich gleich guten Plaetzen.
-            // Unter mehreren gleich guten Spalten waehlt der Skript-Generator, sonst landete
-            // alles immer ganz links.
-            guard let piece = engine.goldenPiece else { return board.width / 2 }
-            // Die Fluch-Zellen als Menge, damit die Bewertung sie erkennt (leer in allen
-            // Modi ausser „Austreibung").
-            let curseCells = Set((engine.goldenCurses ?? []).map { Cell(col: $0[0], row: $0[1]) })
-            var bestValue = Int.min
-            var candidates: [Int] = []
-            for col in 0..<board.width {
-                guard let (top, matches, curseMatches) =
-                        landingScore(board, piece, col: col, curses: curseCells) else { continue }
-                let value = curseMatches * 12 + matches * 4 - top
-                if value > bestValue { bestValue = value; candidates = [col] }
-                else if value == bestValue { candidates.append(col) }
-            }
-            guard !candidates.isEmpty else { return board.width / 2 }
-            return candidates[Int(script.next() % UInt64(candidates.count))]
-        }
+        let player = ScriptedPlayer(strategy: spec.strategy)
 
         // Im „Schnitter" muss die Sense mitlaufen, sonst wird nie geerntet. Ein Sensen-Schritt
         // je Schwerkraft-Schritt ist grob das Verhaeltnis, das die Szene in Echtzeit erzeugt.
@@ -819,10 +868,14 @@ public enum GoldenData {
 
             // Dann die Zielspalte anfahren. Die Schleife endet, sobald das Ziel erreicht ist
             // ODER ein Zug nicht mehr greift (Wand/Stein) — sie kann also nicht haengen bleiben.
-            let target = targetColumn()
+            let target = player.targetColumn(board: engine.goldenBoard,
+                                             piece: engine.goldenPiece,
+                                             curses: engine.goldenCurses,
+                                             script: &script)
             var sideways = 0
             while sideways < engine.goldenBoard.width {
-                guard let piece = engine.goldenPiece, piece.col != target else { break }
+                let piece = engine.goldenPiece
+                guard piece.col != target else { break }
                 let moved = run(piece.col < target ? .right : .left)
                 if sweeps { run(.sweep) }
                 if !moved { break }
@@ -861,8 +914,11 @@ public enum GoldenData {
 
     /// Die Rohsequenzen beider Zufallsgeneratoren.
     static func prngVectors() -> [GoldenPRNG] {
-        // 0 ist bewusst dabei: Der xoshiro-Zustand darf nie komplett null sein, und genau
-        // diese Sonderbehandlung uebersieht eine Portierung leicht.
+        // 0 ist bewusst dabei — aber NICHT, weil es die Null-Zustands-Abfrage im
+        // xoshiro-Konstruktor ausloeste: SplitMix64 liefert ab Zustand 0 die Werte
+        // 16294208416658607535, 7960286522194355700, … und damit nie vier Nullen. Dieser Zweig
+        // ist von aussen unerreichbar (nachgeprueft in `web/README.md`). Seed 0 steht hier als
+        // Randfall von SplitMix64 selbst; der groesste 64-Bit-Wert deckt das andere Ende ab.
         let seeds: [UInt64] = [0, 1, 42, 20260806, 18446744073709551615]
         var out: [GoldenPRNG] = []
         for seed in seeds {
@@ -876,16 +932,24 @@ public enum GoldenData {
         return out
     }
 
-    /// Kodiert einen Wert als JSON in EINER Zeile.
+    /// Der Kodierer fuer die Zeilen — EINMAL konfiguriert, nicht je Zeile neu.
     ///
     /// `sortedKeys` ist hier keine Kosmetik, sondern Pflicht: Ohne feste Schluesselreihenfolge
     /// saehe dieselbe Ausgabe bei jedem Lauf anders aus, und ein Vergleich Zeile fuer Zeile
     /// waere unmoeglich. `withoutEscapingSlashes` haelt die Brett-Zeichenketten lesbar
     /// (`..r/.tt` statt `..r\/.tt`).
-    static func line(_ value: some Encodable) throws -> String {
+    ///
+    /// Genau weil diese zwei Einstellungen ueber die Vergleichbarkeit entscheiden, stehen sie an
+    /// einer Stelle und nicht in einer Schleife, die pro Lauf mehrere tausend Mal durchlaeuft.
+    private static let lineEncoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        guard let text = String(data: try encoder.encode(value), encoding: .utf8) else {
+        return encoder
+    }()
+
+    /// Kodiert einen Wert als JSON in EINER Zeile.
+    static func line(_ value: some Encodable) throws -> String {
+        guard let text = String(data: try lineEncoder.encode(value), encoding: .utf8) else {
             throw GoldenError.encoding
         }
         return text
@@ -925,7 +989,7 @@ public enum GoldenData {
                                            snapshots: [],
                                            curseCountAtStart: recorded.curseCountAtStart))
             let rows = try recorded.snapshots.map { "        " + (try line($0)) }
-            guard head.contains("\"snapshots\":[]") else { throw GoldenError.encoding }
+            guard head.contains("\"snapshots\":[]") else { throw GoldenError.placeholderMissing }
             head = head.replacingOccurrences(
                 of: "\"snapshots\":[]",
                 with: "\"snapshots\":[\n" + rows.joined(separator: ",\n") + "\n      ]")
@@ -944,10 +1008,17 @@ public enum GoldenData {
 /// Anleitung direkt nach stderr und liefert Exit-Code 1.
 enum GoldenError: Error, CustomStringConvertible {
     case encoding
+    /// Der Platzhalter `"snapshots":[]`, in den die zeilenweisen Bloecke eingesetzt werden,
+    /// stand nicht im kodierten Fall. Eigener Fall, weil die Ursache eine ganz andere ist als
+    /// bei `.encoding`: Da hat jemand das Encodable-Modell umbenannt.
+    case placeholderMissing
 
     var description: String {
         switch self {
-        case .encoding: return "JSON liess sich nicht als UTF-8 lesen"
+        case .encoding:
+            return "JSON liess sich nicht als UTF-8 lesen"
+        case .placeholderMissing:
+            return "Platzhalter \"snapshots\":[] fehlt — wurde das Feld in GoldenCase umbenannt?"
         }
     }
 }
@@ -973,6 +1044,26 @@ Exit-Code 0 = in Ordnung, 1 = Abweichung oder Fehler.
 public func goldenMain(_ arguments: [String] = Array(CommandLine.arguments.dropFirst())) -> Int32 {
     let args = arguments
 
+    /// Das Dateiargument von `--out`/`--check` herausziehen — oder `nil`, wenn es fehlt, zu viele
+    /// sind oder es gar keine Datei ist.
+    ///
+    /// Die Pruefung auf fuehrendes `--` ist der eigentliche Punkt: `steinregen-golden --out --check`
+    /// hat frueher eine 1,4-MB-Datei namens `--check` angelegt und Exit-Code 0 gemeldet. Der
+    /// verlangte Vergleich fand nie statt — genau die Fehlerklasse, gegen die `--list` und
+    /// `--help` bereits abgesichert waren, nur im einzigen SCHREIBENDEN Zweig.
+    func fileArgument(_ option: String) -> String? {
+        guard args.count == 2 else {
+            FileHandle.standardError.write(Data("\(option) braucht genau eine Datei\n".utf8))
+            return nil
+        }
+        guard !args[1].hasPrefix("--") else {
+            FileHandle.standardError.write(
+                Data("\(option): »\(args[1])« ist ein Dateiname, keine Option\n".utf8))
+            return nil
+        }
+        return args[1]
+    }
+
     do {
         switch args.first {
         case nil:
@@ -992,23 +1083,17 @@ public func goldenMain(_ arguments: [String] = Array(CommandLine.arguments.dropF
             }
 
         case "--out":
-            guard args.count == 2 else {
-                FileHandle.standardError.write(Data("--out braucht genau eine Datei\n".utf8))
-                return 1
-            }
-            try GoldenData.json().write(toFile: args[1], atomically: true, encoding: .utf8)
-            print("geschrieben: \(args[1])")
+            guard let path = fileArgument("--out") else { return 1 }
+            try GoldenData.json().write(toFile: path, atomically: true, encoding: .utf8)
+            print("geschrieben: \(path)")
 
         case "--check":
-            guard args.count == 2 else {
-                FileHandle.standardError.write(Data("--check braucht genau eine Datei\n".utf8))
-                return 1
-            }
-            let expected = try String(contentsOfFile: args[1], encoding: .utf8)
+            guard let path = fileArgument("--check") else { return 1 }
+            let expected = try String(contentsOfFile: path, encoding: .utf8)
             let actual = try GoldenData.json()
             if expected != actual {
                 FileHandle.standardError.write(Data("""
-                Vergleichsdaten weichen ab: \(args[1])
+                Vergleichsdaten weichen ab: \(path)
                 Der Spielkern hat sich geaendert. Wenn das gewollt ist, neu erzeugen:
                   bash tools/make-golden.sh
                 und den Unterschied im Diff PRUEFEN, bevor er eingecheckt wird.
@@ -1016,7 +1101,7 @@ public func goldenMain(_ arguments: [String] = Array(CommandLine.arguments.dropF
                 """.utf8))
                 return 1
             }
-            print("Vergleichsdaten stimmen: \(args[1])")
+            print("Vergleichsdaten stimmen: \(path)")
 
         case "--help", "-h":
             guard args.count == 1 else {

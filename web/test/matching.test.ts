@@ -262,8 +262,12 @@ describe("Treffer-Regeln im Einzelnen", () => {
 
   it("„Austreibung“: ein getilgter Fluch bringt Bonus und nagelt danach nichts mehr fest", () => {
     // Gestelltes Brett, weil die Vergleichsdaten diesen Fall nicht enthalten: In allen
-    // aufgezeichneten Kapsel-Partien wird kein einziger Fluch geräumt. Der Aufbau entspricht dem
-    // Swift-Test `CapsuleEngineTests.testRunOfFourClearsOnLockWithCurseBonus`:
+    // aufgezeichneten Kapsel-Partien wird kein einziger Fluch geräumt. Angelehnt an den
+    // Swift-Test `CapsuleEngineTests.testRunOfFourClearsOnLockWithCurseBonus`, aber mit dem
+    // losen Stein bewusst in der FLUCH-Spalte: Dort steht bei ihm nichts, deshalb fällt sein
+    // Stein mit und ohne die Reihenfolge „Bonus vor dem Nachrutschen" gleich weit — die
+    // Eigenschaft prüft er also gar nicht. Der Swift-Kern hat dafür inzwischen einen eigenen
+    // Test (`testClearedCurseNoLongerPinsTheStoneAbove`), dieser hier ist sein Gegenstück.
     //   Reihe 0: vier Rubine; der linke (0,0) ist der Fluch, den der Vierer-Lauf tilgt.
     //   (0,2):   ein loser Topas. Er muss nach dem Räumen bis auf den Boden durchfallen —
     //            bliebe der getilgte Fluch festgenagelt, käme er nur bis (0,1).

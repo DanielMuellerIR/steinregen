@@ -124,6 +124,32 @@ final class CapsuleEngineTests: XCTestCase {
         XCTAssertEqual(e.board.filledCount, 1)
     }
 
+    func testClearedCurseNoLongerPinsTheStoneAbove() {
+        // Ein getilgter Fluch haelt nichts mehr fest. Das prueft der Test darueber NICHT: Dort
+        // liegt ueber der Fluch-Zelle nichts, also faellt auch nichts anders, egal ob der Bonus
+        // vor oder nach dem Nachrutschen verrechnet wird. Hier liegt deshalb ein loser Topas
+        // ueber dem Fluch — er muss nach dem Raeumen bis auf den Boden durchfallen. Bliebe die
+        // getilgte Zelle festgenagelt, kaeme er nur bis Reihe 1.
+        //
+        // In den Vergleichsdaten kommt der Fall nicht vor (kein aufgezeichnetes Kapsel-Spiel
+        // tilgt einen Fluch); das Gegenstueck der Portierung steht in web/test/matching.test.ts.
+        var b = emptyBoard()
+        b[0, 0] = .ruby; b[1, 0] = .ruby; b[2, 0] = .ruby
+        b[0, 2] = .topaz                                   // loser Stein UEBER dem Fluch
+        let curse = Cell(col: 0, row: 0)
+        var e = CapsuleEngine(board: b, curses: [curse],
+                              current: PairPiece(gems: [.ruby, .ruby], col: 3, row: 0),
+                              next: [.topaz, .topaz])
+
+        guard case let .locked(result) = e.gravityTick() else {
+            return XCTFail("Kapsel haette aufsetzen muessen (steht am Boden)")
+        }
+        XCTAssertEqual(result.steps.count, 1, "genau eine Raeum-Welle")
+        XCTAssertTrue(e.curses.isEmpty, "der Fluch im Lauf ist getilgt")
+        XCTAssertEqual(e.board[0, 0], .topaz, "der Topas faellt bis auf den Boden durch")
+        XCTAssertNil(e.board[0, 1], "er bleibt NICHT auf der getilgten Fluch-Zelle liegen")
+    }
+
     func testVictoryWhenLastCurseCleared() {
         // Nur EIN Fluch im Brett; sein Lauf wird vervollstaendigt → Phase .won, kein Einwurf mehr.
         var b = emptyBoard()

@@ -128,6 +128,10 @@ bash tools/make-app.sh            # build only, stays in dist/
 ./release.sh --no-notarize        # unsigned — quick local layout test
 ```
 
+Both test modes write to `dist/Steinregen-<version>-test.dmg`, never to the release name — so a
+test image can never be mistaken for a releasable one. `--publish` rules both modes out and
+therefore never produces the test name.
+
 `install.sh` and `release.sh` both notarize the **app itself** and staple its ticket before
 anything else happens. That matters: an app that only travels inside a notarized disk image loses
 its guarantee the moment someone drags it out. `release.sh` then notarizes and staples the disk

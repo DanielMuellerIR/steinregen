@@ -36,6 +36,18 @@ jobs:
         run: bash tools/check-release-readiness.sh
       - name: Bauen + Tests
         run: swift test
+      # Die TypeScript-Portierung in web/ lief bisher nirgends automatisch, obwohl AGENTS.md sie
+      # in der Testmatrix führt. Node 23.6+ ist Pflicht: Es führt die .ts-Dateien direkt aus,
+      # deshalb gibt es dort kein Build-Werkzeug.
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: '24'
+      - name: Web-Portierung — Tests + Typprüfung
+        working-directory: web
+        run: |
+          npm ci
+          npm test
+          npm run typecheck
       - name: xcodegen bereitstellen
         run: |
           if ! command -v xcodegen >/dev/null; then

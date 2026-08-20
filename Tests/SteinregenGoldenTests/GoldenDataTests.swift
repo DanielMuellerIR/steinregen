@@ -13,6 +13,13 @@ import SteinregenCore
 
 final class GoldenDataTests: XCTestCase {
 
+    /// Die sechs Modus-Kennungen — an EINER Stelle. Stand die Menge doppelt im Test, wurde bei
+    /// einem siebten Modus erfahrungsgemaess nur die Stelle nachgezogen, die zuerst rot wird;
+    /// die andere prueft dann still eine veraltete Erwartung.
+    private static let allModes: Set<String> = [
+        "saeulen", "verschuettet", "klumpen", "fuenfling", "kapseln", "schnitter",
+    ]
+
     /// Pfad zur eingecheckten Datei — aus dem Ort DIESER Quelldatei abgeleitet, damit der Test
     /// unabhaengig vom Arbeitsverzeichnis laeuft (Tests/SteinregenGoldenTests/… → zwei Ebenen hoch).
     private var goldenPath: String {
@@ -53,7 +60,7 @@ final class GoldenDataTests: XCTestCase {
     /// Die Datei nuetzt nur, wenn sie wirklich alle sechs Modi abdeckt.
     func testEveryModeIsCovered() {
         let modes = Set(GoldenData.specs.map(\.mode))
-        XCTAssertEqual(modes, ["saeulen", "verschuettet", "klumpen", "fuenfling", "kapseln", "schnitter"])
+        XCTAssertEqual(modes, Self.allModes)
     }
 
     /// Zweimal erzeugen muss dasselbe ergeben. Faengt genau die Fehlerart, gegen die der Kern
@@ -115,14 +122,48 @@ final class GoldenDataTests: XCTestCase {
     func testEveryModeReachesTheEndOfAGame() {
         var reached: Set<String> = []
         for spec in GoldenData.specs {
+            // `continue` statt `return`: Sonst braeche schon der erste leere Fall die ganze
+            // Testfunktion ab — die uebrigen Faelle blieben ungeprueft und der Vergleich unten
+            // liefe nie. Der Bericht zeigte dann nur das erste Symptom statt der Lage.
             guard let last = GoldenData.record(spec).snapshots.last else {
-                return XCTFail("\(spec.id): keine Zustaende aufgezeichnet")
+                XCTFail("\(spec.id): keine Zustaende aufgezeichnet")
+                continue
             }
             if last.phase == "gameOver" || last.phase == "won" { reached.insert(spec.mode) }
         }
-        XCTAssertEqual(reached,
-                       ["saeulen", "verschuettet", "klumpen", "fuenfling", "kapseln", "schnitter"],
+        XCTAssertEqual(reached, Self.allModes,
                        "diese Modi enden in keinem Fall mit einer Endphase")
+    }
+
+    /// Die Reihen-Level-Regel (`TetrominoEngine.linesPerLevel`, Stufe je 10 geraeumte Reihen)
+    /// muss in den Daten wirklich zuschlagen. Frueher behauptete der Kommentar an `specs` das,
+    /// obwohl kein einziger Reihen-Fall die Stufe aenderte: Der hoechste raeumte 3 Reihen. Eine
+    /// Portierung durfte `linesPerLevel` beliebig falsch umsetzen, ohne dass es auffiel.
+    func testRowModeLevelRuleIsCovered() {
+        let rowModes: Set<String> = ["verschuettet", "fuenfling"]
+        var raised = false
+        for spec in GoldenData.specs where rowModes.contains(spec.mode) {
+            let recorded = GoldenData.record(spec)
+            let levels = Set(recorded.snapshots.map(\.level))
+            if levels.count > 1 { raised = true }
+        }
+        XCTAssertTrue(raised, """
+            Kein Reihen-Fall aendert seine Stufe. Damit stehen weder `linesPerLevel` noch der \
+            Faktor `max(1, level)` aus `linePoints` im Pruefmassstab der Portierung.
+            """)
+    }
+
+    /// Der Deckel der Fluch-Vorbefuellung muss wenigstens einmal binden. `curseCount` ist
+    /// `min(4 * level, (Breite * curseRows) / 2)`; solange nur der erste Zweig gewinnt, steht
+    /// der zweite nirgends in den Daten.
+    func testCurseCountCapIsCovered() {
+        // Liegen weniger Flueche als `4 * Stufe`, hat der zweite Zweig gegriffen — auf einem
+        // leeren Brett dieser Groesse ist er der einzige Grund dafuer.
+        let capped = GoldenData.specs.filter { $0.mode == "kapseln" }.contains { spec in
+            guard let placed = GoldenData.record(spec).curseCountAtStart else { return false }
+            return placed < 4 * max(1, spec.startLevel)
+        }
+        XCTAssertTrue(capped, "kein Kapsel-Fall erreicht den Deckel von `curseCount`")
     }
 
     /// Die Kommandozeile darf ueberzaehlige Argumente nicht stillschweigend schlucken.
@@ -136,5 +177,12 @@ final class GoldenDataTests: XCTestCase {
         XCTAssertEqual(goldenMain(["--out"]), 1, "--out ohne Datei")
         XCTAssertEqual(goldenMain(["--out", "a.json", "b.json"]), 1, "--out mit zwei Dateien")
         XCTAssertEqual(goldenMain(["--unbekannt"]), 1)
+        // Der schreibende Zweig zaehlte frueher nur die Argumente: `--out --check` legte eine
+        // 1,4-MB-Datei namens „--check" an und meldete Erfolg, waehrend der verlangte Vergleich
+        // nie lief. Ein Dateiname faengt nicht mit `--` an.
+        XCTAssertEqual(goldenMain(["--out", "--check"]), 1, "--out darf keine Option beschreiben")
+        XCTAssertEqual(goldenMain(["--check", "--out"]), 1, "--check darf keine Option lesen")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: "--check"),
+                       "es darf keine Datei namens --check entstanden sein")
     }
 }

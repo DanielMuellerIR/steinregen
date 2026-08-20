@@ -12,7 +12,7 @@ describe("Brett-Kodierung gegen die Vergleichsdaten", () => {
   it("jedes aufgezeichnete Brett übersteht Einlesen und Ausgeben unverändert", () => {
     const boards = allBoards();
     // Wenn hier nichts ankommt, prüft der Test nichts — das wäre der stille Ausfall. Die
-    // Schranke liegt bewusst deutlich unter dem Ist-Stand (rund 900), damit sie nicht bei
+    // Schranke liegt bewusst deutlich unter dem Ist-Stand (rund 1100), damit sie nicht bei
     // jeder kleinen Änderung an den Vergleichsdaten anschlägt.
     assert.ok(boards.length > 500, `zu wenige Bretter geprüft: ${boards.length}`);
     for (const text of boards) {

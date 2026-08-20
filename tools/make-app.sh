@@ -13,7 +13,9 @@
 #              Erzwingt SKIP_ZIP=1, damit kein unsigniertes Bundle unter dem normalen
 #              Weitergabenamen dist/Steinregen-<version>.zip liegen bleibt.
 #   SKIP_ZIP   "1" = das abschließende ZIP überspringen (die notarisierte Variante zippt selbst
-#              erst NACH dem Stapeln). Sonst wird wie bisher dist/Steinregen-<version>.zip gebaut.
+#              erst NACH dem Stapeln). Ein gleichnamiges ZIP aus einem früheren Lauf wird dabei
+#              entfernt, damit es nicht für das Ergebnis dieses Laufs gehalten wird.
+#              Sonst wird wie bisher dist/Steinregen-<version>.zip gebaut.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -115,13 +117,14 @@ if [ "${SKIP_SIGN:-0}" = "1" ] && [ "${SKIP_ZIP:-0}" != "1" ]; then
     SKIP_ZIP=1
     ZIP_SKIP_GRUND="SKIP_SIGN=1: ein unsigniertes Bundle wird nicht weitergegeben"
 fi
-if [ "${SKIP_SIGN:-0}" = "1" ]; then
-    # Das ZIP zu überspringen genügt nicht: Ein gleichnamiges ZIP aus einem früheren Lauf bliebe
-    # sonst im Ausgabeordner liegen und würde für das Ergebnis DIESES unsignierten Laufs gehalten.
-    rm -f "$ZIP"
-fi
 
 if [ "${SKIP_ZIP:-0}" = "1" ]; then
+    # Kein neues ZIP — dann darf auch kein altes liegen bleiben. Die App daneben ist gerade neu
+    # gebaut worden; ein ZIP aus einem früheren, womöglich signierten Lauf sähe aus wie das
+    # Ergebnis DIESES Laufs. Das hing früher an SKIP_SIGN, doch diese Variable setzt niemand:
+    # Die echten Aufrufe (make-dmg.sh, make-notarized.sh) benutzen ausschließlich SKIP_ZIP=1,
+    # und genau dort blieb das veraltete Archiv deshalb liegen.
+    rm -f "$ZIP"
     echo "==> ZIP übersprungen (${ZIP_SKIP_GRUND:-SKIP_ZIP=1})."
     echo ""
     echo "Fertig:"
@@ -129,7 +132,9 @@ if [ "${SKIP_ZIP:-0}" = "1" ]; then
 else
     echo "==> ZIP für die Weitergabe…"
     rm -f "$ZIP"
-    ( cd dist && zip -qry "Steinregen-$VERSION.zip" "Steinregen.app" )
+    # Der Name kommt aus $ZIP, nicht ein zweites Mal aus $VERSION: Sonst wären `rm -f`, die
+    # Erfolgsmeldung und die tatsächlich erzeugte Datei getrennt gepflegt.
+    ( cd dist && zip -qry "${ZIP#dist/}" "Steinregen.app" )
 
     echo ""
     echo "Fertig:"

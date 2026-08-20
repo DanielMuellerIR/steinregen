@@ -132,6 +132,10 @@ bash tools/make-app.sh            # baut nur, bleibt in dist/
 ./release.sh --no-notarize        # unsigniert — schneller lokaler Layout-Test
 ```
 
+Beide Testmodi schreiben nach `dist/Steinregen-<version>-test.dmg`, nie unter den Release-Namen —
+so lässt sich ein Testimage nicht mit einem weitergebbaren verwechseln. `--publish` schließt beide
+Modi aus und trifft den Testnamen deshalb nie.
+
 `install.sh` und `release.sh` notarisieren zuerst die **App selbst** und heften ihr das Ticket an.
 Das ist der Punkt: Eine App, die nur im notarisierten Disk-Image steckt, verliert ihre Garantie in
 dem Moment, in dem jemand sie herauszieht. `release.sh` notarisiert danach zusätzlich das Image.
