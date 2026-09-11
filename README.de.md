@@ -124,7 +124,7 @@ unten.
 Drei Einstiegspunkte, bewusst getrennt:
 
 ```bash
-bash tools/make-app.sh            # baut nur, bleibt in dist/
+./build.sh                        # baut nur, bleibt in dist/ (Wrapper auf tools/make-app.sh)
 ./install.sh                      # baut, notarisiert, installiert nach /Applications
 ./release.sh                      # baut, notarisiert, packt das DMG — installiert nie
 ./release.sh --publish            # setzt zusätzlich Tag + lädt das DMG zu GitHub Releases

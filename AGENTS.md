@@ -157,7 +157,8 @@ Implementierungs-Todo eine startbare App bauen:
 bash tools/make-app.sh
 ```
 
-Das erzeugt ad-hoc-signiert `dist/Steinregen.app` und ZIP. Notarisierung/DMG nur bei
+`./build.sh` an der Wurzel ist der gleichwertige Wrapper (Schlusszeile `BUILD OK: <pfad>`) und
+bildet mit `install.sh` und `release.sh` die drei Einstiegsskripte. Das erzeugt ad-hoc-signiert `dist/Steinregen.app` und ZIP. Notarisierung/DMG nur bei
 Distribution oder ausdrücklichem Wunsch:
 
 - `./install.sh`: baut, notarisiert und installiert nach `/Applications`;

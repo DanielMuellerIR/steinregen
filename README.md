@@ -120,7 +120,7 @@ the entry points below (they require a Developer ID certificate and a notarytool
 Three entry points, deliberately separated:
 
 ```bash
-bash tools/make-app.sh            # build only, stays in dist/
+./build.sh                        # build only, stays in dist/ (wrapper for tools/make-app.sh)
 ./install.sh                      # build, notarize, install into /Applications
 ./release.sh                      # build, notarize, package the DMG — never installs
 ./release.sh --publish            # also tags + uploads the DMG to GitHub Releases

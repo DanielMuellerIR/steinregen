@@ -2,7 +2,7 @@
 # install.sh — Steinregen notarisiert nach /Applications installieren.
 #
 # Die drei Einstiegspunkte des Projekts trennen bewusst:
-#   bash tools/make-app.sh   baut die App nach dist/, mehr nicht
+#   ./build.sh               baut die App nach dist/, mehr nicht (Unterbau: tools/make-app.sh)
 #   ./install.sh             baut, notarisiert und installiert nach /Applications
 #   ./release.sh             baut, notarisiert und packt das DMG — installiert nie
 #

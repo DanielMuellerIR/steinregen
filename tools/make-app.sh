@@ -141,3 +141,7 @@ else
     echo "  $ROOT/$APP   (doppelklickbar)"
     echo "  $ROOT/$ZIP"
 fi
+
+# Maschinenlesbare Schlusszeile: Aufrufer (./build.sh, Agenten, CI) lesen den
+# Ergebnispfad aus der letzten Zeile statt aus dem Log.
+echo "BUILD OK: $ROOT/$APP"
