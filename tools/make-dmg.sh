@@ -29,6 +29,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
+source "$ROOT/notarize-lib.sh"
 VERSION="$(tr -d '[:space:]' < VERSION)"
 TAG="v$VERSION"
 
@@ -63,11 +64,6 @@ if [ "$PUBLISH" = "1" ] && [ "$FINDER_LAYOUT" = "0" ]; then
     echo "        Ohne Layout fehlen Icon-Positionen und Hintergrundbild — das ist kein Release-DMG."
     exit 2
 fi
-if [ "$NOTARIZE" = "1" ] && [ -z "$NOTARY_PROFILE" ]; then
-    echo "FEHLER: NOTARY_PROFILE muss für die Notarisierung gesetzt sein."
-    echo "        Beispiel: NOTARY_PROFILE=profil-name bash tools/make-dmg.sh"
-    exit 2
-fi
 # Ein Testlauf bekommt einen EIGENEN Dateinamen. Sonst überschreibt ein unsigniertes oder
 # layout-loses Testimage das fertige, geprüfte Release-DMG derselben Version, und im Ausgabeordner
 # läge unter dem Weitergabenamen ein ausdrücklich nicht veröffentlichbares Artefakt.
@@ -92,6 +88,7 @@ fi
 
 # --- 1) App bauen (+ ggf. mit Developer ID signieren) --------------------------------------
 if [ "$NOTARIZE" = "1" ]; then
+    require_notary_profile
     # Vorab-Checks: lieber jetzt scheitern als nach dem langen Build.
     # (Ausgabe erst in eine Variable, dann per Here-String greppen — siehe make-notarized.sh:
     #  "befehl | grep -q" stirbt sonst an SIGPIPE und pipefail wertet es als Fehler.)
@@ -109,24 +106,6 @@ if [ "$NOTARIZE" = "1" ]; then
         echo "FEHLER: Signing-Identität nicht in der Keychain gefunden: »${SIGN_ID}«"
         echo "        Vorhandene:"; sed 's/^/          /' <<<"$IDENTITIES"
         echo "        (Zum reinen Layout-Test ohne Zertifikat: bash tools/make-dmg.sh --no-notarize)"
-        exit 1
-    fi
-    # Fünf Versuche statt einem: `notarytool history` meldet gelegentlich
-    # fälschlich „No Keychain password item found", obwohl das Profil da ist
-    # (2026-07-26 auf M3 belegt). Ein einzelner Fehlversuch würde sonst einen
-    # ganzen Lauf grundlos abbrechen; ein wirklich fehlendes Profil scheitert
-    # auch nach fünf Versuchen.
-    notary_profile_works() {
-        local attempt
-        for attempt in 1 2 3 4 5; do
-            xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 && return 0
-            sleep 3
-        done
-        return 1
-    }
-    if ! notary_profile_works; then
-        echo "FEHLER: notarytool-Profil »${NOTARY_PROFILE}« fehlt oder ist ungültig."
-        echo "        Anlegen:  xcrun notarytool store-credentials $NOTARY_PROFILE --apple-id apple-id@example.com --team-id TEAMID1234"
         exit 1
     fi
     echo "==> Bauen + Developer-ID-Signatur…"
@@ -232,14 +211,13 @@ hdiutil create -srcfolder "$APP" -volname "$VOLNAME" -fs HFS+ \
 # Das eigene Gerät merken und per `trap` genau dieses wieder aushängen — auch wenn das Skript
 # zwischendrin abbricht. Ohne das bliebe nach einem Fehlschlag ein gemountetes Volume zurück,
 # und genau daraus entstand die Versuchung, beim nächsten Lauf blind zu detachen.
-ATTACH_OUT="$(hdiutil attach "$ROOT/$RW_DMG" -mountpoint "$MOUNT_DIR" -nobrowse -noverify -noautoopen)"
-# Der Trap steht direkt hinter dem `attach` und noch VOR dem Auswerten der Ausgabe: Ab hier ist
-# ein Volume gemountet, und jeder Ausstieg muss es wieder loswerden. Stand er erst hinter der
-# Geräte-Prüfung, hinterließ genau deren Fehlerzweig ein gemountetes Volume — also den Zustand,
-# den der Trap verhindern soll, und der zusammen mit dem Mount-Schutz oben den nächsten Lauf
-# blockiert. Ausgehängt wird zunächst über den Mountpunkt; sobald das Gerät bekannt ist, über
-# dieses (das löst auch ein Image, dessen Volume schon verschwunden ist).
+# Der Trap steht vor `attach`: Auch wenn hdiutil nach einem teilweisen Mount mit
+# Fehlerstatus endet, räumt der EXIT-Pfad den vorher als frei geprüften Mountpunkt auf.
 trap 'hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true' EXIT
+if ! ATTACH_OUT="$(hdiutil attach "$ROOT/$RW_DMG" -mountpoint "$MOUNT_DIR" -nobrowse -noverify -noautoopen)"; then
+    echo "FEHLER: hdiutil konnte das schreibbare Image nicht vollständig einhängen."
+    exit 1
+fi
 printf '%s\n' "$ATTACH_OUT"
 DEVICE="$(awk 'NR == 1 { print $1; exit }' <<<"$ATTACH_OUT")"   # z. B. /dev/disk4
 if [ -z "$DEVICE" ]; then

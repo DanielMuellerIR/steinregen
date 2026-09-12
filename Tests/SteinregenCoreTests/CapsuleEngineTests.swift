@@ -77,6 +77,8 @@ final class CapsuleEngineTests: XCTestCase {
         XCTAssertEqual(CapsuleEngine.curseCount(level: 1, width: 8, height: 16), 4)
         XCTAssertEqual(CapsuleEngine.curseCount(level: 5, width: 8, height: 16), 20)
         XCTAssertEqual(CapsuleEngine.curseCount(level: 10, width: 8, height: 16), 36)
+        XCTAssertEqual(CapsuleEngine.curseCount(level: 5, width: 6, height: 10), 18)
+        XCTAssertEqual(CapsuleEngine.curseCount(level: 2, width: 4, height: 8), 8)
         XCTAssertEqual(CapsuleEngine(seed: 7, startLevel: 1).curses.count, 4)
         XCTAssertEqual(CapsuleEngine(seed: 7, startLevel: 1).curseCountAtStart, 4)
     }

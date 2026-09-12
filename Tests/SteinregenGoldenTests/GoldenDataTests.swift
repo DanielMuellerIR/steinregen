@@ -157,13 +157,13 @@ final class GoldenDataTests: XCTestCase {
     /// `min(4 * level, (Breite * curseRows) / 2)`; solange nur der erste Zweig gewinnt, steht
     /// der zweite nirgends in den Daten.
     func testCurseCountCapIsCovered() {
-        // Liegen weniger Flueche als `4 * Stufe`, hat der zweite Zweig gegriffen — auf einem
-        // leeren Brett dieser Groesse ist er der einzige Grund dafuer.
-        let capped = GoldenData.specs.filter { $0.mode == "kapseln" }.contains { spec in
-            guard let placed = GoldenData.record(spec).curseCountAtStart else { return false }
-            return placed < 4 * max(1, spec.startLevel)
+        guard let spec = GoldenData.specs.first(where: {
+            $0.mode == "kapseln" && $0.id == "kapseln-klein"
+        }) else {
+            return XCTFail("Vergleichsfall kapseln-klein fehlt")
         }
-        XCTAssertTrue(capped, "kein Kapsel-Fall erreicht den Deckel von `curseCount`")
+        XCTAssertEqual(GoldenData.record(spec).curseCountAtStart, 18,
+                       "kapseln-klein muss den Kapazitaetsdeckel exakt belegen")
     }
 
     /// Die Kommandozeile darf ueberzaehlige Argumente nicht stillschweigend schlucken.

@@ -8,8 +8,8 @@
 #   ./release.sh             baut, notarisiert und packt das DMG — installiert NIE
 #
 # Die eigentliche Arbeit macht tools/make-dmg.sh; dieses Skript ist der
-# einheitliche Einstiegspunkt nach dem projektübergreifenden Schema, ermittelt
-# das Notar-Profil und reicht alle Argumente durch (z. B. --publish).
+# einheitliche Einstiegspunkt nach dem projektübergreifenden Schema und reicht
+# alle Argumente durch (z. B. --publish).
 #
 # Wichtig ist die doppelte Notarisierung: Erst bekommt die App ihr eigenes
 # Ticket angeheftet, dann das fertige DMG. Nur so startet die App auch dann
@@ -26,17 +26,5 @@
 #   ./release.sh --no-notarize   # unsigniertes Test-DMG, nur zum Layout-Test
 set -euo pipefail
 cd "$(dirname "$0")"
-
-# --no-notarize ist der ausdrückliche Layout-Test ohne Zertifikat; dafür darf
-# kein Profil verlangt werden.
-NEEDS_PROFILE=1
-for arg in "$@"; do
-    [ "$arg" = "--no-notarize" ] && NEEDS_PROFILE=0
-done
-
-if [ "$NEEDS_PROFILE" = "1" ]; then
-    source ./notarize-lib.sh
-    require_notary_profile
-fi
 
 exec bash tools/make-dmg.sh "$@"

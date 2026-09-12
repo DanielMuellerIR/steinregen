@@ -272,12 +272,15 @@ export function applyMagic(
   target: Gem,
   score: number,
   gemsCleared: number,
-): { step: ClearStep; score: number; gemsCleared: number } {
+): { step: ClearStep; score: number; gemsCleared: number } | null {
   // Kein Nachsortieren: `cellsOf` läuft schon Reihe für Reihe, Spalte für Spalte — also genau
   // in Brett-Reihenfolge. Der Swift-Gegenpart sortiert hier ebenfalls nicht. Ein `sortCells`
   // davor wäre heute folgenlos, würde aber eine künftige Reihenfolge-Änderung in `cellsOf`
   // verdecken; die Zusicherung gehört dorthin, wo die Reihenfolge entsteht.
   const cells = board.cellsOf(target);
+  // Eine Farbe, die auf dem Brett nicht vorkommt, lässt den Magic-Stein wie im
+  // Swift-Kern ohne Räumwelle verpuffen. Eine leere Welle wäre ein Phantomschritt.
+  if (cells.length === 0) return null;
   for (const c of cells) board.set(c.col, c.row, null);
   settle(board);
   const points = Scoring.points(cells.length, 1);

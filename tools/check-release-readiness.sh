@@ -28,6 +28,7 @@ required_files=(
     SECURITY.md
     THIRD-PARTY-ASSETS.md
     CHANGELOG.md
+    build.sh
     tools/github-release.sh
     tools/test-github-release.sh
     install.sh
@@ -44,9 +45,16 @@ done
 
 # install.sh und release.sh werden als ./install.sh bzw. ./release.sh aufgerufen und brauchen
 # deshalb das Ausführbar-Bit. notarize-lib.sh wird nur gesourct und steht bewusst nicht hier.
-for path in install.sh release.sh; do
+for path in build.sh install.sh release.sh; do
     [ -x "$path" ] || fail "Einstiegsskript ist nicht ausführbar: $path"
 done
+
+# Der Aufräum-Trap muss schon vor `hdiutil attach` stehen. Ein teilweise
+# erfolgreicher Attach kann trotz Fehlerstatus ein Volume zurücklassen.
+DMG_TRAP_LINE="$(grep -nF 'trap '\''hdiutil detach "$MOUNT_DIR"' tools/make-dmg.sh | head -1 | cut -d: -f1 || true)"
+DMG_ATTACH_LINE="$(grep -nF 'ATTACH_OUT="$(hdiutil attach' tools/make-dmg.sh | head -1 | cut -d: -f1 || true)"
+[ -n "$DMG_TRAP_LINE" ] && [ -n "$DMG_ATTACH_LINE" ] && [ "$DMG_TRAP_LINE" -lt "$DMG_ATTACH_LINE" ] \
+    || fail "tools/make-dmg.sh installiert den Aufräum-Trap nicht vor hdiutil attach."
 
 # Fleet-Regel (2026-08-03): In /Applications gehören ausschließlich Bundles mit angeheftetem
 # Notary-Ticket; ad hoc gebaut wird nur im Projektordner. Geprüft wird hier die QUELLE von
@@ -211,7 +219,7 @@ PY
 # in install.sh oder release.sh erst beim echten Installations- oder Release-Aufruf auf.
 # Je Datei ein eigener Aufruf: `bash -n a.sh b.sh` prüft NUR a.sh und reicht den Rest als
 # Positionsparameter durch — die bisherige Sammelprüfung sah also nur die erste Datei.
-for path in tools/*.sh install.sh release.sh notarize-lib.sh; do
+for path in tools/*.sh build.sh install.sh release.sh notarize-lib.sh; do
     bash -n "$path" || fail "Syntaxfehler in $path"
 done
 git diff --check

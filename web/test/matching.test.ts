@@ -158,6 +158,7 @@ describe("Treffer-Kaskade gegen die Vergleichsdaten", () => {
       assert.ok(color !== undefined && isGem(color), `${caseId}: Magic-Welle ohne Farbe`);
 
       const magic = applyMagic(board, color, 0, 0);
+      assert.ok(magic, `${caseId}: Magic-Farbe fehlt auf dem Brett`);
       assert.deepEqual(describeOwnStep(magic.step), describeStep(first), `${caseId}: Magic-Welle weicht ab`);
 
       // Danach läuft die normale Kaskade weiter — mit der Kettenstufe, die der Magic-Effekt
@@ -177,6 +178,14 @@ describe("Treffer-Kaskade gegen die Vergleichsdaten", () => {
       );
       assert.equal(board.encode(), boardAfter, `${caseId}: Brett nach dem Magic-Aufsetzer weicht ab`);
     }
+  });
+
+  it("Magic Jewel erzeugt für eine fehlende Farbe keine Phantom-Welle", () => {
+    const board = Board.decode("r../.e./..s");
+    const before = board.encode();
+    const magic = applyMagic(board, Gem.topaz, 42, 7);
+    assert.equal(magic, null);
+    assert.equal(board.encode(), before, "ein verpuffter Magic-Stein darf das Brett nicht ändern");
   });
 });
 

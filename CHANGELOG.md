@@ -3,6 +3,20 @@
 All notable changes to Steinregen. Versions follow the `VERSION` file; the GitHub
 release notes for each version are taken from the matching `## [version]` section below.
 
+## [0.28.5]
+
+Review follow-up for release safety and the TypeScript core port.
+
+- The TypeScript Magic helper now returns no step when its target colour is absent, matching the
+  Swift fizzle case instead of creating an empty scoring wave.
+- Capsule coverage pins the exact 18-curse capacity cap used by `kapseln-klein` and checks further
+  board sizes directly.
+- The release readiness gate now includes `build.sh` in its required, executable and syntax checks.
+- The DMG cleanup trap is active before `hdiutil attach`, so a partially mounted image is detached
+  even when attach itself reports an error.
+- Both lower notarization tools use the single profile check in `notarize-lib.sh`; the root entry
+  scripts no longer repeat that network/keychain check.
+
 ## [0.28.4]
 
 Follow-up to the code review of 2026-08-20; no gameplay rule changed. The recorded games grew by

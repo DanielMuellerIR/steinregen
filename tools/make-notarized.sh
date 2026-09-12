@@ -22,6 +22,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
+source "$ROOT/notarize-lib.sh"
 VERSION="$(tr -d '[:space:]' < VERSION)"
 APP="dist/Steinregen.app"
 
@@ -30,11 +31,7 @@ APP="dist/Steinregen.app"
 SIGN_ID="${SIGN_ID:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 
-if [ -z "$NOTARY_PROFILE" ]; then
-    echo "FEHLER: NOTARY_PROFILE muss für die Notarisierung gesetzt sein."
-    echo "        Beispiel: NOTARY_PROFILE=profil-name bash tools/make-notarized.sh"
-    exit 2
-fi
+require_notary_profile
 
 # --- Vorab-Checks: lieber jetzt klar scheitern als nach dem langen Build --------------------
 # Hinweis: Ausgabe IMMER erst in eine Variable holen und dann per Here-String (<<<) greppen,
@@ -63,21 +60,6 @@ fi
 # belegt — Versuch 1 fehlgeschlagen, Versuch 2 sofort ok). Ein einzelner
 # Fehlversuch würde sonst einen ganzen Lauf grundlos abbrechen; ein wirklich
 # fehlendes Profil scheitert auch nach fünf Versuchen.
-notary_profile_works() {
-    local attempt
-    for attempt in 1 2 3 4 5; do
-        xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 && return 0
-        sleep 3
-    done
-    return 1
-}
-if ! notary_profile_works; then
-    echo "FEHLER: notarytool-Profil »${NOTARY_PROFILE}« fehlt oder ist ungültig."
-    echo "        Anlegen:  xcrun notarytool store-credentials $NOTARY_PROFILE \\"
-    echo "                    --apple-id apple-id@example.com --team-id TEAMID1234"
-    exit 1
-fi
-
 # --- 1) Bauen + mit Developer ID signieren (Hardened Runtime), KEIN Zwischen-ZIP ------------
 echo "==> Bauen + Developer-ID-Signatur…"
 SIGN_ID="$SIGN_ID" SKIP_ZIP=1 bash tools/make-app.sh

@@ -7,7 +7,7 @@
 #   ./release.sh             baut, notarisiert und packt das DMG — installiert nie
 #
 # Die eigentliche Bau- und Notarisierungsarbeit macht tools/make-notarized.sh;
-# dieses Skript ergänzt nur die Profilermittlung und die Installation.
+# dieses Skript ergänzt nur die Installation.
 #
 # Warum notarisiert: In /Applications gehören nur Bundles mit angeheftetem
 # Notary-Ticket, die Gatekeeper akzeptiert. Ein ad-hoc signierter Testbuild
@@ -21,10 +21,6 @@
 # Letzte Zeile bei Erfolg: INSTALL OK: /Applications/Steinregen.app (<version>)
 set -euo pipefail
 cd "$(dirname "$0")"
-source ./notarize-lib.sh
-
-require_notary_profile
-
 APP="dist/Steinregen.app"
 DESTINATION="/Applications/Steinregen.app"
 VERSION="$(tr -d '[:space:]' < VERSION)"
